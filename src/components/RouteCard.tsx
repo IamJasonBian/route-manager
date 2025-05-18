@@ -3,12 +3,17 @@ import { MapPinIcon, ClockIcon, ArrowRightIcon, TrendingDownIcon, ExternalLinkIc
 import { PriceChart } from './PriceChart';
 // Helper function to generate a Google Flights URL for one-day flights starting from today
 const getGoogleFlightsUrl = (from: string, to: string): string => {
-  // Get today's date
+  // Get today's date and tomorrow's date for a one-day flight
   const today = new Date();
-  const formattedDate = today.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
   
-  // Build the URL with specific parameters for one-day flights
-  return `https://www.google.com/travel/flights?q=flights%20from%20${encodeURIComponent(from)}%20to%20${encodeURIComponent(to)}&tfs=CAEQAQ&hl=en&curr=USD&dt=${formattedDate}`;
+  // Format dates as YYYY-MM-DD
+  const departDate = today.toISOString().split('T')[0];
+  const returnDate = tomorrow.toISOString().split('T')[0];
+  
+  // Build the URL with proper parameters for Google Flights
+  return `https://www.google.com/travel/flights?q=Flights%20to%20${encodeURIComponent(to)}%20from%20${encodeURIComponent(from)}%20on%20${departDate}%20through%20${returnDate}&curr=USD`;
 };
 
 export const RouteCard = ({
