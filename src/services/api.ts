@@ -1,26 +1,22 @@
 import axios from 'axios';
 
-// Note: Google Flights API (QPX Express) was discontinued in 2018
-// We'll use Duffel API as an alternative (https://duffel.com/)
-// You would need to sign up for an API key at https://duffel.com/
-
 // API configuration
-const DUFFEL_API_KEY = 'duffel_test_Az2Sn9PHnhabv91W5eT7huFSR0LSIc9Pi4V8roBv4NE'; // Replace with your actual API key
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://apollo-route-manager.windsurf.build/.netlify/functions'
+  : 'http://localhost:8888/.netlify/functions';
 
 // Create axios instance with default configuration
 export const apiClient = axios.create({
-  baseURL: 'https://api.duffel.com/air',
+  baseURL: API_BASE_URL,
   headers: {
-    'Authorization': `Bearer ${DUFFEL_API_KEY}`,
     'Accept': 'application/json',
-    'Content-Type': 'application/json',
-    'Duffel-Version': 'v1'
+    'Content-Type': 'application/json'
   }
 });
 
 // Interface for flight price data
 export interface FlightPrice {
-  date: Date;
+  date: string | Date;
   price: number;
 }
 
@@ -40,24 +36,27 @@ export const getFlightPrices = async (from: string, to: string, departDate: stri
   try {
     console.log(`Fetching prices from ${from} to ${to} for ${departDate}`);
     
-    // CORS Issue: Direct API calls to Duffel from the browser are blocked by CORS policy
-    // In a production app, you would need to:
-    // 1. Create a backend proxy server to make these API calls
-    // 2. Use a serverless function (e.g., AWS Lambda, Netlify Functions)
-    // 3. Use a CORS proxy for development
+    // Call our Netlify function to get flight prices
+    const response = await apiClient.get(`/flight-prices?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
     
-    // For now, we'll use mock data with some randomization based on the route
-    console.warn('Using mock data due to CORS restrictions. In production, use a backend proxy.');
+    if (response.data && response.data.prices) {
+      console.log(`Received ${response.data.prices.length} prices from ${response.data.source} source`);
+      
+      // Convert date strings to Date objects for compatibility
+      return response.data.prices.map((price: any) => ({
+        date: new Date(price.date),
+        price: price.price
+      }));
+    }
     
-    // Generate mock prices with some variation based on the route and date
-    const routeHash = from.charCodeAt(0) + to.charCodeAt(0);
-    const basePrice = 400 + (routeHash % 500); // Generate a base price between 400-900 based on route
-    
-    return generateMockPrices(basePrice);
+    throw new Error('Invalid response format');
   } catch (error) {
     console.error('Error fetching flight prices:', error);
     // Fall back to mock data on error
-    return generateMockPrices();
+    const routeHash = from.charCodeAt(0) + to.charCodeAt(0);
+    const basePrice = 400 + (routeHash % 500); // Generate a base price between 400-900 based on route
+    console.warn('Falling back to mock data');
+    return generateMockPrices(basePrice);
   }
 };
 
@@ -84,42 +83,48 @@ export const getRoutes = async (): Promise<Route[]> => {
   try {
     console.log('Fetching popular routes');
     
-    // CORS Issue: Direct API calls to Duffel from the browser are blocked by CORS policy
-    // Using mock data with popular routes instead
+    // Call our Netlify function to get popular routes
+    const response = await apiClient.get('/popular-routes');
     
-    // Define popular routes with city names and IATA codes for reference
-    const popularRoutes = [
-      { id: '1', from: 'New York', to: 'London', code1: 'JFK', code2: 'LHR', distance: '3,461 miles', duration: '7h 25m', basePrice: 550 },
-      { id: '2', from: 'New York', to: 'Seattle', code1: 'JFK', code2: 'SEA', distance: '2,421 miles', duration: '6h 10m', basePrice: 450 },
-      { id: '3', from: 'New York', to: 'Detroit', code1: 'JFK', code2: 'DTW', distance: '509 miles', duration: '1h 45m', basePrice: 280 },
-      { id: '4', from: 'New York', to: 'Grand Rapids', code1: 'JFK', code2: 'GRR', distance: '605 miles', duration: '2h 10m', basePrice: 320 },
-      { id: '5', from: 'New York', to: 'Los Angeles', code1: 'JFK', code2: 'LAX', distance: '2,475 miles', duration: '6h 15m', basePrice: 480 },
-      { id: '6', from: 'New York', to: 'San Francisco', code1: 'JFK', code2: 'SFO', distance: '2,586 miles', duration: '6h 30m', basePrice: 490 },
-      { id: '7', from: 'New York', to: 'Las Vegas', code1: 'JFK', code2: 'LAS', distance: '2,248 miles', duration: '5h 45m', basePrice: 460 },
-      { id: '8', from: 'New York', to: 'Austin', code1: 'JFK', code2: 'AUS', distance: '1,521 miles', duration: '4h 05m', basePrice: 380 },
-      { id: '9', from: 'New York', to: 'Vienna', code1: 'JFK', code2: 'VIE', distance: '4,228 miles', duration: '8h 50m', basePrice: 620 }
-    ];
-    
-    // Generate price variations for each route
-    return popularRoutes.map(route => {
-      // Generate prices with some variation based on the route
-      const routeHash = route.code1.charCodeAt(0) + route.code2.charCodeAt(0);
-      const basePrice = route.basePrice + (routeHash % 50); // Small variation based on route codes
+    if (response.data && Array.isArray(response.data)) {
+      console.log(`[API] Received ${response.data.length} routes`);
       
-      return {
-        id: route.id,
-        from: route.from,
-        to: route.to,
-        basePrice,
-        prices: generateMockPrices(basePrice),
-        distance: route.distance,
-        duration: route.duration
-      };
-    });
+      // Log the raw response for debugging
+      console.log('[API] Raw response data:', JSON.stringify(response.data, null, 2));
+      
+      // Convert date strings to Date objects for compatibility
+      const processedData = response.data.map((route: any) => {
+        console.log(`[API] Processing route: ${route.origin} to ${route.destination}`);
+        console.log(`[API] Raw prices data:`, JSON.stringify(route.prices, null, 2));
+        
+        const processedRoute = {
+          ...route,
+          prices: route.prices.map((price: any) => ({
+            date: new Date(price.date),
+            price: price.price
+          }))
+        };
+        
+        console.log(`[API] Processed route data:`, JSON.stringify({
+          ...processedRoute,
+          prices: processedRoute.prices.map((p: any) => ({
+            date: p.date.toISOString().split('T')[0],
+            price: p.price
+          }))
+        }, null, 2));
+        
+        return processedRoute;
+      });
+      
+      return processedData;
+    }
+    
+    throw new Error('Invalid response format');
   } catch (error) {
     console.error('Error fetching routes:', error);
     
     // Fallback to minimal mock data if everything fails
+    console.warn('Falling back to mock route data');
     return [
       {
         id: '1',
