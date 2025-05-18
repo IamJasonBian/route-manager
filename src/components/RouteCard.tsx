@@ -16,9 +16,32 @@ const getGoogleFlightsUrl = (from: string, to: string): string => {
   return `https://www.google.com/travel/flights?q=Flights%20to%20${encodeURIComponent(to)}%20from%20${encodeURIComponent(from)}%20on%20${departDate}%20through%20${returnDate}&curr=USD`;
 };
 
-export const RouteCard = ({
-  route
+interface RouteCardProps {
+  route: {
+    id: string;
+    from: string;
+    to: string;
+    basePrice: number;
+    prices: Array<{ date: string | Date; price: number }>;
+    distance: string;
+    duration: string;
+  };
+  onLoad?: () => void;
+}
+
+export const RouteCard: React.FC<RouteCardProps> = ({
+  route,
+  onLoad
 }) => {
+  // Call onLoad when the component mounts
+  const isMounted = React.useRef(false);
+  
+  React.useEffect(() => {
+    if (onLoad && !isMounted.current) {
+      isMounted.current = true;
+      onLoad();
+    }
+  }, [onLoad]);
   const {
     from,
     to,
