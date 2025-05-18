@@ -1,6 +1,16 @@
 import React from 'react';
-import { MapPinIcon, ClockIcon, ArrowRightIcon, TrendingDownIcon } from 'lucide-react';
+import { MapPinIcon, ClockIcon, ArrowRightIcon, TrendingDownIcon, ExternalLinkIcon } from 'lucide-react';
 import { PriceChart } from './PriceChart';
+// Helper function to generate a Google Flights URL for one-day flights starting from today
+const getGoogleFlightsUrl = (from: string, to: string): string => {
+  // Get today's date
+  const today = new Date();
+  const formattedDate = today.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+  
+  // Build the URL with specific parameters for one-day flights
+  return `https://www.google.com/travel/flights?q=flights%20from%20${encodeURIComponent(from)}%20to%20${encodeURIComponent(to)}&tfs=CAEQAQ&hl=en&curr=USD&dt=${formattedDate}`;
+};
+
 export const RouteCard = ({
   route
 }) => {
@@ -31,6 +41,15 @@ export const RouteCard = ({
               <span className="mx-2">•</span>
               <span>{distance}</span>
             </div>
+            <a 
+              href={getGoogleFlightsUrl(from, to)} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center text-xs text-blue-600 mt-2 hover:text-blue-800 transition-colors"
+            >
+              <ExternalLinkIcon className="h-3 w-3 mr-1" />
+              View on Google Flights
+            </a>
           </div>
           <div className="bg-green-50 px-4 py-2 rounded-lg">
             <div className="flex items-center text-green-700">
@@ -43,7 +62,7 @@ export const RouteCard = ({
             {savings > 0 && <div className="text-xs text-green-600">Save ${savings}</div>}
           </div>
         </div>
-        <div className="h-48 mt-2">
+        <div className="h-52 mt-2">
           <PriceChart prices={prices} basePrice={basePrice} lowestPrice={lowestPrice} highestPrice={highestPrice} />
         </div>
       </div>
