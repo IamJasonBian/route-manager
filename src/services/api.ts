@@ -90,11 +90,14 @@ export const getRoutes = async (): Promise<Route[]> => {
     // Define popular routes with city names and IATA codes for reference
     const popularRoutes = [
       { id: '1', from: 'New York', to: 'London', code1: 'JFK', code2: 'LHR', distance: '3,461 miles', duration: '7h 25m', basePrice: 550 },
-      { id: '2', from: 'San Francisco', to: 'Tokyo', code1: 'SFO', code2: 'NRT', distance: '5,124 miles', duration: '11h 15m', basePrice: 750 },
-      { id: '3', from: 'Los Angeles', to: 'Paris', code1: 'LAX', code2: 'CDG', distance: '5,677 miles', duration: '10h 30m', basePrice: 650 },
-      { id: '4', from: 'Chicago', to: 'Rome', code1: 'ORD', code2: 'FCO', distance: '4,825 miles', duration: '9h 45m', basePrice: 680 },
-      { id: '5', from: 'Miami', to: 'Barcelona', code1: 'MIA', code2: 'BCN', distance: '4,690 miles', duration: '9h 10m', basePrice: 620 },
-      { id: '6', from: 'Boston', to: 'Dublin', code1: 'BOS', code2: 'DUB', distance: '3,130 miles', duration: '6h 20m', basePrice: 480 }
+      { id: '2', from: 'New York', to: 'Seattle', code1: 'JFK', code2: 'SEA', distance: '2,421 miles', duration: '6h 10m', basePrice: 450 },
+      { id: '3', from: 'New York', to: 'Detroit', code1: 'JFK', code2: 'DTW', distance: '509 miles', duration: '1h 45m', basePrice: 280 },
+      { id: '4', from: 'New York', to: 'Grand Rapids', code1: 'JFK', code2: 'GRR', distance: '605 miles', duration: '2h 10m', basePrice: 320 },
+      { id: '5', from: 'New York', to: 'Los Angeles', code1: 'JFK', code2: 'LAX', distance: '2,475 miles', duration: '6h 15m', basePrice: 480 },
+      { id: '6', from: 'New York', to: 'San Francisco', code1: 'JFK', code2: 'SFO', distance: '2,586 miles', duration: '6h 30m', basePrice: 490 },
+      { id: '7', from: 'New York', to: 'Las Vegas', code1: 'JFK', code2: 'LAS', distance: '2,248 miles', duration: '5h 45m', basePrice: 460 },
+      { id: '8', from: 'New York', to: 'Austin', code1: 'JFK', code2: 'AUS', distance: '1,521 miles', duration: '4h 05m', basePrice: 380 },
+      { id: '9', from: 'New York', to: 'Vienna', code1: 'JFK', code2: 'VIE', distance: '4,228 miles', duration: '8h 50m', basePrice: 620 }
     ];
     
     // Generate price variations for each route
@@ -129,12 +132,12 @@ export const getRoutes = async (): Promise<Route[]> => {
       },
       {
         id: '2',
-        from: 'San Francisco',
-        to: 'Tokyo',
-        basePrice: 750,
-        prices: generateMockPrices(750),
-        distance: '5,124 miles',
-        duration: '11h 15m'
+        from: 'New York',
+        to: 'Seattle',
+        basePrice: 450,
+        prices: generateMockPrices(450),
+        distance: '2,421 miles',
+        duration: '6h 10m'
       }
     ];
   }
