@@ -1,5 +1,10 @@
 ### Description
 
+**Quick Start:**
+
+1. Spin up local netlify server: `netlify dev`
+2. Run local host: `npm run dev`
+
 **Current Features:**
 
 * Shows a 4 month price curve for outbound NYC flights using real data from Amadeus API (with fallback to mock data)

@@ -1,9 +1,10 @@
 const Amadeus = require('amadeus');
 
-// Initialize Amadeus client with production API credentials
+// Initialize Amadeus client with environment variables
 const amadeus = new Amadeus({
-  clientId: 'eAyYxVTV9z5WIGvJGgrBAnA1L2hLT7kA',
-  clientSecret: 'PtEixsoRA9yh1uyO'
+  clientId: process.env.AMADEUS_API_KEY || 'YOUR_AMADEUS_API_KEY',
+  clientSecret: process.env.AMADEUS_API_SECRET || 'YOUR_AMADEUS_API_SECRET',
+  hostname: process.env.AMADEUS_HOSTNAME || 'test' // 'test' or 'production'
 });
 
 // Helper function to format date to YYYY-MM-DD
