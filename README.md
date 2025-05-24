@@ -2,8 +2,10 @@
 
 **Quick Start:**
 
-1. Spin up local netlify server: `netlify dev`
-2. Run local host: `npm run dev`
+1. Install dependencies: `npm install`
+2. Start the development server: `npm run dev`
+3. For production build: `npm run build`
+4. To preview production build: `npm run preview`
 
 **Current Features:**
 
