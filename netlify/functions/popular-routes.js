@@ -1,9 +1,10 @@
 const Amadeus = require('amadeus');
 
-// Initialize Amadeus client with production API credentials
+// Initialize Amadeus client with environment variables
 const amadeus = new Amadeus({
-  clientId: 'eAyYxVTV9z5WIGvJGgrBAnA1L2hLT7kA',
-  clientSecret: 'PtEixsoRA9yh1uyO'
+  clientId: process.env.AMADEUS_API_KEY || 'YOUR_AMADEUS_API_KEY',
+  clientSecret: process.env.AMADEUS_API_SECRET || 'YOUR_AMADEUS_API_SECRET',
+  hostname: process.env.AMADEUS_HOSTNAME || 'test' // 'test' or 'production'
 });
 
 // Helper function to format date to YYYY-MM-DD
@@ -26,6 +27,72 @@ const generateDatesForNextMonth = () => {
   return dates;
 };
 
+// Function to generate mock prices for a route with realistic patterns
+const generateMockPrices = (basePrice = 300) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const prices = [];
+  const daysInFourMonths = 120; // 4 months of data
+  
+  // Generate prices for the next 4 months
+  for (let i = 0; i < daysInFourMonths; i++) {
+    const date = new Date(today);
+    date.setDate(date.getDate() + i);
+    const dayOfWeek = date.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Only Sat/Sun
+    const daysOut = daysInFourMonths - i;
+    
+    // Base patterns
+    const month = date.getMonth();
+    const isPeakSeason = month >= 5 && month <= 7; // June-August
+    
+    // Create a more dynamic price pattern
+    // 1. Start with base price
+    let price = basePrice;
+    
+    // 2. Add time-based variation (prices often dip in the middle)
+    const timeProgress = i / daysInFourMonths;
+    const timeVariation = Math.sin(timeProgress * Math.PI) * 0.3; // Creates a curve
+    
+    // 3. Add weekend premium (5-15%)
+    const weekendPremium = isWeekend ? (0.05 + Math.random() * 0.1) : 0;
+    
+    // 4. Add peak season adjustment (0-20%)
+    const peakAdjustment = isPeakSeason ? Math.random() * 0.2 : 0;
+    
+    // 5. Add random variation (-15% to +15%)
+    const randomVariation = (Math.random() * 0.3) - 0.15;
+    
+    // Combine all factors
+    price = price * (1 + timeVariation + weekendPremium + peakAdjustment + randomVariation);
+    
+    // Add some noise to make it look more organic
+    const noise = (Math.random() - 0.5) * 20; // ±$20
+    price = Math.round(price + noise);
+    
+    // Ensure price stays within reasonable bounds
+    price = Math.max(
+      Math.round(basePrice * 0.6), 
+      Math.min(price, Math.round(basePrice * 1.8))
+    );
+    
+    // Add day of week for reference
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayName = days[dayOfWeek];
+    
+    prices.push({
+      date: formatDate(date),
+      price,
+      day: dayName,
+      daysUntil: daysOut,
+      isWeekend,
+      isPeakSeason
+    });
+  }
+  
+  return prices;
+};
+
 // Function to get a sample price for a route
 const getSamplePrice = async (origin, destination) => {
   try {
@@ -45,17 +112,15 @@ const getSamplePrice = async (origin, destination) => {
     console.log(`Searching for flights from ${origin} to ${destination} on ${departureDate}`);
     
     // Using the correct API endpoint and parameters according to documentation
-    const response = await amadeus.shopping.flightOffers.get({
+    const response = await amadeus.shopping.flightOffersSearch.get({
       originLocationCode: origin,
       destinationLocationCode: destination,
       departureDate: departureDate,
-      adults: 1,  // Required parameter
-      nonStop: true,  // Optional: get direct flights only
+      adults: '1',  // Required parameter, must be string
+      nonStop: 'true',  // Get direct flights only, must be string
       max: 1,  // Get only the best offer
       currencyCode: 'USD',
-      travelClass: 'ECONOMY',  // Optional: specify travel class
-      includedAirlineCodes: '',  // Optional: include specific airlines
-      excludedAirlineCodes: ''  // Optional: exclude specific airlines
+      travelClass: 'ECONOMY'  // Specify travel class
     });
     
     // Log the raw Amadeus API response
@@ -86,220 +151,170 @@ const getSamplePrice = async (origin, destination) => {
   }
 };
 
-// Function to get flight duration and distance
-const getFlightInfo = async (origin, destination) => {
-  try {
-    console.log(`Fetching flight info for ${origin} to ${destination}`);
-    
-    // First try to get direct flight information from Amadeus
-    try {
-      console.log(`Trying direct destinations API for ${origin}`);
-      const directResponse = await amadeus.airport.directDestinations.get({
-        departureAirportCode: origin,
-        max: '50' // Get more results to find our specific destination
-      });
-      
-      console.log(`Direct destinations API response for ${origin}:`, 
-        JSON.stringify(directResponse, null, 2));
-      
-      if (directResponse.data && directResponse.data.length > 0) {
-        // Try to find the specific destination in the response
-        const directFlight = directResponse.data.find(flight => 
-          flight.arrivalAirport && flight.arrivalAirport.iataCode === destination
-        );
-        
-        if (directFlight) {
-          console.log(`Found direct flight info for ${origin} to ${destination}`);
-          return {
-            duration: directFlight.duration || '1h 30m',
-            distance: directFlight.distance ? `${Math.round(directFlight.distance)} miles` : '500 miles'
-          };
-        }
-        console.log(`No direct flight info found for ${origin} to ${destination} in direct destinations`);
-      }
-    } catch (directError) {
-      console.error(`Error in direct destinations API for ${origin}:`, directError);
-      if (directError.response) {
-        console.error('Direct destinations error response:', directError.response.data);
-      }
-    }
-    
-    // Fallback to flight offers search for more accurate info
-    try {
-      console.log(`Trying flight offers search for ${origin} to ${destination}`);
-      const flightOffers = await amadeus.shopping.flightOffers.get({
-        originLocationCode: origin,
-        destinationLocationCode: destination,
-        departureDate: formatDate(new Date()),
-        adults: 1,
-        nonStop: true,
-        max: 1,
-        currencyCode: 'USD',
-        travelClass: 'ECONOMY',
-        includedAirlineCodes: '',
-        excludedAirlineCodes: ''
-      });
-      
-      console.log(`Flight offers search response for ${origin} to ${destination}:`,
-        JSON.stringify(flightOffers, null, 2));
-      
-      if (flightOffers.data && flightOffers.data.length > 0) {
-        const offer = flightOffers.data[0];
-        const duration = offer.itineraries?.[0]?.duration || '1h 30m';
-        
-        // Calculate distance from segments if available
-        let distance = '500 miles';
-        if (offer.itineraries?.[0]?.segments?.[0]?.distance?.value) {
-          const meters = offer.itineraries[0].segments[0].distance.value;
-          const miles = Math.round(meters * 0.000621371);
-          distance = `${miles} miles`;
-          console.log(`Calculated distance: ${meters} meters ≈ ${distance}`);
-        }
-        
-        console.log(`Found flight offer with duration: ${duration}, distance: ${distance}`);
-        return { duration, distance };
-      }
-    } catch (offerError) {
-      console.error(`Error in flight offers search for ${origin} to ${destination}:`, offerError);
-      if (offerError.response) {
-        console.error('Flight offers error response:', offerError.response.data);
-      }
-    }
-    
-    // Fallback to coordinates-based calculation if API calls fail
-    console.log(`Using fallback coordinates-based calculation for ${origin} to ${destination}`);
-    
-    // Map of airport codes to coordinates (latitude, longitude)
-    const airportCoordinates = {
-      'JFK': { lat: 40.6413, lng: -73.7781 },
-      'LHR': { lat: 51.4700, lng: -0.4543 },
-      'SEA': { lat: 47.4502, lng: -122.3088 },
-      'DTW': { lat: 42.2162, lng: -83.3554 },
-      'GRR': { lat: 42.8808, lng: -85.5228 },
-      'LAX': { lat: 33.9416, lng: -118.4085 },
-      'SFO': { lat: 37.6213, lng: -122.3790 },
-      'LAS': { lat: 36.0840, lng: -115.1537 },
-      'AUS': { lat: 30.1975, lng: -97.6664 },
-      'VIE': { lat: 48.1103, lng: 16.5697 }
-    };
-    
-    // Calculate distance using Haversine formula
-    const calculateDistance = (lat1, lng1, lat2, lng2) => {
-      const R = 3958.8; // Earth's radius in miles
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLng = (lng2 - lng1) * Math.PI / 180;
-      const a = 
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-        Math.sin(dLng/2) * Math.sin(dLng/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      const distance = R * c;
-      return Math.round(distance);
-    };
-    
-    // Calculate flight duration (rough estimate: 500 mph average speed)
-    const calculateDuration = (distance) => {
-      const avgSpeedMph = 500;
-      const hours = distance / avgSpeedMph;
-      const hoursWhole = Math.floor(hours);
-      const minutes = Math.round((hours - hoursWhole) * 60);
-      return `${hoursWhole}h ${minutes}m`;
-    };
-    
-    if (airportCoordinates[origin] && airportCoordinates[destination]) {
-      const distance = calculateDistance(
-        airportCoordinates[origin].lat, 
-        airportCoordinates[origin].lng,
-        airportCoordinates[destination].lat, 
-        airportCoordinates[destination].lng
-      );
-      const duration = calculateDuration(distance);
-      
-      return {
-        duration,
-        distance: `${distance} miles`
-      };
-    }
-    
-    // Default return if coordinates not found
-    return {
-      duration: '1h 30m',
-      distance: '500 miles'
-    };
-  } catch (error) {
-    console.error(`Error in getFlightInfo for ${origin} to ${destination}:`, error);
-    if (error.response) {
-      console.error('Error response data:', error.response.data);
-      console.error('Error status:', error.response.status);
-    }
-    // Return default values in case of any error
-    return {
-      duration: '1h 30m',
-      distance: '500 miles',
-      source: 'error-fallback'
-    };
+// Helper function to format ISO 8601 duration (PT6H27M) to readable format (6h 27m)
+const formatDuration = (isoDuration) => {
+  if (!isoDuration) return 'N/A';
+  
+  // Extract hours and minutes using regex
+  const matches = isoDuration.match(/PT(\d+H)?(\d+M)?/);
+  if (!matches) return isoDuration; // Return as is if format doesn't match
+  
+  const hours = matches[1] ? parseInt(matches[1], 10) : 0;
+  const minutes = matches[2] ? parseInt(matches[2], 10) : 0;
+  
+  if (hours > 0 && minutes > 0) {
+    return `${hours}h ${minutes}m`;
+  } else if (hours > 0) {
+    return `${hours}h`;
+  } else if (minutes > 0) {
+    return `${minutes}m`;
   }
+  
+  return isoDuration; // Fallback
 };
 
-// Function to generate mock prices for a route
-const generateMockPrices = (basePrice = 550) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Normalize to start of day
-  const prices = [];
-  const daysInFourMonths = 120; // Approximately 4 months
-  
-  // Generate prices for the next 4 months
-  for (let i = 0; i < daysInFourMonths; i++) {
-    const date = new Date(today);
-    date.setDate(date.getDate() + i);
-    
-    // Generate a more realistic price variation pattern
-    const dayOfWeek = date.getDay();
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6;
-    
-    // Base variation: cheaper further out, more expensive closer to departure
-    // More gradual price increase as departure approaches
-    const daysOut = daysInFourMonths - i;
-    const timeBasedVariation = -100 + (daysInFourMonths - daysOut) * 2.5;
-    
-    // Weekend premium (higher for weekends)
-    const weekendPremium = isWeekend ? 60 : 0;
-    
-    // Seasonal adjustment (example: higher in summer and holidays)
-    const month = date.getMonth();
-    const isPeakSeason = month >= 5 && month <= 7; // June-August
-    const seasonalAdjustment = isPeakSeason ? 80 : 0;
-    
-    // Random fluctuation (reduced for longer time spans)
-    const randomVariation = Math.random() * 60 - 30;
-    
-    // Some days are promotional deals
-    const isPromotion = Math.random() < 0.2;
-    const promotionDiscount = isPromotion ? -80 - Math.random() * 50 : 0;
-    
-    // Combine all factors
-    const totalVariation = timeBasedVariation + weekendPremium + randomVariation + promotionDiscount + seasonalAdjustment;
-    // Ensure price doesn't go below 60% of base price
-    const price = Math.max(
-      Math.round(basePrice + totalVariation),
-      Math.round(basePrice * 0.6)
-    );
-    
-    // Add day of week for reference
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const dayName = days[date.getDay()];
-    
-    prices.push({
-      date: formatDate(date),
-      price,
-      day: dayName,
-      daysUntil: daysOut,
-      isWeekend,
-      isPeakSeason
+// Function to get flight duration and distance
+const getFlightInfo = async (origin, destination) => {
+  // First try to get direct flight information from Amadeus
+  try {
+    console.log(`Trying direct destinations API for ${origin}`);
+    const directResponse = await amadeus.airport.directDestinations.get({
+      departureAirportCode: origin,
+      max: '50' // Get more results to find our specific destination
     });
+    
+    console.log(`Direct destinations API response for ${origin}:`, 
+      JSON.stringify(directResponse, null, 2));
+    
+    if (directResponse.data && directResponse.data.length > 0) {
+      // Try to find the specific destination in the response
+      const directFlight = directResponse.data.find(flight => 
+        flight.arrivalAirport && flight.arrivalAirport.iataCode === destination
+      );
+      
+      if (directFlight) {
+        console.log(`Found direct flight info for ${origin} to ${destination}`);
+        return {
+          duration: directFlight.duration || '1h 30m',
+          distance: directFlight.distance ? `${Math.round(directFlight.distance)} miles` : '500 miles',
+          source: 'direct-destinations'
+        };
+      }
+      console.log(`No direct flight info found for ${origin} to ${destination} in direct destinations`);
+    }
+  } catch (directError) {
+    console.error(`Error in direct destinations API for ${origin}:`, directError);
+    if (directError.response) {
+      console.error('Direct destinations error response:', directError.response.data);
+    }
   }
   
-  return prices;
+  // Fallback to flight offers search for more accurate info
+  try {
+    console.log(`Trying flight offers search for ${origin} to ${destination}`);
+    const flightOffers = await amadeus.shopping.flightOffersSearch.get({
+      originLocationCode: origin,
+      destinationLocationCode: destination,
+      departureDate: formatDate(new Date()),
+      adults: '1',
+      nonStop: 'true',
+      max: 1,
+      currencyCode: 'USD',
+      travelClass: 'ECONOMY'
+    });
+    
+    console.log(`Flight offers search response for ${origin} to ${destination}:`,
+      JSON.stringify(flightOffers, null, 2));
+    
+    if (flightOffers.data && flightOffers.data.length > 0) {
+      const offer = flightOffers.data[0];
+      const duration = offer.itineraries?.[0]?.duration || '1h 30m';
+      
+      // Calculate distance from segments if available
+      let distance = '500 miles';
+      if (offer.itineraries?.[0]?.segments?.[0]?.distance?.value) {
+        const meters = offer.itineraries[0].segments[0].distance.value;
+        const miles = Math.round(meters * 0.000621371);
+        distance = `${miles} miles`;
+        console.log(`Calculated distance: ${meters} meters ≈ ${distance}`);
+      }
+      
+      console.log(`Found flight offer with duration: ${duration}, distance: ${distance}`);
+      return { 
+        duration, 
+        distance,
+        source: 'flight-offers'
+      };
+    }
+  } catch (offerError) {
+    console.error(`Error in flight offers search for ${origin} to ${destination}:`, offerError);
+    if (offerError.response) {
+      console.error('Flight offers error response:', offerError.response.data);
+    }
+  }
+  
+  // Fallback to coordinates-based calculation if API calls fail
+  console.log(`Using fallback coordinates-based calculation for ${origin} to ${destination}`);
+  
+  // Map of airport codes to coordinates (latitude, longitude)
+  const airportCoordinates = {
+    'JFK': { lat: 40.6413, lng: -73.7781 },
+    'LHR': { lat: 51.4700, lng: -0.4543 },
+    'SEA': { lat: 47.4502, lng: -122.3088 },
+    'DTW': { lat: 42.2162, lng: -83.3554 },
+    'GRR': { lat: 42.8808, lng: -85.5228 },
+    'LAX': { lat: 33.9416, lng: -118.4085 },
+    'SFO': { lat: 37.6213, lng: -122.3790 },
+    'LAS': { lat: 36.0840, lng: -115.1537 },
+    'AUS': { lat: 30.1975, lng: -97.6664 },
+    'VIE': { lat: 48.1103, lng: 16.5697 }
+  };
+  
+  // Calculate distance using Haversine formula
+  const calculateDistance = (lat1, lng1, lat2, lng2) => {
+    const R = 3958.8; // Earth's radius in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+    return Math.round(distance);
+  };
+  
+  // Calculate flight duration (rough estimate: 500 mph average speed)
+  const calculateDuration = (distance) => {
+    const avgSpeedMph = 500;
+    const hours = distance / avgSpeedMph;
+    const hoursWhole = Math.floor(hours);
+    const minutes = Math.round((hours - hoursWhole) * 60);
+    return `${hoursWhole}h ${minutes}m`;
+  };
+  
+  if (airportCoordinates[origin] && airportCoordinates[destination]) {
+    const distance = calculateDistance(
+      airportCoordinates[origin].lat, 
+      airportCoordinates[origin].lng,
+      airportCoordinates[destination].lat, 
+      airportCoordinates[destination].lng
+    );
+    const duration = calculateDuration(distance);
+    
+    return {
+      duration,
+      distance: `${distance} miles`,
+      source: 'coordinates-calculation'
+    };
+  }
+  
+  // Default return if all else fails
+  return {
+    duration: '1h 30m',
+    distance: '500 miles',
+    source: 'default-fallback'
+  };
 };
 
 exports.handler = async (event, context) => {
@@ -352,22 +367,55 @@ exports.handler = async (event, context) => {
       console.log(`Processing route ${route.id}: ${route.from} (${route.code1}) to ${route.to} (${route.code2})`);
       
       try {
-        // Try to get a sample price from Amadeus
-        console.log(`Fetching sample price for ${route.code1} to ${route.code2}`);
-        let basePrice = await getSamplePrice(route.code1, route.code2);
-        let prices;
-        let source = 'amadeus';
+        let basePrice, prices, source;
         
-        // If no price found, use mock data
-        if (basePrice === null) {
-          console.log(`Using mock data for ${route.from} to ${route.to}`);
-          basePrice = 450 + Math.floor(Math.random() * 200); // Random base price between 450-650
-          prices = generateMockPrices(basePrice);
-          source = 'mock';
-        } else {
-          console.log(`Got price from Amadeus for ${route.from} to ${route.to}: $${basePrice}`);
-          // Generate prices based on the base price from Amadeus
-          prices = generateMockPrices(basePrice);
+        // First try to get real flight data
+        try {
+          console.log(`Fetching real flight data for ${route.code1} to ${route.code2}`);
+          const realPrices = await getFlightPricesForDates(route.code1, route.code2, generateDatesForNextMonth());
+          
+          if (realPrices && realPrices.length > 0) {
+            // Sort by price and get the cheapest
+            realPrices.sort((a, b) => a.price - b.price);
+            basePrice = Math.round(realPrices[0].price); // Round to nearest dollar
+            prices = realPrices.map(p => ({
+              date: p.date,
+              price: Math.round(p.price), // Round all prices
+              source: 'amadeus',
+              isRealPrice: true
+            }));
+            source = 'amadeus';
+            console.log(`Got ${realPrices.length} real prices from Amadeus for ${route.from} to ${route.to}, best: $${basePrice}`);
+          } else {
+            throw new Error('No real prices found');
+          }
+        } catch (error) {
+          console.log(`Could not get real flight data for ${route.from} to ${route.to}, using sample price:`, error.message);
+          // Fall back to sample price
+          const samplePrice = await getSamplePrice(route.code1, route.code2);
+          
+          if (samplePrice !== null) {
+            basePrice = Math.round(samplePrice);
+            prices = generateMockPrices(basePrice).map(p => ({
+              ...p,
+              price: Math.round(p.price), // Round all prices
+              source: 'sample',
+              isRealPrice: false
+            }));
+            source = 'sample';
+            console.log(`Using sample price for ${route.from} to ${route.to}: $${basePrice}`);
+          } else {
+            // Last resort: use mock data
+            basePrice = 450 + Math.floor(Math.random() * 200);
+            prices = generateMockPrices(basePrice).map(p => ({
+              ...p,
+              price: Math.round(p.price), // Round all prices
+              source: 'mock',
+              isRealPrice: false
+            }));
+            source = 'mock';
+            console.log(`Using mock data for ${route.from} to ${route.to}: $${basePrice}`);
+          }
         }
         
         // Get flight info (duration and distance)
@@ -381,7 +429,7 @@ exports.handler = async (event, context) => {
           basePrice,
           prices,
           distance: flightInfo.distance,
-          duration: flightInfo.duration,
+          duration: formatDuration(flightInfo.duration),
           source,
           meta: {
             originCode: route.code1,

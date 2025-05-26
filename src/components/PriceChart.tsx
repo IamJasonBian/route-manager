@@ -1,8 +1,9 @@
 import React from 'react';
 import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, 
+  AreaChart, Area, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, ReferenceLine 
 } from 'recharts';
+import { UniqueKeyXAxis } from './UniqueKeyXAxis';
 import { FlightPrice } from '../services/api';
 
 interface PriceChartProps {
@@ -35,7 +36,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({ prices, basePrice, lowes
   }));
 
   // Custom tooltip component
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean, payload?: Array<{ value: number, payload: { date: string | Date } }> }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-gray-800 text-white text-xs p-2 rounded shadow">
@@ -79,20 +80,19 @@ export const PriceChart: React.FC<PriceChartProps> = ({ prices, basePrice, lowes
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-            <XAxis 
-              dataKey="formattedDate" 
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 10, fill: '#6B7280' }}
-              ticks={[chartData[0]?.formattedDate, chartData[Math.floor(chartData.length / 2)]?.formattedDate, chartData[chartData.length - 1]?.formattedDate]}
+            <UniqueKeyXAxis 
+              data={chartData}
+              dataKey="formattedDate"
             />
             <YAxis 
               domain={[minPrice, maxPrice]}
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 10, fill: '#6B7280' }}
               width={30}
+              tick={{ fontSize: 10, fill: '#6B7280' }}
               tickFormatter={(value) => `$${value}`}
+              tickCount={5}
+              allowDecimals={false}
             />
             <Tooltip content={<CustomTooltip />} />
             <ReferenceLine 

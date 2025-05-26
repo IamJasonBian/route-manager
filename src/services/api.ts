@@ -1,4 +1,21 @@
 import axios from 'axios';
+import { saveRoute as saveDbRoute, DbRoute } from './routeService';
+
+// Interface for flight price data
+export interface FlightPrice {
+  date: Date | string;
+  price: number;
+}
+
+// Interface for route metadata
+export interface RouteMeta {
+  fromCode: string;
+  toCode: string;
+  source: string;
+  lowestPrice?: number;
+  highestPrice?: number;
+  _error?: string;
+}
 
 // API configuration
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
@@ -14,24 +31,8 @@ export const apiClient = axios.create({
   }
 });
 
-// Interface for flight price data
-export interface FlightPrice {
-  date: string | Date;
-  price: number;
-}
-
-// Interface for route metadata
-export interface RouteMeta {
-  fromCode: string;
-  toCode: string;
-  source: string;
-  lowestPrice?: number;
-  highestPrice?: number;
-  _error?: string; // Optional error message for fallback routes
-}
-
-// Interface for route data
-export interface Route {
+// Interface for API route
+export interface ApiRoute {
   id: string;
   from: string;
   to: string;
@@ -41,6 +42,125 @@ export interface Route {
   duration: string;
   meta: RouteMeta;
 }
+
+// Interface for route data (legacy, keeping for backward compatibility)
+export interface Route extends ApiRoute {}
+
+// Helper function to convert between API and DB route formats
+const toDbRoute = (route: ApiRoute): Omit<DbRoute, 'id' | 'created_at' | 'updated_at'> => {
+  const firstPrice = route.prices[0];
+  const secondPrice = route.prices[1];
+  
+  // Ensure we have valid date strings or Date objects
+  const departureDate = firstPrice?.date 
+    ? (firstPrice.date instanceof Date ? firstPrice.date : new Date(firstPrice.date))
+    : new Date();
+    
+  const returnDate = secondPrice?.date 
+    ? (secondPrice.date instanceof Date ? secondPrice.date : new Date(secondPrice.date))
+    : null;
+  
+  return {
+    origin: route.from,
+    destination: route.to,
+    price: route.basePrice,
+    departure_date: departureDate,
+    return_date: returnDate,
+    airline: 'Unknown',
+    flight_number: `FLT-${Math.floor(1000 + Math.random() * 9000)}`
+  };
+};
+
+// Save route to database
+export const saveRoute = async (route: ApiRoute): Promise<ApiRoute> => {
+  const dbRoute = toDbRoute(route);
+  const savedRoute = await saveDbRoute(dbRoute);
+  return toApiRoute(savedRoute);
+};
+
+// Helper function to convert between DB and API route formats
+const toApiRoute = (dbRoute: DbRoute): ApiRoute => {
+  console.group('toApiRoute - Start');
+  try {
+    console.log('Input dbRoute:', JSON.stringify(dbRoute, null, 2));
+    
+    // Ensure we have valid dates
+    let departureDate: Date;
+    try {
+      departureDate = dbRoute.departure_date 
+        ? (typeof dbRoute.departure_date === 'string' 
+            ? new Date(dbRoute.departure_date) 
+            : dbRoute.departure_date)
+        : new Date();
+      
+      if (isNaN(departureDate.getTime())) {
+        console.warn('Invalid departure date, using current date');
+        departureDate = new Date();
+      }
+    } catch (dateError) {
+      console.warn('Error parsing departure date, using current date:', dateError);
+      departureDate = new Date();
+    }
+    
+    let returnDate: Date | null = null;
+    if (dbRoute.return_date) {
+      try {
+        returnDate = typeof dbRoute.return_date === 'string' 
+          ? new Date(dbRoute.return_date)
+          : dbRoute.return_date;
+          
+        if (isNaN(returnDate.getTime())) {
+          console.warn('Invalid return date, setting to null');
+          returnDate = null;
+        }
+      } catch (dateError) {
+        console.warn('Error parsing return date, setting to null:', dateError);
+        returnDate = null;
+      }
+    }
+    
+    // Ensure we have a valid price
+    let price = 0;
+    if (dbRoute.price !== null && dbRoute.price !== undefined) {
+      price = typeof dbRoute.price === 'number' 
+        ? dbRoute.price 
+        : parseFloat(dbRoute.price) || 0;
+    }
+    
+    // Ensure we have valid origin and destination
+    const origin = dbRoute.origin?.toString() || 'UNKNOWN';
+    const destination = dbRoute.destination?.toString() || 'UNKNOWN';
+    
+    // Create the API route object
+    const apiRoute: ApiRoute = {
+      id: dbRoute.id?.toString() || `temp-${Date.now()}`,
+      from: origin,
+      to: destination,
+      basePrice: price,
+      distance: '0 km',
+      duration: '0h 0m',
+      prices: [
+        { date: departureDate, price },
+        ...(returnDate ? [{ date: returnDate, price }] : [])
+      ],
+      meta: {
+        fromCode: origin,
+        toCode: destination,
+        source: 'database',
+        lowestPrice: price,
+        highestPrice: price
+      }
+    };
+    
+    console.log('Generated API route:', JSON.stringify(apiRoute, null, 2));
+    return apiRoute;
+  } catch (error) {
+    console.error('Error in toApiRoute:', error);
+    throw error;
+  } finally {
+    console.groupEnd();
+  }
+};
 
 // Get flight prices for a route over time
 export const getFlightPrices = async (from: string, to: string, departDate: string): Promise<FlightPrice[]> => {
@@ -71,241 +191,126 @@ export const getFlightPrices = async (from: string, to: string, departDate: stri
   }
 };
 
-// This function is no longer used due to CORS restrictions
-// Keeping the implementation commented for reference if a backend proxy is implemented later
-/*
-const generateDatesAroundDate = (dateStr: string, numDays: number): Date[] => {
-  const centerDate = new Date(dateStr);
-  const dates: Date[] = [];
-  
-  // Generate dates before and after the center date
-  for (let i = -Math.floor(numDays/2); i <= Math.floor(numDays/2); i++) {
-    const date = new Date(centerDate);
-    date.setDate(date.getDate() + i);
-    dates.push(date);
-  }
-  
-  return dates;
-};
-*/
-
-// Type guard to validate route data
-const isValidRoute = (data: any): data is Route => {
-  return (
-    typeof data.id === 'string' &&
-    typeof data.from === 'string' &&
-    typeof data.to === 'string' &&
-    typeof data.basePrice === 'number' &&
-    typeof data.distance === 'string' &&
-    typeof data.duration === 'string' &&
-    Array.isArray(data.prices) &&
-    data.prices.every((p: any) => 
-      p && 
-      typeof p.price === 'number' &&
-      (p.date instanceof Date || !isNaN(new Date(p.date).getTime()))
-    )
-  );
-};
-
-// Get available routes with enhanced error handling and logging
-export const getRoutes = async (): Promise<Route[]> => {
-  try {
-    console.log('[API] Fetching routes...');
-    
-    // Call our Netlify function to get popular routes
-    const response = await apiClient.get('/popular-routes');
-    
-    if (!response.data || !Array.isArray(response.data)) {
-      throw new Error('Invalid response format: expected an array');
-    }
-
-    console.log(`[API] Received ${response.data.length} routes`);
-    
-    // Process and validate each route
-    const processedData = await Promise.all(
-      response.data.map(async (route: any, index: number) => {
-        const routeId = `route-${index}`;
-        
-        try {
-          // Log the raw route data for debugging
-          console.log(`[API] Raw route data for ${routeId}:`, JSON.stringify(route, null, 2));
-          
-          // Extract city names and airport codes
-          const fromCity = route.from || 'Unknown Origin';
-          const toCity = route.to || 'Unknown Destination';
-          const fromCode = route.code1 || '';
-          const toCode = route.code2 || '';
-          
-          console.log(`[API] Processing ${routeId}: ${fromCity} (${fromCode}) to ${toCity} (${toCode})`);
-          
-          if (!route.prices || !Array.isArray(route.prices)) {
-            console.warn(`[API] ${routeId}: Missing or invalid prices array`);
-            throw new Error('Invalid prices data');
-          }
-
-          // Process prices with validation
-          const prices = route.prices.map((price: any, priceIndex: number) => {
-            const date = new Date(price.date);
-            if (isNaN(date.getTime())) {
-              console.warn(`[API] ${routeId}: Invalid date at index ${priceIndex}:`, price.date);
-              throw new Error(`Invalid date format at index ${priceIndex}`);
-            }
-            
-            const priceValue = Number(price.price);
-            if (isNaN(priceValue)) {
-              console.warn(`[API] ${routeId}: Invalid price at index ${priceIndex}:`, price.price);
-              throw new Error(`Invalid price at index ${priceIndex}`);
-            }
-            
-            return { date, price: priceValue };
-          });
-
-          const processedRoute: Route = {
-            id: route.id || `generated-${Date.now()}-${index}`,
-            from: fromCity,
-            to: toCity,
-            basePrice: Number(route.basePrice) || 0,
-            prices,
-            distance: route.distance || 'Unknown',
-            duration: route.duration || 'Unknown',
-            // Include additional data that might be useful
-            meta: {
-              fromCode,
-              toCode,
-              source: route.source || 'unknown',
-              lowestPrice: route.lowestPrice,
-              highestPrice: route.highestPrice
-            }
-          };
-
-          if (!isValidRoute(processedRoute)) {
-            console.warn(`[API] ${routeId}: Failed route validation`, processedRoute);
-            throw new Error('Route validation failed');
-          }
-
-          console.log(`[API] Successfully processed ${routeId}`);
-          return processedRoute;
-          
-        } catch (error: unknown) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          console.error(`[API] Error processing ${routeId}:`, error);
-          // Generate a mock route if processing fails
-          return {
-            id: `fallback-${Date.now()}-${index}`,
-            from: route.from || 'Unknown',
-            to: route.to || 'Unknown',
-            basePrice: 500 + (Math.random() * 500),
-            prices: generateMockPrices(500 + (Math.random() * 500)),
-            distance: route.distance || 'Unknown',
-            duration: route.duration || 'Unknown',
-            meta: {
-              fromCode: route.code1 || '',
-              toCode: route.code2 || '',
-              source: 'fallback',
-              _error: `Failed to process: ${errorMessage}`
-            }
-          };
-        }
-      })
-    );
-
-    // Filter out any invalid routes that might have slipped through
-    const validRoutes = processedData.filter(route => 
-      route && 
-      route.prices && 
-      route.prices.length > 0 &&
-      !('_error' in route)
-    );
-
-    if (validRoutes.length === 0) {
-      console.warn('[API] No valid routes found, falling back to mock data');
-      return generateFallbackRoutes();
-    }
-
-    console.log(`[API] Successfully processed ${validRoutes.length} valid routes`);
-    return validRoutes;
-    
-  } catch (error) {
-    console.error('[API] Error in getRoutes:', error);
-    console.warn('[API] Falling back to mock route data');
-    return generateFallbackRoutes();
-  }
-};
+// Note: The isValidRoute function has been removed as it was not being used.
+// If you need to validate route data, you can reimplement it as needed.
 
 // Generate fallback routes when API fails
-const generateFallbackRoutes = (): Route[] => {
-  const routes: Route[] = [
+export const generateFallbackRoutes = (): ApiRoute[] => {
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  // Simple mock prices for fallback
+  const mockPrices = (basePrice: number): FlightPrice[] => {
+    const prices: FlightPrice[] = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() + i);
+      // Add some random variation to prices
+      const variation = Math.random() * 0.2 - 0.1; // ±10%
+      const price = Math.round(basePrice * (1 + variation));
+      prices.push({ date, price });
+    }
+    return prices;
+  };
+
+  return [
     {
       id: 'fallback-1',
-      from: 'New York',
-      to: 'London',
-      basePrice: 550,
-      prices: generateMockPrices(550),
-      distance: '3,461 miles',
-      duration: '7h 25m',
+      from: 'JFK',
+      to: 'LAX',
+      basePrice: 299,
+      prices: mockPrices(299),
+      distance: '2,475 mi',
+      duration: '5h 30m',
       meta: {
         fromCode: 'JFK',
-        toCode: 'LHR',
+        toCode: 'LAX',
         source: 'fallback',
-        lowestPrice: 450,
-        highestPrice: 800
+        lowestPrice: 299,
+        highestPrice: 450
       }
     },
     {
       id: 'fallback-2',
-      from: 'New York',
-      to: 'Seattle',
-      basePrice: 450,
-      prices: generateMockPrices(450),
-      distance: '2,421 miles',
-      duration: '6h 10m',
+      from: 'JFK',
+      to: 'SFO',
+      basePrice: 349,
+      prices: mockPrices(349),
+      distance: '2,585 mi',
+      duration: '6h 15m',
       meta: {
         fromCode: 'JFK',
-        toCode: 'SEA',
+        toCode: 'SFO',
         source: 'fallback',
-        lowestPrice: 350,
-        highestPrice: 650
+        lowestPrice: 349,
+        highestPrice: 520
+      }
+    },
+    {
+      id: 'fallback-3',
+      from: 'JFK',
+      to: 'MIA',
+      basePrice: 199,
+      prices: mockPrices(199),
+      distance: '1,089 mi',
+      duration: '3h 15m',
+      meta: {
+        fromCode: 'JFK',
+        toCode: 'MIA',
+        source: 'fallback',
+        lowestPrice: 199,
+        highestPrice: 320
+      }
+    },
+    {
+      id: 'fallback-4',
+      from: 'JFK',
+      to: 'ORD',
+      basePrice: 149,
+      prices: mockPrices(149),
+      distance: '740 mi',
+      duration: '2h 45m',
+      meta: {
+        fromCode: 'JFK',
+        toCode: 'ORD',
+        source: 'fallback',
+        lowestPrice: 149,
+        highestPrice: 280
+      }
+    },
+    {
+      id: 'fallback-5',
+      from: 'JFK',
+      to: 'DFW',
+      basePrice: 249,
+      prices: mockPrices(249),
+      distance: '1,390 mi',
+      duration: '3h 45m',
+      meta: {
+        fromCode: 'JFK',
+        toCode: 'DFW',
+        source: 'fallback',
+        lowestPrice: 249,
+        highestPrice: 390
       }
     }
   ];
-  
-  console.log('[API] Generated fallback routes');
-  return routes;
 };
 
 // Helper function to generate mock price data for one-day flights starting from today
 const generateMockPrices = (basePrice: number = 550): FlightPrice[] => {
-  const today = new Date();
   const prices: FlightPrice[] = [];
+  const today = new Date();
   
-  // Generate prices for the next 30 days (one-day flights)
-  for (let i = 0; i < 30; i++) {
+  // Generate prices for the next 7 days
+  for (let i = 0; i < 7; i++) {
     const date = new Date(today);
-    date.setDate(date.getDate() + i);
+    date.setDate(today.getDate() + i);
     
-    // Generate a more realistic price variation pattern
-    // Prices tend to increase as the departure date approaches, with some random fluctuations
-    // Weekends (Friday, Saturday, Sunday) tend to be more expensive
-    const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6;
-    
-    // Base variation: cheaper further out, more expensive closer to departure
-    const daysOut = 30 - i;
-    const timeBasedVariation = -50 + (30 - daysOut) * 3; // Gradually increases as departure approaches
-    
-    // Weekend premium
-    const weekendPremium = isWeekend ? 40 : 0;
-    
-    // Random fluctuation
-    const randomVariation = Math.random() * 80 - 40; // -40 to +40
-    
-    // Some days are promotional deals (about 20% chance)
-    const isPromotion = Math.random() < 0.2;
-    const promotionDiscount = isPromotion ? -80 - Math.random() * 50 : 0; // -80 to -130 discount
-    
-    // Combine all factors
-    const totalVariation = timeBasedVariation + weekendPremium + randomVariation + promotionDiscount;
-    const price = Math.max(Math.round(basePrice + totalVariation), Math.round(basePrice * 0.6)); // Ensure price doesn't go too low
+    // Add some random variation to the price
+    const variation = Math.random() * 0.2 - 0.1; // ±10%
+    const price = Math.round(basePrice * (1 + variation));
     
     prices.push({
       date,
@@ -314,4 +319,96 @@ const generateMockPrices = (basePrice: number = 550): FlightPrice[] => {
   }
   
   return prices;
+};
+
+// Import default routes
+import { defaultRoutes } from '../config/defaultRoutes';
+
+/**
+ * Loads all default routes into the database if none exist
+ * @returns Promise that resolves when loading is complete
+ */
+export const loadDefaultRoutes = async (): Promise<void> => {
+  try {
+    console.log('Checking if we need to load default routes...');
+    const { hasRoutes, saveApiRoutes } = await import('./routeService');
+    
+    // Check if we already have routes in the database
+    const routesExist = await hasRoutes();
+    
+    if (!routesExist) {
+      console.log('No routes found in database, loading default routes...');
+      // Save all default routes to the database
+      await saveApiRoutes(defaultRoutes);
+      console.log('Successfully loaded default routes into database');
+    } else {
+      console.log('Routes already exist in database, skipping default route loading');
+    }
+  } catch (error) {
+    console.error('Error loading default routes:', error);
+    throw error;
+  }
+};
+
+// Get available routes with database fallback
+export const getRoutes = async (): Promise<ApiRoute[]> => {
+  try {
+    console.log('1. Loading default routes if needed...');
+    await loadDefaultRoutes();
+    
+    console.log('2. Importing routeService...');
+    // Import getRoutes from routeService to avoid circular dependency
+    const { getRoutes: getDbRoutes } = await import('./routeService');
+    
+    // Get routes from the database
+    console.log('3. Fetching routes from database...');
+    const dbRoutes = await getDbRoutes();
+    console.log('4. Raw database response:', JSON.stringify(dbRoutes, null, 2));
+    
+    if (dbRoutes && dbRoutes.length > 0) {
+      console.log(`5. Found ${dbRoutes.length} routes in database`);
+      const apiRoutes = dbRoutes.map((route, index) => {
+        console.log(`6. Converting route ${index + 1}/${dbRoutes.length}:`, JSON.stringify(route, null, 2));
+        try {
+          const apiRoute = toApiRoute(route);
+          console.log(`7. Successfully converted route ${index + 1}:`, JSON.stringify(apiRoute, null, 2));
+          return apiRoute;
+        } catch (error) {
+          console.error(`Error converting route ${index + 1}:`, error);
+          return null;
+        }
+      }).filter((route): route is ApiRoute => route !== null);
+      
+      console.log('8. All routes converted successfully:', apiRoutes.length > 0);
+      
+      // Return routes from database if we have any
+      if (apiRoutes.length > 0) {
+        return apiRoutes;
+      }
+    }
+    
+    // If we get here, either there were no routes in the database or they couldn't be converted
+    console.log('8. No valid routes found in database, returning default routes');
+    
+    // Add IDs to default routes
+    const routesWithIds = defaultRoutes.map((route, index) => ({
+      ...route,
+      id: `default-${index + 1}`,
+      meta: {
+        ...route.meta,
+        source: 'default',
+      },
+    }));
+    
+    console.log('9. Returning default routes:', routesWithIds.length);
+    return routesWithIds;
+  } catch (error) {
+    console.error('10. Error in getRoutes:', error);
+    
+    // Return empty array on error
+    console.warn('11. Error occurred, returning empty array');
+    return [];
+  } finally {
+    console.groupEnd();
+  }
 };

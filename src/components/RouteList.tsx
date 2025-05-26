@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Route, getRoutes } from '../services/api';
+import { Route, getRoutes, ApiRoute } from '../services/api';
 import { RouteCard } from './RouteCard';
 import { Skeleton } from '@/components/ui/skeleton';
+import { defaultRoutes } from '../config/defaultRoutes';
 
 // Skeleton loader for route cards
 const RouteCardSkeleton = () => (
@@ -73,20 +74,35 @@ export const RouteList: React.FC = () => {
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-        <p>{error}</p>
+      <div className="space-y-4">
+        <h1 className="text-2xl font-bold text-gray-800">Available Routes</h1>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+          <p>{error}</p>
+        </div>
       </div>
     );
   }
 
+  // Check if we have any routes to display
+  const hasRoutes = routes.length > 0;
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-800">Available Routes</h1>
-      {routes.length === 0 ? (
-        <p className="text-gray-500">No routes available at the moment.</p>
-      ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {routes.map((route) => (
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-gray-800">
+          {hasRoutes ? 'Available Routes' : 'Popular Routes'}
+        </h1>
+        {!hasRoutes && (
+          <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+            Default Routes
+          </span>
+        )}
+      </div>
+      
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {hasRoutes ? (
+          // Display saved routes
+          routes.map((route) => (
             <div key={route.id} className="relative">
               {!loadedRoutes[route.id] && (
                 <div className="absolute inset-0 z-10">
@@ -95,15 +111,36 @@ export const RouteList: React.FC = () => {
               )}
               <div className={!loadedRoutes[route.id] ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}>
                 <RouteCard 
-                  key={route.id}
                   route={route} 
                   onLoad={() => handleRouteLoad(route.id)}
                 />
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        ) : (
+          // Display default routes with a different style
+          defaultRoutes.map((defaultRoute: Omit<ApiRoute, 'id'>, index: number) => (
+            <div key={`default-${index}`} className="border-2 border-dashed border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <h3 className="font-medium text-gray-900">
+                    {defaultRoute.from} → {defaultRoute.to}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {defaultRoute.duration} • {defaultRoute.distance}
+                  </p>
+                </div>
+                <span className="bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded">
+                  ${defaultRoute.basePrice}
+                </span>
+              </div>
+              <div className="h-32 bg-gray-50 rounded-md flex items-center justify-center text-gray-400 text-sm">
+                Save this route to see detailed information
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 };
