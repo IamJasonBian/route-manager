@@ -1,16 +1,15 @@
 import Amadeus from 'amadeus';
-import dotenv from 'dotenv';
-import path from 'path';
+import { loadEnv } from './loadEnv';
 
-// Load environment variables from .env file
-const envPath = path.resolve(process.cwd(), '../.env');
-dotenv.config({ path: envPath });
+// Load environment variables
+loadEnv();
 
 // Log environment variables (for debugging)
 console.log('Amadeus Service - Environment variables:', {
   AMADEUS_API_KEY: process.env.AMADEUS_API_KEY ? '***' : 'Not found',
   AMADEUS_API_SECRET: process.env.AMADEUS_API_SECRET ? '***' : 'Not found',
   AMADEUS_HOSTNAME: process.env.AMADEUS_HOSTNAME || 'Not found',
+  CWD: process.cwd()
 });
 
 // Initialize Amadeus client

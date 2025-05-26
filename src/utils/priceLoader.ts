@@ -1,18 +1,19 @@
-import dotenv from 'dotenv';
-import path from 'path';
+import * as path from 'path';
+import * as dotenv from 'dotenv';
 
-// Load environment variables from .env file
+// Load environment variables from the root .env file
 const envPath = path.resolve(process.cwd(), '../../.env');
 dotenv.config({ path: envPath });
 
-import { getAndSaveFlightPrices } from '../../scripts/amadeusServiceDirect';
-import { getRoutes } from '../../scripts/routeServiceDirect';
+import { getAndSaveFlightPrices } from '../services/amadeusService';
+import { getRoutes } from '../services/routeService';
+import { FlightPrice, FlightPriceResult } from '../types/flight';
 
 /**
  * Loads one month of prices for all routes in the database
- * @param days Number of days to load prices for (default: 30)
+ * @param days Number of days to load prices for (default: 14)
  */
-export const loadPricesForAllRoutes = async (days: number = 30) => {
+export async function loadPricesForAllRoutes(days: number = 14): Promise<FlightPriceResult[]> {
   try {
     console.log(`Loading prices for the next ${days} days for all routes...`);
     
@@ -26,7 +27,7 @@ export const loadPricesForAllRoutes = async (days: number = 30) => {
     
     console.log(`Found ${routes.length} routes to update`);
     
-    const results = [];
+    const allPrices: FlightPriceResult[] = [];
     
     // Process each route
     for (const route of routes) {
@@ -34,20 +35,24 @@ export const loadPricesForAllRoutes = async (days: number = 30) => {
         console.log(`\n=== Processing route: ${route.origin} to ${route.destination} ===`);
         
         // Get prices for the specified number of days
-        const prices = await getAndSaveFlightPrices(
+        const prices: FlightPrice[] = await getAndSaveFlightPrices(
           route.origin,
           route.destination,
-          new Date(), // Start from today
+          new Date(),
           days
         );
         
-        results.push({
-          route: `${route.origin} to ${route.destination}`,
-          pricesLoaded: prices.length,
-          averagePrice: prices.length > 0 
-            ? Math.round(prices.reduce((sum, p) => sum + p.price, 0) / prices.length * 100) / 100
-            : 0
-        });
+        // Convert FlightPrice to FlightPriceResult (Date to ISO string)
+        const priceResults: FlightPriceResult[] = prices.map(price => ({
+          origin: price.origin,
+          destination: price.destination,
+          departureDate: price.departureDate.toISOString(),
+          price: price.price,
+          currency: price.currency,
+          flightNumber: price.flightNumber
+        }));
+        
+        allPrices.push(...priceResults);
         
         console.log(`✅ Loaded ${prices.length} price points for ${route.origin} to ${route.destination}`);
         
@@ -56,17 +61,11 @@ export const loadPricesForAllRoutes = async (days: number = 30) => {
         
       } catch (error) {
         console.error(`❌ Error processing route ${route.origin} to ${route.destination}:`, error);
-        results.push({
-          route: `${route.origin} to ${route.destination}`,
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
       }
     }
     
-    console.log('\n=== Price loading complete ===');
-    console.table(results);
-    
-    return results;
+    console.log(`\nLoaded ${allPrices.length} price points in total`);
+    return allPrices;
     
   } catch (error) {
     console.error('Error in loadPricesForAllRoutes:', error);

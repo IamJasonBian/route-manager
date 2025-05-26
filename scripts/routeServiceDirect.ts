@@ -1,4 +1,4 @@
-import { executeQuery, getClient } from '../src/services/dbDirect';
+import { executeQuery, getClient } from './dbDirect';
 
 // Database route interface
 export interface DbRoute {

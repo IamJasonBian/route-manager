@@ -1,7 +1,7 @@
-import dotenv from 'dotenv';
-import path from 'path';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
 import Amadeus from 'amadeus';
-import { FlightPrice } from './api';
+import { FlightPrice } from '../types/flight';
 import { saveRoute, DbRoute, getRoutes } from './routeService';
 
 // Load environment variables from .env file
@@ -123,8 +123,12 @@ export const getAndSaveFlightPrices = async (
             console.log(`Found price for ${dateString}: $${price}`);
             
             prices.push({
-              date: currentDate,
-              price: price
+              origin,
+              destination,
+              departureDate: currentDate,
+              price,
+              currency: offer.price.currency || 'USD',
+              flightNumber: offer.itineraries?.[0]?.segments?.[0]?.number
             });
             
             // Add a small delay between API calls to avoid rate limiting
