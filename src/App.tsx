@@ -1,22 +1,43 @@
-import { useEffect, useState } from 'react';  // Required for JSX
+import { useEffect, useState } from 'react';
 import { PlaneTakeoffIcon, Loader2 } from 'lucide-react';
 import { RouteList } from './components/RouteList';
+import { RoutesDashboard } from './components/RoutesDashboard';
 import { FlightSearch } from './components/FlightSearch';
-import { loadDefaultRoutes } from './services/api';
+import { loadDefaultRoutes, getRoutes } from './services/api';
+import { Route as RouteType } from './services/api';
 
 export function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [routes, setRoutes] = useState<RouteType[]>([]);
 
-  // Load default routes when the component mounts
+  // Load routes when the component mounts
   useEffect(() => {
     const loadApp = async () => {
       try {
-        console.log('App: Loading default routes...');
+        console.log('App: Loading routes...');
+        // First, ensure default routes are loaded
         await loadDefaultRoutes();
-        console.log('App: Default routes loaded successfully');
+        
+        // Then fetch all routes including prices
+        const routesData = await getRoutes();
+        console.log('Fetched routes data:', routesData);
+        console.log('Number of routes:', routesData.length);
+        if (routesData.length > 0) {
+          console.log('First route sample:', {
+            id: routesData[0].id,
+            from: routesData[0].from,
+            to: routesData[0].to,
+            priceCount: routesData[0].prices?.length || 0,
+            firstPrice: routesData[0].prices?.[0]
+          });
+        }
+        setRoutes(routesData);
+        
+        console.log('App: Routes loaded successfully');
+        setError(null);
       } catch (err) {
-        console.error('App: Error loading default routes:', err);
+        console.error('App: Error loading routes:', err);
         setError('Failed to load routes. Please refresh the page to try again.');
       } finally {
         setIsLoading(false);
@@ -69,9 +90,15 @@ export function App() {
           <h2 className="text-xl font-semibold mb-4">Search Flights</h2>
           <FlightSearch />
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Saved Routes</h2>
-          <RouteList />
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-semibold mb-4">Saved Routes</h2>
+            <RouteList routes={routes} />
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-semibold mb-4">Price Trends</h2>
+            <RoutesDashboard routes={routes} />
+          </div>
         </div>
       </main>
     </div>

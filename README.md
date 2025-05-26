@@ -1,4 +1,4 @@
-# ✈️ Apollo Route Manager
+# ✈️ Apollo Flight Trader
 
 <div align="center">
   <p align="center">
@@ -14,23 +14,21 @@
   </p>
 </div>
 
-A sophisticated flight route management system that tracks and visualizes flight prices, helping you find optimal travel deals with precision and ease.
 
-## ✨ Features
 
-- **Real-time Price Tracking** - Monitor flight prices with 4-month forecasting
-- **Interactive Analytics** - Beautiful, responsive charts for data visualization
-- **Smart Alerts** - Get notified about price drops and optimal booking times
-- **Multi-source Data** - Combines data from leading flight APIs for accuracy
-- **User-friendly Interface** - Intuitive design for seamless user experience
+## Features
 
-## 🚀 Quick Start
+- **Price Analysis** - Monitor flight prices with 4-month forecasting and price + volatitity curves. Understand the efficient frontier of transfers and 1 stop + nonstop routes across multiples nodes into one outbound node. Analyze all good destinations from a single flight node.
+- **Same-day books** - Find flights where prices don't significantly change over time (shuttle routes) and opportunistic day of drops and bookings
+- **Push Alerts** - Get notified about price drops and good day of bookings
+
+## Quick Start
 
 ### Prerequisites
 - Node.js 16+ & npm 8+
 - Amadeus API credentials (for production use)
 
-### Installation
+### Installation and Forking Localhost for deployment/forwarded ports
 
 ```bash
 # Clone the repository
@@ -60,11 +58,11 @@ npm run preview
 
 For detailed documentation, please refer to our [Wiki](https://github.com/yourusername/route-manager/wiki).
 
-## 🌐 Live Demo
+## 🌐 Mock Deployment 
 
-Experience the application live: [Demo](https://your-demo-url.vercel.app)
+Experience the application live: [Demo](https://apollo-route-manager-0acz9.netlify.app/)
 
-## 🛠️ API Integration
+## 🛠️ Testing locally with your apis
 
 ### Authentication
 
@@ -88,6 +86,24 @@ curl -X GET "https://api.amadeus.com/v2/shopping/flight-offers" \
   --data-urlencode "adults=1"
 ```
 
+### Running the local postgres db
+
+```bash
+# Start the database
+npm run db:up
+
+# Stop the database
+npm run db:down
+
+#Example SQL
+
+select count(*), 
+  avg(price), destination from routes group by destination;
+
+select count(*), 
+  avg(price), origin from routes group by origin;
+```
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
@@ -96,12 +112,8 @@ Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTIN
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 📬 Contact
-
-For inquiries, please open an issue or contact the maintainers.
-
 ---
 
 <div align="center">
-  Made with ❤️ by Your Team
+  Made in 🏠 in NYC, ready to go to LGA, JFK, or EWK anytime
 </div>

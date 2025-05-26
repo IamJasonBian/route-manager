@@ -20,7 +20,7 @@ export interface RouteMeta {
 // API configuration
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
   ? 'https://apollo-route-manager.windsurf.build/.netlify/functions'
-  : 'http://localhost:8888/.netlify/functions';
+  : 'http://localhost:8889/.netlify/functions';
 
 // Create axios instance with default configuration
 export const apiClient = axios.create({
@@ -44,7 +44,15 @@ export interface ApiRoute {
 }
 
 // Interface for route data (legacy, keeping for backward compatibility)
-export interface Route extends ApiRoute {}
+export interface Route extends Omit<ApiRoute, 'meta'> {
+  id: string;
+  from: string;
+  to: string;
+  prices: Array<{ date: string | Date; price: number }>;
+  basePrice: number;
+  distance: string;
+  duration: string;
+}
 
 // Helper function to convert between API and DB route formats
 const toDbRoute = (route: ApiRoute): Omit<DbRoute, 'id' | 'created_at' | 'updated_at'> => {

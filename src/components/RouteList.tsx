@@ -1,8 +1,12 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { Route, getRoutes, ApiRoute } from '../services/api';
+import React, { useCallback } from 'react';
+import { Route as RouteType, ApiRoute } from '../services/api';
 import { RouteCard } from './RouteCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { defaultRoutes } from '../config/defaultRoutes';
+
+interface RouteListProps {
+  routes: RouteType[];
+}
 
 // Skeleton loader for route cards
 const RouteCardSkeleton = () => (
@@ -18,38 +22,8 @@ const RouteCardSkeleton = () => (
   </div>
 );
 
-export const RouteList: React.FC = () => {
-  const [routes, setRoutes] = useState<Route[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [loadedRoutes, setLoadedRoutes] = useState<{[key: string]: boolean}>({});
-
-  // Load routes data
-  useEffect(() => {
-    const fetchRoutes = async () => {
-      try {
-        setLoading(true);
-        const data = await getRoutes();
-        
-        // Initialize loaded state for each route
-        const initialLoadedState = data.reduce((acc, route) => ({
-          ...acc,
-          [route.id]: false
-        }), {});
-        
-        setRoutes(data);
-        setLoadedRoutes(initialLoadedState);
-        setError(null);
-      } catch (err) {
-        setError('Failed to fetch routes. Please try again later.');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRoutes();
-  }, []);
+export const RouteList: React.FC<RouteListProps> = ({ routes }) => {
+  const [loadedRoutes, setLoadedRoutes] = React.useState<{[key: string]: boolean}>({});
   
   // Memoize the route load handler to prevent unnecessary re-renders
   const handleRouteLoad = useCallback((routeId: string) => {
@@ -58,6 +32,19 @@ export const RouteList: React.FC = () => {
       [routeId]: true
     }));
   }, []);
+  
+  // Initialize loaded state for new routes
+  React.useEffect(() => {
+    const newLoadedRoutes = routes.reduce((acc, route) => ({
+      ...acc,
+      [route.id]: loadedRoutes[route.id] || false
+    }), {});
+    
+    setLoadedRoutes(newLoadedRoutes);
+  }, [routes]);
+  
+  const loading = routes.length === 0;
+  const error = null; // Error is now handled by the parent component
 
   if (loading) {
     return (
