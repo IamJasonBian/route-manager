@@ -1,28 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, ChangeEvent, FormEvent } from 'react';
 import { PlusCircleIcon } from 'lucide-react';
-export const AddRouteForm = ({
-  onAddRoute
-}) => {
-  const [routeData, setRouteData] = useState({
+
+interface RouteFormData {
+  from: string;
+  to: string;
+  basePrice: string | number;
+  duration: string;
+  distance: string;
+}
+
+interface AddRouteFormProps {
+  onAddRoute: (data: Omit<RouteFormData, 'basePrice'> & { basePrice: number }) => void;
+}
+
+export const AddRouteForm: React.FC<AddRouteFormProps> = ({ onAddRoute }) => {
+  const [routeData, setRouteData] = useState<RouteFormData>({
     from: '',
     to: '',
     basePrice: '',
     duration: '',
     distance: ''
   });
-  const handleChange = e => {
-    const {
-      name,
-      value
-    } = e.target;
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
     setRouteData(prev => ({
       ...prev,
-      [name]: name === 'basePrice' ? parseInt(value) || '' : value
+      [name]: name === 'basePrice' ? (value === '' ? '' : parseInt(value) || '') : value
     }));
   };
-  const handleSubmit = e => {
+
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    onAddRoute(routeData);
+    // Ensure basePrice is a number when submitting
+    const formData = {
+      ...routeData,
+      basePrice: Number(routeData.basePrice) || 0
+    };
+    onAddRoute(formData as Omit<RouteFormData, 'basePrice'> & { basePrice: number });
     setRouteData({
       from: '',
       to: '',
