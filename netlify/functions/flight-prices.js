@@ -66,11 +66,20 @@ const getFlightPricesForDates = async (origin, destination, dates) => {
 };
 
 exports.handler = async (event, context) => {
+  // Debug: Log environment variables (excluding sensitive ones)
+  console.log('Environment variables:', {
+    AMADEUS_API_KEY: process.env.AMADEUS_API_KEY ? '***' : 'Not set',
+    AMADEUS_API_SECRET: process.env.AMADEUS_API_SECRET ? '***' : 'Not set',
+    AMADEUS_HOSTNAME: process.env.AMADEUS_HOSTNAME || 'Not set',
+    NODE_ENV: process.env.NODE_ENV || 'Not set'
+  });
+
   // Set CORS headers
   const headers = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': 'http://localhost:5173',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Credentials': 'true',
   };
   
   // Handle preflight OPTIONS request

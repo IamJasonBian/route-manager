@@ -21,7 +21,7 @@ export interface RouteMeta {
 // API configuration
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
   ? 'https://apollo-route-manager.windsurf.build/.netlify/functions'
-  : 'http://localhost:3002/.netlify/functions';
+  : 'http://localhost:8888/.netlify/functions';
 
 // Create axios instance with default configuration
 export const apiClient = axios.create({

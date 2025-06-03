@@ -3,6 +3,16 @@ import { Link } from 'react-router-dom';
 import PriceHistoryChart from '../components/PriceHistoryChart';
 import { getPriceHistory } from '../services/api';
 
+// Airport data for the dropdowns
+const AIRPORTS = [
+  { code: 'JFK', name: 'New York (JFK)' },
+  { code: 'LHR', name: 'London (LHR)' },
+  { code: 'SFO', name: 'San Francisco (SFO)' },
+  { code: 'NRT', name: 'Tokyo (NRT)' },
+  { code: 'CDG', name: 'Paris (CDG)' },
+  { code: 'SYD', name: 'Sydney (SYD)' },
+];
+
 interface PricePoint {
   price: number;
   recorded_at: string;
@@ -12,32 +22,45 @@ export default function PriceTrendsPage() {
   const [prices, setPrices] = useState<PricePoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [origin, setOrigin] = useState('JFK');
+  const [destination, setDestination] = useState('LHR');
+
+  const fetchPriceTrends = async (from: string, to: string) => {
+    try {
+      setIsLoading(true);
+      const response = await getPriceHistory(from, to);
+      
+      // Transform the prices array to match the expected format
+      const formattedPrices = response.prices.map(item => ({
+        price: item.price,
+        recorded_at: item.date
+      }));
+      
+      setPrices(formattedPrices);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching price trends:', err);
+      setError('Failed to load price trends. Please try again later.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchPriceTrends = async () => {
-      try {
-        setIsLoading(true);
-        // Example route - in a real app, this would be dynamic based on user selection
-        const response = await getPriceHistory('JFK', 'LHR');
-        
-        // Transform the prices array to match the expected format
-        const formattedPrices = response.prices.map(item => ({
-          price: item.price,
-          recorded_at: item.date
-        }));
-        
-        setPrices(formattedPrices);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching price trends:', err);
-        setError('Failed to load price trends. Please try again later.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchPriceTrends();
+    fetchPriceTrends(origin, destination);
   }, []);
+
+  const handleUpdate = () => {
+    fetchPriceTrends(origin, destination);
+  };
+
+  const handleOriginChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setOrigin(e.target.value);
+  };
+
+  const handleDestinationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setDestination(e.target.value);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -63,11 +86,15 @@ export default function PriceTrendsPage() {
                 <label htmlFor="origin" className="block text-sm font-medium text-gray-700 mb-1">From</label>
                 <select
                   id="origin"
+                  value={origin}
+                  onChange={handleOriginChange}
                   className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 >
-                  <option>New York (JFK)</option>
-                  <option>London (LHR)</option>
-                  <option>San Francisco (SFO)</option>
+                  {AIRPORTS.map(airport => (
+                    <option key={`origin-${airport.code}`} value={airport.code}>
+                      {airport.name}
+                    </option>
+                  ))}
                 </select>
               </div>
               
@@ -75,20 +102,28 @@ export default function PriceTrendsPage() {
                 <label htmlFor="destination" className="block text-sm font-medium text-gray-700 mb-1">To</label>
                 <select
                   id="destination"
+                  value={destination}
+                  onChange={handleDestinationChange}
                   className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 >
-                  <option>London (LHR)</option>
-                  <option>New York (JFK)</option>
-                  <option>Tokyo (NRT)</option>
+                  {AIRPORTS.filter(airport => airport.code !== origin).map(airport => (
+                    <option key={`dest-${airport.code}`} value={airport.code}>
+                      {airport.name}
+                    </option>
+                  ))}
                 </select>
               </div>
               
               <div className="flex items-end">
                 <button
                   type="button"
-                  className="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  onClick={handleUpdate}
+                  disabled={isLoading}
+                  className={`w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
+                    isLoading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
+                  } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
                 >
-                  Update Chart
+                  {isLoading ? 'Loading...' : 'Update Chart'}
                 </button>
               </div>
             </div>
