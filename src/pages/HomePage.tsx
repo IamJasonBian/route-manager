@@ -19,9 +19,9 @@ export default function HomePage() {
             to="/trends"
           />
           <Card 
-            title="Available Flights" 
-            description="Browse all available flights and prices"
-            to="/flights"
+            title="Route Summary" 
+            description="View and compare price trends across all routes"
+            to="/route-summary"
           />
         </div>
       </div>
