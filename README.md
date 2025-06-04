@@ -60,8 +60,8 @@ For detailed documentation, please refer to our [Wiki](https://github.com/yourus
 
 ## 🌐 Mock Deployments
 
-Single site demo: [Design 1](https://apollo-route-manager-0acz9.netlify.app/)
-Mult-page flight manager demo: [Design 2](https://route-manager-demo.netlify.app/) 
+* Single site demo: [Design 1](https://apollo-route-manager-0acz9.netlify.app/)
+* Multi-Page flight manager demo: [Design 2](https://route-manager-demo.netlify.app/) 
 
 ## 🛠️ Testing locally with your apis
 
