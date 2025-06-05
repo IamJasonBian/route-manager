@@ -4,6 +4,8 @@
 import '@testing-library/jest-dom';
 
 // Mock the SVG elements that might not be available in the test environment
+// Temporarily commented out as it's causing TypeScript errors
+/*
 window.SVGElement.prototype.getBBox = () => ({
   x: 0,
   y: 0,
@@ -14,3 +16,4 @@ window.SVGElement.prototype.getBBox = () => ({
   bottom: 0,
   left: 0,
 });
+*/

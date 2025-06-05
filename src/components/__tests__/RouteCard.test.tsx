@@ -1,4 +1,4 @@
-import React from 'react';
+// React import removed as it's not used
 import { render, screen } from '@testing-library/react';
 import { RouteCard } from '../RouteCard';
 import { Route } from '../../services/api';
@@ -11,7 +11,7 @@ describe('RouteCard Component', () => {
     to: 'LHR',
     fromCity: 'New York',
     toCity: 'London',
-    distance: 3461,
+    distance: '3461',
     duration: '7h 25m',
     prices: [
       { price: 450, date: '2025-05-18' },
