@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import PriceHistoryChart from '../components/PriceHistoryChart';
+import PriceHistoryChart, { ChartType } from '../components/PriceHistoryChart';
 import { getPriceHistory } from '../services/api';
 
 // Airport data for the dropdowns
@@ -18,12 +18,43 @@ interface PricePoint {
   recorded_at: string;
 }
 
+interface TabPanelProps {
+  children: React.ReactNode;
+  isActive: boolean;
+  id: string;
+}
+
+function TabPanel({ children, isActive, id }: TabPanelProps) {
+  return (
+    <div
+      role="tabpanel"
+      id={id}
+      className={`p-4 ${isActive ? 'block' : 'hidden'}`}
+      aria-labelledby={`${id}-tab`}
+    >
+      {children}
+    </div>
+  );
+}
+
 export default function PriceTrendsPage() {
   const [prices, setPrices] = useState<PricePoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [origin, setOrigin] = useState('JFK');
   const [destination, setDestination] = useState('LHR');
+  const [tabValue, setTabValue] = useState(0);
+
+  const chartTypes: ChartType[] = ['line', 'burn-down', 'draw-down'];
+  const chartTitles = [
+    'Price History',
+    'Price Burn Down',
+    'Price Draw Down'
+  ];
+
+  const handleTabChange = (newValue: number) => {
+    setTabValue(newValue);
+  };
 
   const fetchPriceTrends = async (from: string, to: string) => {
     try {
@@ -128,30 +159,65 @@ export default function PriceTrendsPage() {
               </div>
             </div>
             
-            <div className="h-96">
-              {isLoading ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-                </div>
-              ) : error ? (
-                <div className="bg-red-50 border-l-4 border-red-400 p-4">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-sm text-red-700">{error}</p>
-                    </div>
+            <div className="mt-6">
+              <div className="border-b border-gray-200">
+                <nav className="flex -mb-px" aria-label="Chart types">
+                  {chartTypes.map((type, index) => (
+                    <button
+                      key={type}
+                      onClick={() => handleTabChange(index)}
+                      className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
+                        tabValue === index
+                          ? 'border-blue-500 text-blue-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                      id={`${type}-tab`}
+                      aria-controls={`${type}-panel`}
+                      role="tab"
+                      type="button"
+                    >
+                      {chartTitles[index]}
+                    </button>
+                  ))}
+                </nav>
+              </div>
+              
+              {chartTypes.map((type, index) => (
+                <TabPanel 
+                  key={type} 
+                  id={`${type}-panel`}
+                  isActive={tabValue === index}
+                >
+                  <div className="h-96">
+                    {isLoading ? (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                      </div>
+                    ) : error ? (
+                      <div className="bg-red-50 border-l-4 border-red-400 p-4">
+                        <div className="flex">
+                          <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <p className="text-sm text-red-700">{error}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <PriceHistoryChart 
+                        prices={prices} 
+                        loading={isLoading} 
+                        chartType={type}
+                        title={chartTitles[index]}
+                      />
+                    )}
                   </div>
-                </div>
-              ) : (
-                <div className="bg-white rounded-lg shadow p-6 h-full">
-                  <PriceHistoryChart prices={prices} loading={isLoading} />
-                </div>
-              )}
-            </div>
+                </TabPanel>
+              ))}
+          </div>
           </div>
           
           <div className="mt-8">

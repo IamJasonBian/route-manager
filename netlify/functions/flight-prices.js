@@ -1,10 +1,11 @@
-const Amadeus = require('amadeus');
+import Amadeus from 'amadeus';
+import config from '../../src/config/env.js';
 
-// Initialize Amadeus client with environment variables
+// Initialize Amadeus client with config
 const amadeus = new Amadeus({
-  clientId: process.env.AMADEUS_API_KEY || 'YOUR_AMADEUS_API_KEY',
-  clientSecret: process.env.AMADEUS_API_SECRET || 'YOUR_AMADEUS_API_SECRET',
-  hostname: process.env.AMADEUS_HOSTNAME || 'test' // 'test' or 'production'
+  clientId: config.amadeus.apiKey,
+  clientSecret: config.amadeus.apiSecret,
+  hostname: config.amadeus.hostname
 });
 
 // Helper function to format date to YYYY-MM-DD
@@ -65,7 +66,7 @@ const getFlightPricesForDates = async (origin, destination, dates) => {
   return prices.filter(price => price.price !== null);
 };
 
-exports.handler = async (event, context) => {
+export const handler = async (event, context) => {
   // Debug: Log environment variables (excluding sensitive ones)
   console.log('Environment variables:', {
     AMADEUS_API_KEY: process.env.AMADEUS_API_KEY ? '***' : 'Not set',

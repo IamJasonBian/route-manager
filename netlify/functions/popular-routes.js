@@ -1,10 +1,11 @@
-const Amadeus = require('amadeus');
+import Amadeus from 'amadeus';
+import config from '../../src/config/env.js';
 
-// Initialize Amadeus client with environment variables
+// Initialize Amadeus client with config
 const amadeus = new Amadeus({
-  clientId: process.env.AMADEUS_API_KEY || 'YOUR_AMADEUS_API_KEY',
-  clientSecret: process.env.AMADEUS_API_SECRET || 'YOUR_AMADEUS_API_SECRET',
-  hostname: process.env.AMADEUS_HOSTNAME || 'test' // 'test' or 'production'
+  clientId: config.amadeus.apiKey,
+  clientSecret: config.amadeus.apiSecret,
+  hostname: config.amadeus.hostname
 });
 
 // Helper function to format date to YYYY-MM-DD
@@ -317,7 +318,7 @@ const getFlightInfo = async (origin, destination) => {
   };
 };
 
-exports.handler = async (event, context) => {
+export const handler = async (event, context) => {
   // Set CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
