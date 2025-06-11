@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS routes (
     return_date TIMESTAMP WITH TIME ZONE,
     airline VARCHAR(100),
     flight_number VARCHAR(20),
+    legs JSONB DEFAULT '[]',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(origin, destination, departure_date, flight_number)

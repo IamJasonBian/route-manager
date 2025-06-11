@@ -15,3 +15,10 @@ export interface FlightPriceResult {
   currency: string;
   flightNumber?: string;
 }
+
+export interface FlightLeg {
+  from: string;
+  to: string;
+  distance?: string;
+  duration?: string;
+}

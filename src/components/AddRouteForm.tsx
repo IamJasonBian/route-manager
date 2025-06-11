@@ -8,7 +8,8 @@ export const AddRouteForm = ({
     to: '',
     basePrice: '',
     duration: '',
-    distance: ''
+    distance: '',
+    stops: ''
   });
   const handleChange = e => {
     const {
@@ -22,13 +23,19 @@ export const AddRouteForm = ({
   };
   const handleSubmit = e => {
     e.preventDefault();
-    onAddRoute(routeData);
+    const legs = routeData.stops
+      ? [routeData.from, ...routeData.stops.split(',').map(s => s.trim()), routeData.to]
+          .slice(0, -1)
+          .map((from, idx, arr) => ({ from, to: arr[idx + 1] }))
+      : [{ from: routeData.from, to: routeData.to }];
+    onAddRoute({ ...routeData, legs });
     setRouteData({
       from: '',
       to: '',
       basePrice: '',
       duration: '',
-      distance: ''
+      distance: '',
+      stops: ''
     });
   };
   return <div>
@@ -69,6 +76,12 @@ export const AddRouteForm = ({
             </label>
             <input type="text" id="distance" name="distance" placeholder="e.g. 3,461 miles" value={routeData.distance} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
           </div>
+        </div>
+        <div>
+          <label htmlFor="stops" className="block text-sm font-medium text-gray-700 mb-1">
+            Stops (comma separated)
+          </label>
+          <input type="text" id="stops" name="stops" placeholder="e.g. LHR,FCO" value={routeData.stops} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
         <button type="submit" className="w-full flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
           <PlusCircleIcon className="h-5 w-5 mr-2" />

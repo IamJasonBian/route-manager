@@ -21,6 +21,7 @@ interface RouteCardProps {
     id: string;
     from: string;
     to: string;
+    legs?: { from: string; to: string }[];
     basePrice: number;
     prices: Array<{ date: string | Date; price: number }>;
     distance: string;
@@ -45,6 +46,7 @@ export const RouteCard: React.FC<RouteCardProps> = ({
   const {
     from,
     to,
+    legs,
     basePrice,
     prices,
     distance,
@@ -53,6 +55,9 @@ export const RouteCard: React.FC<RouteCardProps> = ({
   const lowestPrice = Math.min(...prices.map(p => p.price));
   const highestPrice = Math.max(...prices.map(p => p.price));
   const savings = basePrice - lowestPrice;
+  const path = legs && legs.length > 1
+    ? legs.map(l => l.from).concat(legs[legs.length - 1].to).join(' → ')
+    : `${from} → ${to}`;
   return <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
       <div className="flex flex-col space-y-4">
         <div className="flex justify-between items-start">
@@ -60,7 +65,7 @@ export const RouteCard: React.FC<RouteCardProps> = ({
             <div className="flex items-center space-x-2">
               <MapPinIcon className="h-5 w-5 text-blue-600" />
               <h3 className="text-lg font-semibold text-gray-800">
-                {from} <ArrowRightIcon className="inline h-4 w-4 mx-1" /> {to}
+                {path}
               </h3>
             </div>
             <div className="flex items-center text-sm text-gray-600 mt-1">
@@ -70,7 +75,10 @@ export const RouteCard: React.FC<RouteCardProps> = ({
               <span>{distance}</span>
             </div>
             <a 
-              href={getGoogleFlightsUrl(from, to)} 
+              href={getGoogleFlightsUrl(
+                legs && legs.length ? legs[0].from : from,
+                legs && legs.length ? legs[legs.length - 1].to : to
+              )}
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center text-xs text-blue-600 mt-2 hover:text-blue-800 transition-colors"

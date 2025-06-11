@@ -256,7 +256,31 @@ export const defaultRoutes: Omit<ApiRoute, 'id'>[] = [
       "toCode": "VIE",
       "source": "amadeus",
       "lowestPrice": 427.4,
-      "highestPrice": 627.2,
+    "highestPrice": 627.2,
+    "updatedAt": "2025-05-26T04:31:05.929Z"
+    }
+  },
+  {
+    "from": "New York (JFK)",
+    "to": "Rome (FCO)",
+    "legs": [
+      { "from": "New York (JFK)", "to": "London (LHR)", "distance": "3,442 mi", "duration": "7h 25m" },
+      { "from": "London (LHR)", "to": "Rome (FCO)", "distance": "890 mi", "duration": "2h 25m" }
+    ],
+    "basePrice": 390,
+    "prices": [
+      { "date": "2025-06-15T00:00:00.000Z", "price": 420 },
+      { "date": "2025-07-15T00:00:00.000Z", "price": 390 },
+      { "date": "2025-08-15T00:00:00.000Z", "price": 450 }
+    ],
+    "distance": "4,332 mi",
+    "duration": "9h 50m",
+    "meta": {
+      "fromCode": "JFK",
+      "toCode": "FCO",
+      "source": "amadeus",
+      "lowestPrice": 390,
+      "highestPrice": 450,
       "updatedAt": "2025-05-26T04:31:05.929Z"
     }
   }
