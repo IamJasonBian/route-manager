@@ -1,5 +1,6 @@
 import { executeQuery } from './dbService';
 import { ApiRoute as ApiRouteType } from './api';
+import { FlightLeg } from '../types/flight';
 
 // Database route interface
 export interface DbRoute {
@@ -11,6 +12,7 @@ export interface DbRoute {
   return_date: Date | null;
   airline: string | null;
   flight_number: string | null;
+  legs: any[] | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -20,6 +22,7 @@ export interface ApiRoute {
   id: number;
   from: string;
   to: string;
+  legs?: FlightLeg[];
   basePrice: number;
   prices: Array<{ date: Date; price: number }>;
   distance: string;
@@ -55,29 +58,32 @@ export const saveRoute = async (
   try {
     const result = await executeQuery<DbRoute>(
       `INSERT INTO routes (
-        origin, 
-        destination, 
-        price, 
-        departure_date, 
-        return_date, 
-        airline, 
-        flight_number
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-      ON CONFLICT (origin, destination, departure_date, flight_number) 
-      DO UPDATE SET 
+        origin,
+        destination,
+        price,
+        departure_date,
+        return_date,
+        airline,
+        flight_number,
+        legs
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      ON CONFLICT (origin, destination, departure_date, flight_number)
+      DO UPDATE SET
         price = EXCLUDED.price,
         return_date = EXCLUDED.return_date,
         airline = EXCLUDED.airline,
+        legs = EXCLUDED.legs,
         updated_at = NOW()
       RETURNING *`,
       [
-        origin, 
-        destination, 
-        price, 
-        departure_date, 
-        return_date, 
-        airline, 
-        flight_number
+        origin,
+        destination,
+        price,
+        departure_date,
+        return_date,
+        airline,
+        flight_number,
+        JSON.stringify(route.legs || [])
       ]
     );
 
@@ -135,6 +141,7 @@ export const getRoutes = async (origin?: string, destination?: string): Promise<
       return_date: row.return_date ? new Date(row.return_date) : null,
       airline: row.airline,
       flight_number: row.flight_number,
+      legs: row.legs || [],
       created_at: new Date(row.created_at),
       updated_at: new Date(row.updated_at)
     }));
@@ -149,7 +156,12 @@ export const getRoutes = async (origin?: string, destination?: string): Promise<
 
 export const getRouteById = async (id: number): Promise<DbRoute | undefined> => {
   const result = await executeQuery<DbRoute>('SELECT * FROM routes WHERE id = $1', [id]);
-  return result.rows[0];
+  const row = result.rows[0];
+  if (!row) return undefined;
+  return {
+    ...row,
+    legs: row.legs || []
+  };
 };
 
 export const deleteRoute = async (id: number): Promise<void> => {
@@ -169,8 +181,8 @@ export const saveRoutes = async (routes: Omit<DbRoute, 'id' | 'created_at' | 'up
     try {
       const { rows } = await executeQuery<DbRoute>(
         `INSERT INTO routes (
-          origin, destination, price, departure_date, return_date, airline, flight_number
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+          origin, destination, price, departure_date, return_date, airline, flight_number, legs
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING *`,
         [
           route.origin,
@@ -179,10 +191,15 @@ export const saveRoutes = async (routes: Omit<DbRoute, 'id' | 'created_at' | 'up
           route.departure_date,
           route.return_date,
           route.airline,
-          route.flight_number
+          route.flight_number,
+          JSON.stringify(route.legs || [])
         ]
       );
-      savedRoutes.push(rows[0]);
+      const saved = rows[0];
+      savedRoutes.push({
+        ...saved,
+        legs: saved.legs || []
+      });
     } catch (error) {
       console.error(`Failed to save route ${route.origin} → ${route.destination}:`, error);
       // Continue with next route even if one fails
@@ -206,7 +223,8 @@ const apiRouteToDbRoute = (apiRoute: Omit<ApiRouteType, 'id'>): Omit<DbRoute, 'i
     departure_date: apiRoute.prices.length > 0 ? new Date(apiRoute.prices[0].date) : null,
     return_date: null, // Default to null for one-way flights
     airline: 'Multiple', // Default value, can be updated with actual airline data
-    flight_number: null
+    flight_number: null,
+    legs: apiRoute.legs || []
   };
 };
 

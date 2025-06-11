@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { saveRoute as saveDbRoute, DbRoute } from './routeService';
+import { FlightLeg } from '../types/flight';
 
 // Interface for flight price data
 export interface FlightPrice {
@@ -36,6 +37,7 @@ export interface ApiRoute {
   id: string;
   from: string;
   to: string;
+  legs?: FlightLeg[];
   basePrice: number;
   prices: FlightPrice[];
   distance: string;
@@ -48,6 +50,7 @@ export interface Route extends Omit<ApiRoute, 'meta'> {
   id: string;
   from: string;
   to: string;
+  legs?: FlightLeg[];
   prices: Array<{ date: string | Date; price: number }>;
   basePrice: number;
   distance: string;
@@ -75,7 +78,8 @@ const toDbRoute = (route: ApiRoute): Omit<DbRoute, 'id' | 'created_at' | 'update
     departure_date: departureDate,
     return_date: returnDate,
     airline: 'Unknown',
-    flight_number: `FLT-${Math.floor(1000 + Math.random() * 9000)}`
+    flight_number: `FLT-${Math.floor(1000 + Math.random() * 9000)}`,
+    legs: route.legs || []
   };
 };
 
@@ -144,6 +148,7 @@ const toApiRoute = (dbRoute: DbRoute): ApiRoute => {
       id: dbRoute.id?.toString() || `temp-${Date.now()}`,
       from: origin,
       to: destination,
+      legs: dbRoute.legs && Array.isArray(dbRoute.legs) ? dbRoute.legs : [{ from: origin, to: destination }],
       basePrice: price,
       distance: '0 km',
       duration: '0h 0m',
