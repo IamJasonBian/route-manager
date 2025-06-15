@@ -45,9 +45,15 @@ export default function SearchFlightsPage() {
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
   const [departureDate, setDepartureDate] = useState('');
+  const [returnDate, setReturnDate] = useState('');
+  const [passengers, setPassengers] = useState(1);
+  const [tripType, setTripType] = useState<'one-way' | 'round-trip'>('one-way');
   const [isSearching, setIsSearching] = useState(false);
   const [flights, setFlights] = useState<Flight[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<{iataCode: string, name: string}[]>([]);
+  const [showOriginSuggestions, setShowOriginSuggestions] = useState(false);
+  const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
   
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('en-US', {
@@ -66,9 +72,43 @@ export default function SearchFlightsPage() {
     return `${hours}h ${minutes}m`;
   };
 
+  const popularAirports = [
+    { iataCode: 'JFK', name: 'John F. Kennedy Intl (New York)' },
+    { iataCode: 'LAX', name: 'Los Angeles Intl' },
+    { iataCode: 'ORD', name: "Chicago O'Hare Intl" },
+    { iataCode: 'SFO', name: 'San Francisco Intl' },
+    { iataCode: 'SEA', name: 'Seattle-Tacoma Intl' },
+  ];
+
+  const handleOriginFocus = () => {
+    setShowOriginSuggestions(true);
+    setShowDestinationSuggestions(false);
+  };
+
+  const handleDestinationFocus = () => {
+    setShowDestinationSuggestions(true);
+    setShowOriginSuggestions(false);
+  };
+
+  const handleSelectAirport = (airport: {iataCode: string, name: string}, type: 'origin' | 'destination') => {
+    if (type === 'origin') {
+      setOrigin(airport.iataCode);
+      setShowOriginSuggestions(false);
+    } else {
+      setDestination(airport.iataCode);
+      setShowDestinationSuggestions(false);
+    }
+  };
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    
+    if (!origin || !destination || !departureDate || (tripType === 'round-trip' && !returnDate)) {
+      setError('Please fill in all required fields');
+      return;
+    }
+    
     setIsSearching(true);
     
     try {
@@ -76,8 +116,9 @@ export default function SearchFlightsPage() {
         origin: origin.toUpperCase(),
         destination: destination.toUpperCase(),
         departureDate,
+        returnDate: tripType === 'round-trip' ? returnDate : undefined,
         maxResults: 10,
-        adults: 1,
+        adults: passengers,
         nonStop: false
       });
       
@@ -97,66 +138,183 @@ export default function SearchFlightsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center mb-8">
-          <Link to="/" className="text-blue-600 hover:underline mr-4">
-            &larr; Back to Home
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center mb-6">
+          <Link to="/" className="text-blue-600 hover:underline flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+            </svg>
+            Back to Home
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Search Flights</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 ml-4">Search Flights</h1>
         </div>
-        
-        <div className="bg-white p-6 rounded-lg shadow-md">
+
+        <div className="bg-white p-6 rounded-xl shadow-md mb-8">
           <form onSubmit={handleSearch} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label htmlFor="origin" className="block text-sm font-medium text-gray-700">From</label>
-                <input
-                  type="text"
-                  id="origin"
-                  value={origin}
-                  onChange={(e) => setOrigin(e.target.value)}
-                  placeholder="City or Airport"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
-                />
+            {/* Trip Type Toggle */}
+            <div className="flex space-x-2 mb-4">
+              <button
+                type="button"
+                className={`px-4 py-2 rounded-l-lg text-sm font-medium ${tripType === 'one-way' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                onClick={() => setTripType('one-way')}
+              >
+                One Way
+              </button>
+              <button
+                type="button"
+                className={`px-4 py-2 rounded-r-lg text-sm font-medium ${tripType === 'round-trip' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                onClick={() => setTripType('round-trip')}
+              >
+                Round Trip
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Origin Input with Suggestions */}
+              <div className="relative">
+                <label htmlFor="origin" className="block text-sm font-medium text-gray-700 mb-1">From</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    id="origin"
+                    placeholder="City or Airport"
+                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    required
+                    value={origin}
+                    onChange={(e) => setOrigin(e.target.value)}
+                    onFocus={handleOriginFocus}
+                  />
+                  {showOriginSuggestions && (
+                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg">
+                      {popularAirports.map((airport) => (
+                        <div
+                          key={airport.iataCode}
+                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                          onClick={() => handleSelectAirport(airport, 'origin')}
+                        >
+                          <div className="font-medium">{airport.iataCode}</div>
+                          <div className="text-sm text-gray-500">{airport.name}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-              
-              <div>
-                <label htmlFor="destination" className="block text-sm font-medium text-gray-700">To</label>
-                <input
-                  type="text"
-                  id="destination"
-                  value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
-                  placeholder="City or Airport"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
-                />
+
+              {/* Destination Input with Suggestions */}
+              <div className="relative">
+                <label htmlFor="destination" className="block text-sm font-medium text-gray-700 mb-1">To</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    id="destination"
+                    placeholder="City or Airport"
+                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    required
+                    value={destination}
+                    onChange={(e) => setDestination(e.target.value)}
+                    onFocus={handleDestinationFocus}
+                  />
+                  {showDestinationSuggestions && (
+                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg">
+                      {popularAirports.map((airport) => (
+                        <div
+                          key={airport.iataCode}
+                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                          onClick={() => handleSelectAirport(airport, 'destination')}
+                        >
+                          <div className="font-medium">{airport.iataCode}</div>
+                          <div className="text-sm text-gray-500">{airport.name}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-              
+
+              {/* Departure Date */}
               <div>
-                <label htmlFor="departureDate" className="block text-sm font-medium text-gray-700">Departure Date</label>
+                <label htmlFor="departureDate" className="block text-sm font-medium text-gray-700 mb-1">Departure</label>
                 <input
                   type="date"
                   id="departureDate"
+                  className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  required
                   value={departureDate}
                   onChange={(e) => setDepartureDate(e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
+                  min={new Date().toISOString().split('T')[0]}
                 />
               </div>
+
+              {/* Return Date - Conditionally Rendered */}
+              {tripType === 'round-trip' && (
+                <div>
+                  <label htmlFor="returnDate" className="block text-sm font-medium text-gray-700 mb-1">Return</label>
+                  <input
+                    type="date"
+                    id="returnDate"
+                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    required={tripType === 'round-trip'}
+                    value={returnDate}
+                    onChange={(e) => setReturnDate(e.target.value)}
+                    min={departureDate || new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+              )}
             </div>
-            
-            <div className="flex justify-end">
+
+            {/* Passengers and Search Button */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-2">
+              <div className="w-full sm:w-auto">
+                <label htmlFor="passengers" className="block text-sm font-medium text-gray-700 mb-1">Passengers</label>
+                <select
+                  id="passengers"
+                  className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  value={passengers}
+                  onChange={(e) => setPassengers(parseInt(e.target.value))}
+                >
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                    <option key={num} value={num}>
+                      {num} {num === 1 ? 'Passenger' : 'Passengers'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
               <button
                 type="submit"
                 disabled={isSearching}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`w-full sm:w-auto px-6 py-3 rounded-lg text-white font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors ${
+                  isSearching
+                    ? 'bg-blue-400 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                }`}
               >
-                {isSearching ? 'Searching...' : 'Search Flights'}
+                {isSearching ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Searching...
+                  </span>
+                ) : (
+                  <span className="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" />
+                    </svg>
+                    Search Flights
+                  </span>
+                )}
               </button>
             </div>
+
+            {error && (
+              <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
           </form>
           
           {/* Search results */}
