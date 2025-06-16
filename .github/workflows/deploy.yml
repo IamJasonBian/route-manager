@@ -5,120 +5,24 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to deploy to'
-        required: true
-        default: 'production'
-        type: choice
-        options:
-          - production
-          - staging
-
-env:
-  NODE_VERSION: '20'
-  NPM_VERSION: '10'
 
 jobs:
-  test:
-    name: Run tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.npm
-            node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Run tests
-        run: npm test
-        env:
-          NODE_ENV: test
-          CI: true
-
-  lint:
-    name: Lint code
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.npm
-            node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Run linter
-        run: npm run lint
-
   deploy:
-    name: Deploy to Netlify
-    needs: [test, lint]
-    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
     runs-on: ubuntu-latest
-    environment: production
-    permissions:
-      contents: read
-      deployments: write
-      statuses: write
-      pull-requests: write
-    
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '20'
           cache: 'npm'
-
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.npm
-            node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
 
       - name: Install dependencies
         run: npm ci
 
       - name: Build
         run: npm run build
-        env:
-          NODE_ENV: production
-          VITE_API_URL: ${{ secrets.VITE_API_URL || '/.netlify/functions' }}
 
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v3
@@ -128,79 +32,9 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           deploy-message: "Deploy from GitHub Actions"
           enable-pull-request-comment: false
-          enable-commit-comment: true
+          enable-commit-comment: false
           overwrites-pull-request-comment: true
-          github-deployment: true
-          alias-domains: 'route-manager.netlify.app'
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-          AMADEUS_API_KEY: ${{ secrets.AMADEUS_API_KEY }}
-          AMADEUS_API_SECRET: ${{ secrets.AMADEUS_API_SECRET }}
-          AMADEUS_HOSTNAME: 'production'
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_NAME: ${{ secrets.DB_NAME }}
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-        timeout-minutes: 10
-
-  deploy-staging:
-    name: Deploy to Staging
-    needs: [test, lint]
-    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
-    runs-on: ubuntu-latest
-    environment: staging
-    
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.npm
-            node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-        env:
-          NODE_ENV: staging
-          VITE_API_URL: ${{ secrets.VITE_API_URL_STAGING || '/.netlify/functions' }}
-
-      - name: Deploy to Netlify (Staging)
-        uses: nwtgck/actions-netlify@v3
-        with:
-          publish-dir: './dist'
-          production-branch: main
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: "Staging deploy from GitHub Actions"
-          enable-pull-request-comment: true
-          enable-commit-comment: false
-          github-deployment: true
-          alias-domains: 'staging-route-manager.netlify.app'
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID_STAGING || secrets.NETLIFY_SITE_ID }}
-          AMADEUS_API_KEY: ${{ secrets.AMADEUS_API_KEY_STAGING || secrets.AMADEUS_API_KEY }}
-          AMADEUS_API_SECRET: ${{ secrets.AMADEUS_API_SECRET_STAGING || secrets.AMADEUS_API_SECRET }}
-          AMADEUS_HOSTNAME: 'test'
-          DB_USER: ${{ secrets.DB_USER_STAGING || secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD_STAGING || secrets.DB_PASSWORD }}
-          DB_NAME: ${{ secrets.DB_NAME_STAGING || secrets.DB_NAME }}
-          DB_HOST: ${{ secrets.DB_HOST_STAGING || secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT_STAGING || secrets.DB_PORT || '5432' }}
-        timeout-minutes: 10
+        timeout-minutes: 1
