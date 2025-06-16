@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { Route as RouteType, ApiRoute } from '../services/api';
 import { RouteCard } from './RouteCard';
+import { useSelectedRoutes } from '../context/SelectedRoutesContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { defaultRoutes } from '../config/defaultRoutes';
 
@@ -23,6 +24,7 @@ const RouteCardSkeleton = () => (
 );
 
 export const RouteList: React.FC<RouteListProps> = ({ routes }) => {
+  const { toggleRoute, isSelected } = useSelectedRoutes();
   const [loadedRoutes, setLoadedRoutes] = React.useState<{[key: string]: boolean}>({});
   
   // Memoize the route load handler to prevent unnecessary re-renders
@@ -97,9 +99,11 @@ export const RouteList: React.FC<RouteListProps> = ({ routes }) => {
                 </div>
               )}
               <div className={!loadedRoutes[route.id] ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}>
-                <RouteCard 
-                  route={route} 
+                <RouteCard
+                  route={route}
                   onLoad={() => handleRouteLoad(route.id)}
+                  selected={isSelected(route.id)}
+                  onToggleSelect={() => toggleRoute(route.id)}
                 />
               </div>
             </div>
