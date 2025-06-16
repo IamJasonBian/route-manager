@@ -172,7 +172,7 @@ const toApiRoute = (dbRoute: DbRoute): ApiRoute => {
 };
 
 // Get price history for a route
-interface PriceHistoryResponse {
+export interface PriceHistoryResponse {
   prices: Array<{ date: string; price: number }>;
   basePrice: number;
   lowestPrice: number;

@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import PriceHistoryChart, { ChartType } from '../components/PriceHistoryChart';
+import PriceHistoryChart, { ChartType, type PricePoint } from '../components/PriceHistoryChart';
 import { getPriceHistory } from '../services/api';
+import type { PriceHistoryResponse } from '../services/api';
 
 // Airport data for the dropdowns
 const AIRPORTS = [
@@ -13,10 +14,6 @@ const AIRPORTS = [
   { code: 'SYD', name: 'Sydney (SYD)' },
 ];
 
-interface PricePoint {
-  price: number;
-  recorded_at: string;
-}
 
 interface TabPanelProps {
   children: React.ReactNode;
@@ -56,15 +53,21 @@ export default function PriceTrendsPage() {
     setTabValue(newValue);
   };
 
-  const fetchPriceTrends = async (from: string, to: string) => {
+  const fetchPriceTrends = useCallback(async (origin: string, destination: string): Promise<void> => {
+    if (!origin || !destination) return;
+    
     try {
       setIsLoading(true);
-      const response = await getPriceHistory(from, to);
+      const data: PriceHistoryResponse = await getPriceHistory(origin, destination);
       
-      // Transform the prices array to match the expected format
-      const formattedPrices = response.prices.map(item => ({
+      if (!data || !data.prices) {
+        throw new Error('Invalid response format');
+      }
+
+      // Transform API response to match the PricePoint type expected by the chart
+      const formattedPrices: PricePoint[] = data.prices.map(item => ({
         price: item.price,
-        recorded_at: item.date
+        recorded_at: new Date(item.date).toISOString()
       }));
       
       setPrices(formattedPrices);
@@ -75,11 +78,11 @@ export default function PriceTrendsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchPriceTrends(origin, destination);
-  }, []);
+  }, [origin, destination, fetchPriceTrends]);
 
   const handleUpdate = () => {
     fetchPriceTrends(origin, destination);
