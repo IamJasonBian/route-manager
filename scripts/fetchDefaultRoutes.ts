@@ -88,8 +88,8 @@ async function getFlightOffers(accessToken: string, origin: string, destination:
 }
 
 // Calculate dates for the next 4 months
-function getNextFourMonthsDates() {
-  const dates = [];
+function getNextFourMonthsDates(): string[] {
+  const dates: string[] = [];
   const today = new Date();
   
   for (let i = 1; i <= 4; i++) {
@@ -101,7 +101,9 @@ function getNextFourMonthsDates() {
     
     // Format as YYYY-MM-DD
     const formattedDate = date.toISOString().split('T')[0];
-    dates.push(formattedDate);
+    if (formattedDate) {
+      dates.push(formattedDate);
+    }
   }
   
   return dates;
@@ -228,7 +230,39 @@ async function fetchAllRoutes() {
     }
   }
   
-  return routes;
+  // Map routes to RouteData type
+  const routeData: RouteData[] = routes.map(route => {
+    // Ensure prices are in the correct format
+    const prices = route.prices.map(p => ({
+      date: typeof p.date === 'string' ? new Date(p.date) : p.date,
+      price: p.price
+    }));
+    
+    // Calculate base price if not provided
+    const basePrice = route.basePrice || Math.round(
+      prices.reduce((sum, p) => sum + p.price, 0) / prices.length
+    );
+    
+    // Create route data object
+    return {
+      from: route.from,
+      to: route.to,
+      basePrice,
+      prices,
+      distance: route.distance || '0 mi',
+      duration: route.duration || '0h 0m',
+      meta: {
+        fromCode: route.from,
+        toCode: route.to,
+        source: 'default',
+        lowestPrice: Math.min(...prices.map(p => p.price)),
+        highestPrice: Math.max(...prices.map(p => p.price)),
+        updatedAt: new Date().toISOString()
+      }
+    };
+  });
+  
+  return routeData;
 }
 
 // Run the script

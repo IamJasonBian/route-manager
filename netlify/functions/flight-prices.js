@@ -1,10 +1,37 @@
-const Amadeus = require('amadeus');
+import Amadeus from 'amadeus';
+import { withCors } from './utils/cors';
 
-// Initialize Amadeus client with environment variables
+// Try to get config from environment variables first (for Netlify)
+const getConfig = () => {
+  if (process.env.AMADEUS_API_KEY && process.env.AMADEUS_API_SECRET) {
+    return {
+      apiKey: process.env.AMADEUS_API_KEY,
+      apiSecret: process.env.AMADEUS_API_SECRET,
+      hostname: process.env.AMADEUS_HOSTNAME || 'production'
+    };
+  }
+  
+  // Fallback to config import (for local development)
+  try {
+    const config = require('../../src/config/env.js');
+    return {
+      apiKey: config.default.amadeus.apiKey,
+      apiSecret: config.default.amadeus.apiSecret,
+      hostname: config.default.amadeus.hostname
+    };
+  } catch (error) {
+    console.error('Failed to load config:', error);
+    throw new Error('Failed to load configuration');
+  }
+};
+
+const config = getConfig();
+
+// Initialize Amadeus client with config
 const amadeus = new Amadeus({
-  clientId: process.env.AMADEUS_API_KEY || 'YOUR_AMADEUS_API_KEY',
-  clientSecret: process.env.AMADEUS_API_SECRET || 'YOUR_AMADEUS_API_SECRET',
-  hostname: process.env.AMADEUS_HOSTNAME || 'test' // 'test' or 'production'
+  clientId: config.apiKey,
+  clientSecret: config.apiSecret,
+  hostname: config.hostname
 });
 
 // Helper function to format date to YYYY-MM-DD
@@ -65,12 +92,21 @@ const getFlightPricesForDates = async (origin, destination, dates) => {
   return prices.filter(price => price.price !== null);
 };
 
-exports.handler = async (event, context) => {
+const flightPricesHandler = async (event, context) => {
+  // Debug: Log environment variables (excluding sensitive ones)
+  console.log('Environment variables:', {
+    AMADEUS_API_KEY: process.env.AMADEUS_API_KEY ? '***' : 'Not set',
+    AMADEUS_API_SECRET: process.env.AMADEUS_API_SECRET ? '***' : 'Not set',
+    AMADEUS_HOSTNAME: process.env.AMADEUS_HOSTNAME || 'Not set',
+    NODE_ENV: process.env.NODE_ENV || 'Not set'
+  });
+
   // Set CORS headers
   const headers = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': 'http://localhost:5173',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Credentials': 'true',
   };
   
   // Handle preflight OPTIONS request
@@ -156,25 +192,30 @@ exports.handler = async (event, context) => {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        prices,
-        basePrice,
-        lowestPrice,
-        highestPrice,
-        source: 'amadeus'
+        success: true,
+        message: 'Flight prices retrieved successfully',
+        data: {
+          origin: originCode,
+          destination: destinationCode,
+          prices: prices.filter(Boolean)
+        }
       })
     };
     
   } catch (error) {
     console.error('Error in flight-prices function:', error);
-    
-    // Return error response
     return {
-      statusCode: 500,
+      statusCode: error.statusCode || 500,
       headers,
-      body: JSON.stringify({ 
-        error: 'Error fetching flight prices',
-        message: error.message
+      body: JSON.stringify({
+        success: false,
+        error: 'Failed to fetch flight prices',
+        message: error.message,
+        ...(process.env.NODE_ENV === 'development' ? { stack: error.stack } : {})
       })
     };
   }
 };
+
+// Export the handler with CORS support
+export const handler = withCors(flightPricesHandler);

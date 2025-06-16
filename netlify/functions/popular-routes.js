@@ -1,10 +1,37 @@
-const Amadeus = require('amadeus');
+import Amadeus from 'amadeus';
+import { withCors } from './utils/cors.js';
 
-// Initialize Amadeus client with environment variables
+// Try to get config from environment variables first (for Netlify)
+const getConfig = () => {
+  if (process.env.AMADEUS_API_KEY && process.env.AMADEUS_API_SECRET) {
+    return {
+      apiKey: process.env.AMADEUS_API_KEY,
+      apiSecret: process.env.AMADEUS_API_SECRET,
+      hostname: process.env.AMADEUS_HOSTNAME || 'production'
+    };
+  }
+  
+  // Fallback to config import (for local development)
+  try {
+    const config = require('../../src/config/env.js');
+    return {
+      apiKey: config.default.amadeus.apiKey,
+      apiSecret: config.default.amadeus.apiSecret,
+      hostname: config.default.amadeus.hostname
+    };
+  } catch (error) {
+    console.error('Failed to load config:', error);
+    throw new Error('Failed to load configuration');
+  }
+};
+
+const config = getConfig();
+
+// Initialize Amadeus client with config
 const amadeus = new Amadeus({
-  clientId: process.env.AMADEUS_API_KEY || 'YOUR_AMADEUS_API_KEY',
-  clientSecret: process.env.AMADEUS_API_SECRET || 'YOUR_AMADEUS_API_SECRET',
-  hostname: process.env.AMADEUS_HOSTNAME || 'test' // 'test' or 'production'
+  clientId: config.apiKey,
+  clientSecret: config.apiSecret,
+  hostname: config.hostname
 });
 
 // Helper function to format date to YYYY-MM-DD
@@ -317,7 +344,7 @@ const getFlightInfo = async (origin, destination) => {
   };
 };
 
-exports.handler = async (event, context) => {
+const popularRoutesHandler = async (event, context) => {
   // Set CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -510,3 +537,7 @@ exports.handler = async (event, context) => {
     };
   }
 };
+
+
+// Export the handler with CORS support
+export const handler = withCors(popularRoutesHandler);

@@ -14,13 +14,14 @@ export interface RouteMeta {
   source: string;
   lowestPrice?: number;
   highestPrice?: number;
+  updatedAt?: string;
   _error?: string;
 }
 
 // API configuration
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
   ? 'https://apollo-route-manager.windsurf.build/.netlify/functions'
-  : 'http://localhost:8889/.netlify/functions';
+  : 'http://localhost:8888/.netlify/functions';
 
 // Create axios instance with default configuration
 export const apiClient = axios.create({
@@ -169,6 +170,46 @@ const toApiRoute = (dbRoute: DbRoute): ApiRoute => {
     console.groupEnd();
   }
 };
+
+// Get price history for a route
+export interface PriceHistoryResponse {
+  prices: Array<{ date: string; price: number }>;
+  basePrice: number;
+  lowestPrice: number;
+  highestPrice: number;
+  source: string;
+}
+
+export async function getPriceHistory(from: string, to: string): Promise<PriceHistoryResponse> {
+  try {
+    const response = await apiClient.get<PriceHistoryResponse>(`/flight-prices?from=${from}&to=${to}`);
+    // Ensure the response has the correct format
+    if (response.data && Array.isArray(response.data.prices)) {
+      return {
+        ...response.data,
+        prices: response.data.prices.map(p => ({
+          date: typeof p.date === 'string' ? p.date : new Date(p.date).toISOString().split('T')[0],
+          price: p.price
+        }))
+      };
+    }
+    throw new Error('Invalid response format from API');
+  } catch (error) {
+    console.error('Error fetching price history:', error);
+    // Return mock data if API fails
+    const mockPrices = generateMockPrices();
+    return {
+      prices: mockPrices.map(p => ({
+        date: typeof p.date === 'string' ? p.date : p.date.toISOString().split('T')[0],
+        price: p.price
+      })),
+      basePrice: 300,
+      lowestPrice: Math.min(...mockPrices.map(p => p.price)),
+      highestPrice: Math.max(...mockPrices.map(p => p.price)),
+      source: 'mock'
+    };
+  }
+}
 
 // Get flight prices for a route over time
 export const getFlightPrices = async (from: string, to: string, departDate: string): Promise<FlightPrice[]> => {

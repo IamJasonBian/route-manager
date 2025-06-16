@@ -1,6 +1,16 @@
 import { Pool } from 'pg';
+import { withCors } from './utils/cors.js';
 
-export const handler = async (event, context) => {
+const healthCheckHandler = async (event, context) => {
+  // Log environment info for debugging
+  console.log('Health check - Environment:', {
+    nodeEnv: process.env.NODE_ENV,
+    dbHost: process.env.DB_HOST,
+    dbPort: process.env.DB_PORT,
+    dbName: process.env.DB_NAME,
+    dbUser: process.env.DB_USER,
+    dbPassword: process.env.DB_PASSWORD ? '***' : 'Not set'
+  });
   if (event.httpMethod !== 'GET') {
     return {
       statusCode: 405,
@@ -8,12 +18,14 @@ export const handler = async (event, context) => {
     };
   }
 
+  // Initialize database connection
   const pool = new Pool({
-    user: process.env.DB_USER || 'routeuser',
-    host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'routedb',
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
     password: process.env.DB_PASSWORD,
-    port: parseInt(process.env.DB_PORT || '5432'),
+    port: process.env.DB_PORT || 5432,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
   });
 
   try {
@@ -48,3 +60,5 @@ export const handler = async (event, context) => {
     await pool.end();
   }
 };
+
+export const handler = withCors(healthCheckHandler);

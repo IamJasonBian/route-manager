@@ -4,6 +4,11 @@ import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  server: {
+    port: 3001,
+    strictPort: true, // Don't try to find another port if 3001 is in use
+    // Let Netlify Dev handle the proxy
+  },
   plugins: [react()],
   resolve: {
     alias: {
@@ -48,6 +53,7 @@ export default defineConfig({
       transformMixedEsModules: true,
     },
   },
+
   define: {
     'process.env.NODE_ENV': `"${process.env.NODE_ENV || 'development'}"`,
     global: 'globalThis',
