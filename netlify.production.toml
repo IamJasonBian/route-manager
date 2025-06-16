@@ -1,0 +1,22 @@
+# Production-specific Netlify settings
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+  node_bundler = "esbuild"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_VERSION = "10"
+  NODE_OPTIONS = "--max_old_space_size=4096"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["@netlify/plugin-nextjs"]
+
+# Environment variables will be set in the Netlify UI
+# for security and to avoid committing sensitive data

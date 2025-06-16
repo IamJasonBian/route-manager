@@ -17,8 +17,72 @@
 - **Route Management** - Track and analyze flight routes and pricing
 - **API Integration** - Seamless integration with Amadeus Flight API
 - **Real-time Data** - Get up-to-date flight information and pricing
+- **CI/CD Pipeline** - Automated deployment with GitHub Actions
+- **Serverless Functions** - Powered by Netlify Functions
 
 ## 🚀 Quick Start
+
+### Local Development
+
+1. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+   - Frontend: http://localhost:3001
+   - Netlify Dev: http://localhost:3000
+
+### Production Deployment with GitHub Actions
+
+This project includes a GitHub Actions workflow for automatic deployment to Netlify. Follow these steps to set it up:
+
+1. **Add Repository Secrets**
+   - Go to your GitHub repository Settings > Secrets and variables > Actions
+   - Add the following secrets:
+     - `NETLIFY_AUTH_TOKEN`: Your Netlify authentication token
+     - `NETLIFY_SITE_ID`: Your Netlify site ID (found in Site settings > Site information)
+     - `AMADEUS_API_KEY`: Your Amadeus API key
+     - `AMADEUS_API_SECRET`: Your Amadeus API secret
+     - `DB_*`: Your production database credentials
+
+2. **Push to Main Branch**
+   - The workflow will automatically trigger on push to the `main` branch
+   - Monitor the deployment in the GitHub Actions tab
+
+3. **Deploy Manually**
+   - Go to the Actions tab in your repository
+   - Select the "Deploy to Netlify" workflow
+   - Click "Run workflow" and select the branch to deploy
+
+### Environment Variables
+
+For local development, create a `.env` file in the root directory with the following variables:
+
+```env
+# Netlify
+NETLIFY_AUTH_TOKEN=your_netlify_auth_token
+NETLIFY_SITE_ID=your_netlify_site_id
+
+# Amadeus API
+AMADEUS_API_KEY=your_amadeus_api_key
+AMADEUS_API_SECRET=your_amadeus_api_secret
+AMADEUS_HOSTNAME=test  # Use 'test' for development, 'production' for production
+
+# Database
+DB_USER=your_db_user
+DB_PASSWORD=your_db_password
+DB_NAME=your_db_name
+DB_HOST=your_db_host
+DB_PORT=5432
+```
+
+### Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build locally
+- `npm run test` - Run tests
+
+## 🛠️ Development
 
 ### Prerequisites
 - Node.js 18+ & npm 9+
