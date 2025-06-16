@@ -14,6 +14,7 @@ export interface RouteMeta {
   source: string;
   lowestPrice?: number;
   highestPrice?: number;
+  updatedAt?: string;
   _error?: string;
 }
 
@@ -306,8 +307,11 @@ export const generateFallbackRoutes = (): ApiRoute[] => {
   ];
 };
 
+// Alias used in tests
+export const generateMockRoutes = generateFallbackRoutes;
+
 // Helper function to generate mock price data for one-day flights starting from today
-const generateMockPrices = (basePrice: number = 550): FlightPrice[] => {
+export const generateMockPrices = (basePrice: number = 550): FlightPrice[] => {
   const prices: FlightPrice[] = [];
   const today = new Date();
   
@@ -399,7 +403,7 @@ export const getRoutes = async (): Promise<ApiRoute[]> => {
     console.log('8. No valid routes found in database, returning default routes');
     
     // Add IDs to default routes
-    const routesWithIds = defaultRoutes.map((route, index) => ({
+    const routesWithIds: ApiRoute[] = defaultRoutes.map((route, index) => ({
       ...route,
       id: `default-${index + 1}`,
       meta: {

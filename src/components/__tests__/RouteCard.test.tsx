@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { RouteCard } from '../RouteCard';
 import { Route } from '../../services/api';
@@ -9,9 +8,7 @@ describe.skip('RouteCard Component', () => {
     id: '1',
     from: 'JFK',
     to: 'LHR',
-    fromCity: 'New York',
-    toCity: 'London',
-    distance: 3461,
+    distance: '3,461 miles',
     duration: '7h 25m',
     prices: [
       { price: 450, date: '2025-05-18' },
@@ -20,9 +17,7 @@ describe.skip('RouteCard Component', () => {
       { price: 475, date: '2025-05-21' },
       { price: 525, date: '2025-05-22' },
     ],
-    basePrice: 475,
-    lowestPrice: 425,
-    highestPrice: 525
+    basePrice: 475
   };
   
   it('renders route information correctly', () => {
