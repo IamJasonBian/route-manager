@@ -1,6 +1,7 @@
-const { Pool } = require('pg');
+import { Pool } from 'pg';
+import { withCors } from './utils/cors.js';
 
-exports.handler = async (event, context) => {
+const getRoutesSummaryHandler = async (event, context) => {
   // Only allow GET requests
   if (event.httpMethod !== 'GET') {
     return {
@@ -29,22 +30,24 @@ exports.handler = async (event, context) => {
           price,
           recorded_at,
           ROW_NUMBER() OVER (PARTITION BY route_id ORDER BY recorded_at DESC) as rn
-        FROM route_prices
+        FROM price_history
       )
       SELECT 
         r.id as route_id,
         r.origin,
         r.destination,
-        json_agg(
-          json_build_object(
-            'price', p.price,
-            'recorded_at', p.recorded_at
-          ) ORDER BY p.recorded_at
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'price', p.price,
+              'recorded_at', p.recorded_at
+            ) ORDER BY p.recorded_at
+            ) FILTER (WHERE p.price IS NOT NULL),
+          '[]'::json
         ) as price_history
       FROM routes r
-      LEFT JOIN route_prices p ON r.id = p.route_id
+      LEFT JOIN price_history p ON r.id = p.route_id
       GROUP BY r.id, r.origin, r.destination
-      HAVING COUNT(p.id) > 0
       ORDER BY r.origin, r.destination;
     `;
 
@@ -87,3 +90,5 @@ exports.handler = async (event, context) => {
     await pool.end();
   }
 };
+
+export const handler = withCors(getRoutesSummaryHandler);

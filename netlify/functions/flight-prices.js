@@ -29,9 +29,9 @@ const config = getConfig();
 
 // Initialize Amadeus client with config
 const amadeus = new Amadeus({
-  clientId: config.amadeus.apiKey,
-  clientSecret: config.amadeus.apiSecret,
-  hostname: config.amadeus.hostname
+  clientId: config.apiKey,
+  clientSecret: config.apiSecret,
+  hostname: config.hostname
 });
 
 // Helper function to format date to YYYY-MM-DD
@@ -195,8 +195,8 @@ const flightPricesHandler = async (event, context) => {
         success: true,
         message: 'Flight prices retrieved successfully',
         data: {
-          origin,
-          destination,
+          origin: originCode,
+          destination: destinationCode,
           prices: prices.filter(Boolean)
         }
       })

@@ -132,3 +132,6 @@ const searchFlightsHandler = async (event, context) => {
     };
   }
 };
+
+// Export the handler with CORS support
+export const handler = withCors(searchFlightsHandler);

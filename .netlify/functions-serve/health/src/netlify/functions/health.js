@@ -1,6 +1,8 @@
 var __create = Object.create;
 var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __getProtoOf = Object.getPrototypeOf;
@@ -18,6 +20,7 @@ var __spreadValues = (a, b) => {
     }
   return a;
 };
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
@@ -1127,19 +1130,19 @@ var require_utils = __commonJS({
         ret += " BC";
       return ret;
     }
-    function normalizeQueryConfig(config2, values, callback) {
-      config2 = typeof config2 === "string" ? { text: config2 } : config2;
+    function normalizeQueryConfig(config, values, callback) {
+      config = typeof config === "string" ? { text: config } : config;
       if (values) {
         if (typeof values === "function") {
-          config2.callback = values;
+          config.callback = values;
         } else {
-          config2.values = values;
+          config.values = values;
         }
       }
       if (callback) {
-        config2.callback = callback;
+        config.callback = callback;
       }
-      return config2;
+      return config;
     }
     var escapeIdentifier2 = function(str) {
       return '"' + str.replace(/"/g, '""') + '"';
@@ -1599,10 +1602,10 @@ var require_pg_connection_string = __commonJS({
     "use strict";
     function parse(str, options = {}) {
       if (str.charAt(0) === "/") {
-        const config3 = str.split(" ");
-        return { host: config3[0], database: config3[1] };
+        const config2 = str.split(" ");
+        return { host: config2[0], database: config2[1] };
       }
-      const config2 = {};
+      const config = {};
       let result;
       let dummyHost = false;
       if (/ |%[^a-f0-9]|%[a-f0-9][^a-f0-9]/i.test(str)) {
@@ -1615,73 +1618,73 @@ var require_pg_connection_string = __commonJS({
         dummyHost = true;
       }
       for (const entry of result.searchParams.entries()) {
-        config2[entry[0]] = entry[1];
+        config[entry[0]] = entry[1];
       }
-      config2.user = config2.user || decodeURIComponent(result.username);
-      config2.password = config2.password || decodeURIComponent(result.password);
+      config.user = config.user || decodeURIComponent(result.username);
+      config.password = config.password || decodeURIComponent(result.password);
       if (result.protocol == "socket:") {
-        config2.host = decodeURI(result.pathname);
-        config2.database = result.searchParams.get("db");
-        config2.client_encoding = result.searchParams.get("encoding");
-        return config2;
+        config.host = decodeURI(result.pathname);
+        config.database = result.searchParams.get("db");
+        config.client_encoding = result.searchParams.get("encoding");
+        return config;
       }
       const hostname = dummyHost ? "" : result.hostname;
-      if (!config2.host) {
-        config2.host = decodeURIComponent(hostname);
+      if (!config.host) {
+        config.host = decodeURIComponent(hostname);
       } else if (hostname && /^%2f/i.test(hostname)) {
         result.pathname = hostname + result.pathname;
       }
-      if (!config2.port) {
-        config2.port = result.port;
+      if (!config.port) {
+        config.port = result.port;
       }
       const pathname = result.pathname.slice(1) || null;
-      config2.database = pathname ? decodeURI(pathname) : null;
-      if (config2.ssl === "true" || config2.ssl === "1") {
-        config2.ssl = true;
+      config.database = pathname ? decodeURI(pathname) : null;
+      if (config.ssl === "true" || config.ssl === "1") {
+        config.ssl = true;
       }
-      if (config2.ssl === "0") {
-        config2.ssl = false;
+      if (config.ssl === "0") {
+        config.ssl = false;
       }
-      if (config2.sslcert || config2.sslkey || config2.sslrootcert || config2.sslmode) {
-        config2.ssl = {};
+      if (config.sslcert || config.sslkey || config.sslrootcert || config.sslmode) {
+        config.ssl = {};
       }
-      const fs = config2.sslcert || config2.sslkey || config2.sslrootcert ? require("fs") : null;
-      if (config2.sslcert) {
-        config2.ssl.cert = fs.readFileSync(config2.sslcert).toString();
+      const fs = config.sslcert || config.sslkey || config.sslrootcert ? require("fs") : null;
+      if (config.sslcert) {
+        config.ssl.cert = fs.readFileSync(config.sslcert).toString();
       }
-      if (config2.sslkey) {
-        config2.ssl.key = fs.readFileSync(config2.sslkey).toString();
+      if (config.sslkey) {
+        config.ssl.key = fs.readFileSync(config.sslkey).toString();
       }
-      if (config2.sslrootcert) {
-        config2.ssl.ca = fs.readFileSync(config2.sslrootcert).toString();
+      if (config.sslrootcert) {
+        config.ssl.ca = fs.readFileSync(config.sslrootcert).toString();
       }
-      if (options.useLibpqCompat && config2.uselibpqcompat) {
+      if (options.useLibpqCompat && config.uselibpqcompat) {
         throw new Error("Both useLibpqCompat and uselibpqcompat are set. Please use only one of them.");
       }
-      if (config2.uselibpqcompat === "true" || options.useLibpqCompat) {
-        switch (config2.sslmode) {
+      if (config.uselibpqcompat === "true" || options.useLibpqCompat) {
+        switch (config.sslmode) {
           case "disable": {
-            config2.ssl = false;
+            config.ssl = false;
             break;
           }
           case "prefer": {
-            config2.ssl.rejectUnauthorized = false;
+            config.ssl.rejectUnauthorized = false;
             break;
           }
           case "require": {
-            if (config2.sslrootcert) {
-              config2.ssl.checkServerIdentity = function() {
+            if (config.sslrootcert) {
+              config.ssl.checkServerIdentity = function() {
               };
             } else {
-              config2.ssl.rejectUnauthorized = false;
+              config.ssl.rejectUnauthorized = false;
             }
             break;
           }
           case "verify-ca": {
-            if (!config2.ssl.ca) {
+            if (!config.ssl.ca) {
               throw new Error("SECURITY WARNING: Using sslmode=verify-ca requires specifying a CA with sslrootcert. If a public CA is used, verify-ca allows connections to a server that somebody else may have registered with the CA, making you vulnerable to Man-in-the-Middle attacks. Either specify a custom CA certificate with sslrootcert parameter or use sslmode=verify-full for proper security.");
             }
-            config2.ssl.checkServerIdentity = function() {
+            config.ssl.checkServerIdentity = function() {
             };
             break;
           }
@@ -1690,9 +1693,9 @@ var require_pg_connection_string = __commonJS({
           }
         }
       } else {
-        switch (config2.sslmode) {
+        switch (config.sslmode) {
           case "disable": {
-            config2.ssl = false;
+            config.ssl = false;
             break;
           }
           case "prefer":
@@ -1702,12 +1705,12 @@ var require_pg_connection_string = __commonJS({
             break;
           }
           case "no-verify": {
-            config2.ssl.rejectUnauthorized = false;
+            config.ssl.rejectUnauthorized = false;
             break;
           }
         }
       }
-      return config2;
+      return config;
     }
     function toConnectionOptions(sslConfig) {
       const connectionOptions = Object.entries(sslConfig).reduce((c, [key, value]) => {
@@ -1718,8 +1721,8 @@ var require_pg_connection_string = __commonJS({
       }, {});
       return connectionOptions;
     }
-    function toClientConfig(config2) {
-      const poolConfig = Object.entries(config2).reduce((c, [key, value]) => {
+    function toClientConfig(config) {
+      const poolConfig = Object.entries(config).reduce((c, [key, value]) => {
         if (key === "ssl") {
           const sslConfig = value;
           if (typeof sslConfig === "boolean") {
@@ -1762,14 +1765,14 @@ var require_connection_parameters = __commonJS({
     var dns = require("dns");
     var defaults2 = require_defaults();
     var parse = require_pg_connection_string().parse;
-    var val = function(key, config2, envVar) {
+    var val = function(key, config, envVar) {
       if (envVar === void 0) {
         envVar = process.env["PG" + key.toUpperCase()];
       } else if (envVar === false) {
       } else {
         envVar = process.env[envVar];
       }
-      return config2[key] || envVar || defaults2[key];
+      return config[key] || envVar || defaults2[key];
     };
     var readSSLConfigFromEnvironment = function() {
       switch (process.env.PGSSLMODE) {
@@ -1788,34 +1791,34 @@ var require_connection_parameters = __commonJS({
     var quoteParamValue = function(value) {
       return "'" + ("" + value).replace(/\\/g, "\\\\").replace(/'/g, "\\'") + "'";
     };
-    var add = function(params, config2, paramName) {
-      const value = config2[paramName];
+    var add = function(params, config, paramName) {
+      const value = config[paramName];
       if (value !== void 0 && value !== null) {
         params.push(paramName + "=" + quoteParamValue(value));
       }
     };
     var ConnectionParameters = class {
-      constructor(config2) {
-        config2 = typeof config2 === "string" ? parse(config2) : config2 || {};
-        if (config2.connectionString) {
-          config2 = Object.assign({}, config2, parse(config2.connectionString));
+      constructor(config) {
+        config = typeof config === "string" ? parse(config) : config || {};
+        if (config.connectionString) {
+          config = Object.assign({}, config, parse(config.connectionString));
         }
-        this.user = val("user", config2);
-        this.database = val("database", config2);
+        this.user = val("user", config);
+        this.database = val("database", config);
         if (this.database === void 0) {
           this.database = this.user;
         }
-        this.port = parseInt(val("port", config2), 10);
-        this.host = val("host", config2);
+        this.port = parseInt(val("port", config), 10);
+        this.host = val("host", config);
         Object.defineProperty(this, "password", {
           configurable: true,
           enumerable: false,
           writable: true,
-          value: val("password", config2)
+          value: val("password", config)
         });
-        this.binary = val("binary", config2);
-        this.options = val("options", config2);
-        this.ssl = typeof config2.ssl === "undefined" ? readSSLConfigFromEnvironment() : config2.ssl;
+        this.binary = val("binary", config);
+        this.options = val("options", config);
+        this.ssl = typeof config.ssl === "undefined" ? readSSLConfigFromEnvironment() : config.ssl;
         if (typeof this.ssl === "string") {
           if (this.ssl === "true") {
             this.ssl = true;
@@ -1829,27 +1832,27 @@ var require_connection_parameters = __commonJS({
             enumerable: false
           });
         }
-        this.client_encoding = val("client_encoding", config2);
-        this.replication = val("replication", config2);
+        this.client_encoding = val("client_encoding", config);
+        this.replication = val("replication", config);
         this.isDomainSocket = !(this.host || "").indexOf("/");
-        this.application_name = val("application_name", config2, "PGAPPNAME");
-        this.fallback_application_name = val("fallback_application_name", config2, false);
-        this.statement_timeout = val("statement_timeout", config2, false);
-        this.lock_timeout = val("lock_timeout", config2, false);
-        this.idle_in_transaction_session_timeout = val("idle_in_transaction_session_timeout", config2, false);
-        this.query_timeout = val("query_timeout", config2, false);
-        if (config2.connectionTimeoutMillis === void 0) {
+        this.application_name = val("application_name", config, "PGAPPNAME");
+        this.fallback_application_name = val("fallback_application_name", config, false);
+        this.statement_timeout = val("statement_timeout", config, false);
+        this.lock_timeout = val("lock_timeout", config, false);
+        this.idle_in_transaction_session_timeout = val("idle_in_transaction_session_timeout", config, false);
+        this.query_timeout = val("query_timeout", config, false);
+        if (config.connectionTimeoutMillis === void 0) {
           this.connect_timeout = process.env.PGCONNECT_TIMEOUT || 0;
         } else {
-          this.connect_timeout = Math.floor(config2.connectionTimeoutMillis / 1e3);
+          this.connect_timeout = Math.floor(config.connectionTimeoutMillis / 1e3);
         }
-        if (config2.keepAlive === false) {
+        if (config.keepAlive === false) {
           this.keepalives = 0;
-        } else if (config2.keepAlive === true) {
+        } else if (config.keepAlive === true) {
           this.keepalives = 1;
         }
-        if (typeof config2.keepAliveInitialDelayMillis === "number") {
-          this.keepalives_idle = Math.floor(config2.keepAliveInitialDelayMillis / 1e3);
+        if (typeof config.keepAliveInitialDelayMillis === "number") {
+          this.keepalives_idle = Math.floor(config.keepAliveInitialDelayMillis / 1e3);
         }
       }
       getLibpqConnectionString(cb) {
@@ -1991,21 +1994,21 @@ var require_query = __commonJS({
     var Result2 = require_result();
     var utils = require_utils();
     var Query2 = class extends EventEmitter {
-      constructor(config2, values, callback) {
+      constructor(config, values, callback) {
         super();
-        config2 = utils.normalizeQueryConfig(config2, values, callback);
-        this.text = config2.text;
-        this.values = config2.values;
-        this.rows = config2.rows;
-        this.types = config2.types;
-        this.name = config2.name;
-        this.queryMode = config2.queryMode;
-        this.binary = config2.binary;
-        this.portal = config2.portal || "";
-        this.callback = config2.callback;
-        this._rowMode = config2.rowMode;
-        if (process.domain && config2.callback) {
-          this.callback = process.domain.bind(config2.callback);
+        config = utils.normalizeQueryConfig(config, values, callback);
+        this.text = config.text;
+        this.values = config.values;
+        this.rows = config.rows;
+        this.types = config.types;
+        this.name = config.name;
+        this.queryMode = config.queryMode;
+        this.binary = config.binary;
+        this.portal = config.portal || "";
+        this.callback = config.callback;
+        this._rowMode = config.rowMode;
+        if (process.domain && config.callback) {
+          this.callback = process.domain.bind(config.callback);
         }
         this._result = new Result2(this._rowMode, this.types);
         this._results = this._result;
@@ -2489,27 +2492,27 @@ var require_serializer = __commonJS({
         }
       }
     };
-    var bind = (config2 = {}) => {
-      const portal = config2.portal || "";
-      const statement = config2.statement || "";
-      const binary = config2.binary || false;
-      const values = config2.values || emptyArray;
+    var bind = (config = {}) => {
+      const portal = config.portal || "";
+      const statement = config.statement || "";
+      const binary = config.binary || false;
+      const values = config.values || emptyArray;
       const len = values.length;
       writer.addCString(portal).addCString(statement);
       writer.addInt16(len);
-      writeValues(values, config2.valueMapper);
+      writeValues(values, config.valueMapper);
       writer.addInt16(len);
       writer.add(paramWriter.flush());
       writer.addInt16(binary ? 1 : 0);
       return writer.flush(66);
     };
     var emptyExecute = Buffer.from([69, 0, 0, 0, 9, 0, 0, 0, 0, 0]);
-    var execute = (config2) => {
-      if (!config2 || !config2.portal && !config2.rows) {
+    var execute = (config) => {
+      if (!config || !config.portal && !config.rows) {
         return emptyExecute;
       }
-      const portal = config2.portal || "";
-      const rows = config2.rows || 0;
+      const portal = config.portal || "";
+      const rows = config.rows || 0;
       const portalLength = Buffer.byteLength(portal);
       const len = 4 + portalLength + 1 + 4;
       const buff = Buffer.allocUnsafe(1 + len);
@@ -3181,18 +3184,18 @@ var require_connection = __commonJS({
     var syncBuffer = serialize.sync();
     var endBuffer = serialize.end();
     var Connection2 = class extends EventEmitter {
-      constructor(config2) {
+      constructor(config) {
         super();
-        config2 = config2 || {};
-        this.stream = config2.stream || getStream(config2.ssl);
+        config = config || {};
+        this.stream = config.stream || getStream(config.ssl);
         if (typeof this.stream === "function") {
-          this.stream = this.stream(config2);
+          this.stream = this.stream(config);
         }
-        this._keepAlive = config2.keepAlive;
-        this._keepAliveInitialDelayMillis = config2.keepAliveInitialDelayMillis;
+        this._keepAlive = config.keepAlive;
+        this._keepAliveInitialDelayMillis = config.keepAliveInitialDelayMillis;
         this.lastBuffer = false;
         this.parsedStatements = {};
-        this.ssl = config2.ssl || false;
+        this.ssl = config.ssl || false;
         this._ending = false;
         this._emitMessage = false;
         const self = this;
@@ -3273,8 +3276,8 @@ var require_connection = __commonJS({
       requestSsl() {
         this.stream.write(serialize.requestSsl());
       }
-      startup(config2) {
-        this.stream.write(serialize.startup(config2));
+      startup(config) {
+        this.stream.write(serialize.startup(config));
       }
       cancel(processID, secretKey) {
         this._send(serialize.cancel(processID, secretKey));
@@ -3300,11 +3303,11 @@ var require_connection = __commonJS({
       parse(query) {
         this._send(serialize.parse(query));
       }
-      bind(config2) {
-        this._send(serialize.bind(config2));
+      bind(config) {
+        this._send(serialize.bind(config));
       }
-      execute(config2) {
-        this._send(serialize.execute(config2));
+      execute(config) {
+        this._send(serialize.execute(config));
       }
       flush() {
         if (this.stream.writable) {
@@ -3457,7 +3460,7 @@ var require_split2 = __commonJS({
 var require_helper = __commonJS({
   "node_modules/pgpass/lib/helper.js"(exports, module2) {
     "use strict";
-    var path2 = require("path");
+    var path = require("path");
     var Stream = require("stream").Stream;
     var split = require_split2();
     var util = require("util");
@@ -3496,7 +3499,7 @@ var require_helper = __commonJS({
     };
     module2.exports.getFileName = function(rawEnv) {
       var env = rawEnv || process.env;
-      var file = env.PGPASSFILE || (isWin ? path2.join(env.APPDATA || "./", "postgresql", "pgpass.conf") : path2.join(env.HOME || "./", ".pgpass"));
+      var file = env.PGPASSFILE || (isWin ? path.join(env.APPDATA || "./", "postgresql", "pgpass.conf") : path.join(env.HOME || "./", ".pgpass"));
       return file;
     };
     module2.exports.usePgPass = function(stats, fname) {
@@ -3623,7 +3626,7 @@ var require_helper = __commonJS({
 var require_lib = __commonJS({
   "node_modules/pgpass/lib/index.js"(exports, module2) {
     "use strict";
-    var path2 = require("path");
+    var path = require("path");
     var fs = require("fs");
     var helper = require_helper();
     module2.exports = function(connInfo, cb) {
@@ -3654,9 +3657,9 @@ var require_client = __commonJS({
     var Connection2 = require_connection();
     var crypto = require_utils2();
     var Client2 = class extends EventEmitter {
-      constructor(config2) {
+      constructor(config) {
         super();
-        this.connectionParameters = new ConnectionParameters(config2);
+        this.connectionParameters = new ConnectionParameters(config);
         this.user = this.connectionParameters.user;
         this.database = this.connectionParameters.database;
         this.port = this.connectionParameters.port;
@@ -3668,7 +3671,7 @@ var require_client = __commonJS({
           value: this.connectionParameters.password
         });
         this.replication = this.connectionParameters.replication;
-        const c = config2 || {};
+        const c = config || {};
         this._Promise = c.Promise || global.Promise;
         this._types = new TypeOverrides2(c.types);
         this._ending = false;
@@ -4048,23 +4051,23 @@ var require_client = __commonJS({
           }
         }
       }
-      query(config2, values, callback) {
+      query(config, values, callback) {
         let query;
         let result;
         let readTimeout;
         let readTimeoutTimer;
         let queryCallback;
-        if (config2 === null || config2 === void 0) {
+        if (config === null || config === void 0) {
           throw new TypeError("Client was passed a null or undefined query");
-        } else if (typeof config2.submit === "function") {
-          readTimeout = config2.query_timeout || this.connectionParameters.query_timeout;
-          result = query = config2;
+        } else if (typeof config.submit === "function") {
+          readTimeout = config.query_timeout || this.connectionParameters.query_timeout;
+          result = query = config;
           if (typeof values === "function") {
             query.callback = query.callback || values;
           }
         } else {
-          readTimeout = config2.query_timeout || this.connectionParameters.query_timeout;
-          query = new Query2(config2, values, callback);
+          readTimeout = config.query_timeout || this.connectionParameters.query_timeout;
+          query = new Query2(config, values, callback);
           if (!query.callback) {
             result = new this._Promise((resolve, reject) => {
               query.callback = (err, res) => err ? reject(err) : resolve(res);
@@ -4539,16 +4542,16 @@ var require_query2 = __commonJS({
     var EventEmitter = require("events").EventEmitter;
     var util = require("util");
     var utils = require_utils();
-    var NativeQuery = module2.exports = function(config2, values, callback) {
+    var NativeQuery = module2.exports = function(config, values, callback) {
       EventEmitter.call(this);
-      config2 = utils.normalizeQueryConfig(config2, values, callback);
-      this.text = config2.text;
-      this.values = config2.values;
-      this.name = config2.name;
-      this.queryMode = config2.queryMode;
-      this.callback = config2.callback;
+      config = utils.normalizeQueryConfig(config, values, callback);
+      this.text = config.text;
+      this.values = config.values;
+      this.name = config.name;
+      this.queryMode = config.queryMode;
+      this.callback = config.callback;
       this.state = "new";
-      this._arrayMode = config2.rowMode === "array";
+      this._arrayMode = config.rowMode === "array";
       this._emitRowEvents = false;
       this.on("newListener", function(event) {
         if (event === "row")
@@ -4686,11 +4689,11 @@ var require_client2 = __commonJS({
     var util = require("util");
     var ConnectionParameters = require_connection_parameters();
     var NativeQuery = require_query2();
-    var Client2 = module2.exports = function(config2) {
+    var Client2 = module2.exports = function(config) {
       EventEmitter.call(this);
-      config2 = config2 || {};
-      this._Promise = config2.Promise || global.Promise;
-      this._types = new TypeOverrides2(config2.types);
+      config = config || {};
+      this._Promise = config.Promise || global.Promise;
+      this._types = new TypeOverrides2(config.types);
       this.native = new Native({
         types: this._types
       });
@@ -4699,9 +4702,9 @@ var require_client2 = __commonJS({
       this._connecting = false;
       this._connected = false;
       this._queryable = true;
-      const cp = this.connectionParameters = new ConnectionParameters(config2);
-      if (config2.nativeConnectionString)
-        cp.nativeConnectionString = config2.nativeConnectionString;
+      const cp = this.connectionParameters = new ConnectionParameters(config);
+      if (config.nativeConnectionString)
+        cp.nativeConnectionString = config.nativeConnectionString;
       this.user = cp.user;
       Object.defineProperty(this, "password", {
         configurable: true,
@@ -4780,23 +4783,23 @@ var require_client2 = __commonJS({
         });
       });
     };
-    Client2.prototype.query = function(config2, values, callback) {
+    Client2.prototype.query = function(config, values, callback) {
       let query;
       let result;
       let readTimeout;
       let readTimeoutTimer;
       let queryCallback;
-      if (config2 === null || config2 === void 0) {
+      if (config === null || config === void 0) {
         throw new TypeError("Client was passed a null or undefined query");
-      } else if (typeof config2.submit === "function") {
-        readTimeout = config2.query_timeout || this.connectionParameters.query_timeout;
-        result = query = config2;
+      } else if (typeof config.submit === "function") {
+        readTimeout = config.query_timeout || this.connectionParameters.query_timeout;
+        result = query = config;
         if (typeof values === "function") {
-          config2.callback = values;
+          config.callback = values;
         }
       } else {
-        readTimeout = config2.query_timeout || this.connectionParameters.query_timeout;
-        query = new NativeQuery(config2, values, callback);
+        readTimeout = config.query_timeout || this.connectionParameters.query_timeout;
+        query = new NativeQuery(config, values, callback);
         if (!query.callback) {
           let resolveOut, rejectOut;
           result = new this._Promise((resolve, reject) => {
@@ -4984,341 +4987,6 @@ var require_lib2 = __commonJS({
   }
 });
 
-// node_modules/dotenv/package.json
-var require_package = __commonJS({
-  "node_modules/dotenv/package.json"(exports, module2) {
-    module2.exports = {
-      name: "dotenv",
-      version: "16.5.0",
-      description: "Loads environment variables from .env file",
-      main: "lib/main.js",
-      types: "lib/main.d.ts",
-      exports: {
-        ".": {
-          types: "./lib/main.d.ts",
-          require: "./lib/main.js",
-          default: "./lib/main.js"
-        },
-        "./config": "./config.js",
-        "./config.js": "./config.js",
-        "./lib/env-options": "./lib/env-options.js",
-        "./lib/env-options.js": "./lib/env-options.js",
-        "./lib/cli-options": "./lib/cli-options.js",
-        "./lib/cli-options.js": "./lib/cli-options.js",
-        "./package.json": "./package.json"
-      },
-      scripts: {
-        "dts-check": "tsc --project tests/types/tsconfig.json",
-        lint: "standard",
-        pretest: "npm run lint && npm run dts-check",
-        test: "tap run --allow-empty-coverage --disable-coverage --timeout=60000",
-        "test:coverage": "tap run --show-full-coverage --timeout=60000 --coverage-report=lcov",
-        prerelease: "npm test",
-        release: "standard-version"
-      },
-      repository: {
-        type: "git",
-        url: "git://github.com/motdotla/dotenv.git"
-      },
-      homepage: "https://github.com/motdotla/dotenv#readme",
-      funding: "https://dotenvx.com",
-      keywords: [
-        "dotenv",
-        "env",
-        ".env",
-        "environment",
-        "variables",
-        "config",
-        "settings"
-      ],
-      readmeFilename: "README.md",
-      license: "BSD-2-Clause",
-      devDependencies: {
-        "@types/node": "^18.11.3",
-        decache: "^4.6.2",
-        sinon: "^14.0.1",
-        standard: "^17.0.0",
-        "standard-version": "^9.5.0",
-        tap: "^19.2.0",
-        typescript: "^4.8.4"
-      },
-      engines: {
-        node: ">=12"
-      },
-      browser: {
-        fs: false
-      }
-    };
-  }
-});
-
-// node_modules/dotenv/lib/main.js
-var require_main = __commonJS({
-  "node_modules/dotenv/lib/main.js"(exports, module2) {
-    var fs = require("fs");
-    var path2 = require("path");
-    var os = require("os");
-    var crypto = require("crypto");
-    var packageJson = require_package();
-    var version = packageJson.version;
-    var LINE = /(?:^|^)\s*(?:export\s+)?([\w.-]+)(?:\s*=\s*?|:\s+?)(\s*'(?:\\'|[^'])*'|\s*"(?:\\"|[^"])*"|\s*`(?:\\`|[^`])*`|[^#\r\n]+)?\s*(?:#.*)?(?:$|$)/mg;
-    function parse(src) {
-      const obj = {};
-      let lines = src.toString();
-      lines = lines.replace(/\r\n?/mg, "\n");
-      let match;
-      while ((match = LINE.exec(lines)) != null) {
-        const key = match[1];
-        let value = match[2] || "";
-        value = value.trim();
-        const maybeQuote = value[0];
-        value = value.replace(/^(['"`])([\s\S]*)\1$/mg, "$2");
-        if (maybeQuote === '"') {
-          value = value.replace(/\\n/g, "\n");
-          value = value.replace(/\\r/g, "\r");
-        }
-        obj[key] = value;
-      }
-      return obj;
-    }
-    function _parseVault(options) {
-      const vaultPath = _vaultPath(options);
-      const result = DotenvModule.configDotenv({ path: vaultPath });
-      if (!result.parsed) {
-        const err = new Error(`MISSING_DATA: Cannot parse ${vaultPath} for an unknown reason`);
-        err.code = "MISSING_DATA";
-        throw err;
-      }
-      const keys = _dotenvKey(options).split(",");
-      const length = keys.length;
-      let decrypted;
-      for (let i = 0; i < length; i++) {
-        try {
-          const key = keys[i].trim();
-          const attrs = _instructions(result, key);
-          decrypted = DotenvModule.decrypt(attrs.ciphertext, attrs.key);
-          break;
-        } catch (error) {
-          if (i + 1 >= length) {
-            throw error;
-          }
-        }
-      }
-      return DotenvModule.parse(decrypted);
-    }
-    function _warn(message) {
-      console.log(`[dotenv@${version}][WARN] ${message}`);
-    }
-    function _debug(message) {
-      console.log(`[dotenv@${version}][DEBUG] ${message}`);
-    }
-    function _dotenvKey(options) {
-      if (options && options.DOTENV_KEY && options.DOTENV_KEY.length > 0) {
-        return options.DOTENV_KEY;
-      }
-      if (process.env.DOTENV_KEY && process.env.DOTENV_KEY.length > 0) {
-        return process.env.DOTENV_KEY;
-      }
-      return "";
-    }
-    function _instructions(result, dotenvKey) {
-      let uri;
-      try {
-        uri = new URL(dotenvKey);
-      } catch (error) {
-        if (error.code === "ERR_INVALID_URL") {
-          const err = new Error("INVALID_DOTENV_KEY: Wrong format. Must be in valid uri format like dotenv://:key_1234@dotenvx.com/vault/.env.vault?environment=development");
-          err.code = "INVALID_DOTENV_KEY";
-          throw err;
-        }
-        throw error;
-      }
-      const key = uri.password;
-      if (!key) {
-        const err = new Error("INVALID_DOTENV_KEY: Missing key part");
-        err.code = "INVALID_DOTENV_KEY";
-        throw err;
-      }
-      const environment = uri.searchParams.get("environment");
-      if (!environment) {
-        const err = new Error("INVALID_DOTENV_KEY: Missing environment part");
-        err.code = "INVALID_DOTENV_KEY";
-        throw err;
-      }
-      const environmentKey = `DOTENV_VAULT_${environment.toUpperCase()}`;
-      const ciphertext = result.parsed[environmentKey];
-      if (!ciphertext) {
-        const err = new Error(`NOT_FOUND_DOTENV_ENVIRONMENT: Cannot locate environment ${environmentKey} in your .env.vault file.`);
-        err.code = "NOT_FOUND_DOTENV_ENVIRONMENT";
-        throw err;
-      }
-      return { ciphertext, key };
-    }
-    function _vaultPath(options) {
-      let possibleVaultPath = null;
-      if (options && options.path && options.path.length > 0) {
-        if (Array.isArray(options.path)) {
-          for (const filepath of options.path) {
-            if (fs.existsSync(filepath)) {
-              possibleVaultPath = filepath.endsWith(".vault") ? filepath : `${filepath}.vault`;
-            }
-          }
-        } else {
-          possibleVaultPath = options.path.endsWith(".vault") ? options.path : `${options.path}.vault`;
-        }
-      } else {
-        possibleVaultPath = path2.resolve(process.cwd(), ".env.vault");
-      }
-      if (fs.existsSync(possibleVaultPath)) {
-        return possibleVaultPath;
-      }
-      return null;
-    }
-    function _resolveHome(envPath) {
-      return envPath[0] === "~" ? path2.join(os.homedir(), envPath.slice(1)) : envPath;
-    }
-    function _configVault(options) {
-      const debug = Boolean(options && options.debug);
-      if (debug) {
-        _debug("Loading env from encrypted .env.vault");
-      }
-      const parsed = DotenvModule._parseVault(options);
-      let processEnv = process.env;
-      if (options && options.processEnv != null) {
-        processEnv = options.processEnv;
-      }
-      DotenvModule.populate(processEnv, parsed, options);
-      return { parsed };
-    }
-    function configDotenv(options) {
-      const dotenvPath = path2.resolve(process.cwd(), ".env");
-      let encoding = "utf8";
-      const debug = Boolean(options && options.debug);
-      if (options && options.encoding) {
-        encoding = options.encoding;
-      } else {
-        if (debug) {
-          _debug("No encoding is specified. UTF-8 is used by default");
-        }
-      }
-      let optionPaths = [dotenvPath];
-      if (options && options.path) {
-        if (!Array.isArray(options.path)) {
-          optionPaths = [_resolveHome(options.path)];
-        } else {
-          optionPaths = [];
-          for (const filepath of options.path) {
-            optionPaths.push(_resolveHome(filepath));
-          }
-        }
-      }
-      let lastError;
-      const parsedAll = {};
-      for (const path3 of optionPaths) {
-        try {
-          const parsed = DotenvModule.parse(fs.readFileSync(path3, { encoding }));
-          DotenvModule.populate(parsedAll, parsed, options);
-        } catch (e) {
-          if (debug) {
-            _debug(`Failed to load ${path3} ${e.message}`);
-          }
-          lastError = e;
-        }
-      }
-      let processEnv = process.env;
-      if (options && options.processEnv != null) {
-        processEnv = options.processEnv;
-      }
-      DotenvModule.populate(processEnv, parsedAll, options);
-      if (lastError) {
-        return { parsed: parsedAll, error: lastError };
-      } else {
-        return { parsed: parsedAll };
-      }
-    }
-    function config2(options) {
-      if (_dotenvKey(options).length === 0) {
-        return DotenvModule.configDotenv(options);
-      }
-      const vaultPath = _vaultPath(options);
-      if (!vaultPath) {
-        _warn(`You set DOTENV_KEY but you are missing a .env.vault file at ${vaultPath}. Did you forget to build it?`);
-        return DotenvModule.configDotenv(options);
-      }
-      return DotenvModule._configVault(options);
-    }
-    function decrypt(encrypted, keyStr) {
-      const key = Buffer.from(keyStr.slice(-64), "hex");
-      let ciphertext = Buffer.from(encrypted, "base64");
-      const nonce = ciphertext.subarray(0, 12);
-      const authTag = ciphertext.subarray(-16);
-      ciphertext = ciphertext.subarray(12, -16);
-      try {
-        const aesgcm = crypto.createDecipheriv("aes-256-gcm", key, nonce);
-        aesgcm.setAuthTag(authTag);
-        return `${aesgcm.update(ciphertext)}${aesgcm.final()}`;
-      } catch (error) {
-        const isRange = error instanceof RangeError;
-        const invalidKeyLength = error.message === "Invalid key length";
-        const decryptionFailed = error.message === "Unsupported state or unable to authenticate data";
-        if (isRange || invalidKeyLength) {
-          const err = new Error("INVALID_DOTENV_KEY: It must be 64 characters long (or more)");
-          err.code = "INVALID_DOTENV_KEY";
-          throw err;
-        } else if (decryptionFailed) {
-          const err = new Error("DECRYPTION_FAILED: Please check your DOTENV_KEY");
-          err.code = "DECRYPTION_FAILED";
-          throw err;
-        } else {
-          throw error;
-        }
-      }
-    }
-    function populate(processEnv, parsed, options = {}) {
-      const debug = Boolean(options && options.debug);
-      const override = Boolean(options && options.override);
-      if (typeof parsed !== "object") {
-        const err = new Error("OBJECT_REQUIRED: Please check the processEnv argument being passed to populate");
-        err.code = "OBJECT_REQUIRED";
-        throw err;
-      }
-      for (const key of Object.keys(parsed)) {
-        if (Object.prototype.hasOwnProperty.call(processEnv, key)) {
-          if (override === true) {
-            processEnv[key] = parsed[key];
-          }
-          if (debug) {
-            if (override === true) {
-              _debug(`"${key}" is already defined and WAS overwritten`);
-            } else {
-              _debug(`"${key}" is already defined and was NOT overwritten`);
-            }
-          }
-        } else {
-          processEnv[key] = parsed[key];
-        }
-      }
-    }
-    var DotenvModule = {
-      configDotenv,
-      _configVault,
-      _parseVault,
-      config: config2,
-      decrypt,
-      parse,
-      populate
-    };
-    module2.exports.configDotenv = DotenvModule.configDotenv;
-    module2.exports._configVault = DotenvModule._configVault;
-    module2.exports._parseVault = DotenvModule._parseVault;
-    module2.exports.config = DotenvModule.config;
-    module2.exports.decrypt = DotenvModule.decrypt;
-    module2.exports.parse = DotenvModule.parse;
-    module2.exports.populate = DotenvModule.populate;
-    module2.exports = DotenvModule;
-  }
-});
-
 // netlify/functions/health.js
 var health_exports = {};
 __export(health_exports, {
@@ -5340,75 +5008,66 @@ var Result = import_lib.default.Result;
 var TypeOverrides = import_lib.default.TypeOverrides;
 var defaults = import_lib.default.defaults;
 
-// src/config/env.js
-var import_dotenv = __toESM(require_main(), 1);
-var import_path = __toESM(require("path"), 1);
-var import_url = require("url");
-var import_meta = {};
-try {
-  import_dotenv.default.config({ path: import_path.default.resolve(process.cwd(), ".env") });
-} catch (error) {
-  console.warn("Error loading .env file from process.cwd(), trying relative path...");
-  try {
-    const __filename = (0, import_url.fileURLToPath)(import_meta.url);
-    const __dirname = import_path.default.dirname(__filename);
-    import_dotenv.default.config({ path: import_path.default.resolve(__dirname, "../../../.env") });
-  } catch (innerError) {
-    console.warn("Error loading .env file from relative path, using process.env only");
+// netlify/functions/utils/cors.js
+var withCors = (handler2) => async (event, context) => {
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS"
+      },
+      body: ""
+    };
   }
-}
-var config = {
-  nodeEnv: process.env.NODE_ENV || "development",
-  port: parseInt(process.env.PORT || "3000", 10),
-  isProduction: process.env.NODE_ENV === "production",
-  isDevelopment: process.env.NODE_ENV !== "production",
-  amadeus: {
-    apiKey: process.env.AMADEUS_API_KEY,
-    apiSecret: process.env.AMADEUS_API_SECRET,
-    hostname: process.env.AMADEUS_HOSTNAME || "production"
-  },
-  db: {
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    name: process.env.DB_NAME,
-    host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT || "5432", 10)
-  },
-  api: {
-    prefix: process.env.API_PREFIX || "/api"
-  },
-  cors: {
-    origin: process.env.CORS_ORIGIN || "*"
+  try {
+    const response = await handler2(event, context);
+    if (!response) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "Internal server error" }),
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Content-Type": "application/json"
+        }
+      };
+    }
+    return __spreadProps(__spreadValues({}, response), {
+      headers: __spreadProps(__spreadValues({}, response.headers || {}), {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+      })
+    });
+  } catch (error) {
+    console.error("Error in handler:", error);
+    return {
+      statusCode: error.statusCode || 500,
+      body: JSON.stringify(__spreadValues({
+        error: error.message || "Internal server error"
+      }, process.env.NODE_ENV === "development" ? { stack: error.stack } : {})),
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Content-Type": "application/json"
+      }
+    };
   }
 };
-var requiredEnvVars = [
-  "AMADEUS_API_KEY",
-  "AMADEUS_API_SECRET",
-  "DB_USER",
-  "DB_PASSWORD",
-  "DB_NAME",
-  "DB_HOST"
-];
-var missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
-if (missingVars.length > 0) {
-  console.error(`Missing required environment variables: ${missingVars.join(", ")}`);
-  if (process.env.NODE_ENV === "production") {
-    process.exit(1);
-  } else {
-    console.warn("Running in development mode with missing environment variables.");
-  }
-}
-var env_default = config;
 
 // netlify/functions/health.js
-var handler = async (event, context) => {
+var healthCheckHandler = async (event, context) => {
   console.log("Health check - Environment:", {
-    nodeEnv: env_default.nodeEnv,
-    dbHost: env_default.db.host,
-    dbPort: env_default.db.port,
-    dbName: env_default.db.name,
-    dbUser: env_default.db.user,
-    dbPassword: env_default.db.password ? "***" : "Not set"
+    nodeEnv: process.env.NODE_ENV,
+    dbHost: process.env.DB_HOST,
+    dbPort: process.env.DB_PORT,
+    dbName: process.env.DB_NAME,
+    dbUser: process.env.DB_USER,
+    dbPassword: process.env.DB_PASSWORD ? "***" : "Not set"
   });
   if (event.httpMethod !== "GET") {
     return {
@@ -5417,11 +5076,12 @@ var handler = async (event, context) => {
     };
   }
   const pool = new Pool({
-    user: env_default.db.user,
-    host: env_default.db.host,
-    database: env_default.db.name,
-    password: env_default.db.password,
-    port: env_default.db.port
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT || 5432,
+    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false
   });
   try {
     const result = await pool.query("SELECT NOW()");
@@ -5453,6 +5113,7 @@ var handler = async (event, context) => {
     await pool.end();
   }
 };
+var handler = withCors(healthCheckHandler);
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   handler

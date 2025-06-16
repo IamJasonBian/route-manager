@@ -1,4 +1,5 @@
 // CORS utility for Netlify functions
+// CORS utility for Netlify functions
 export const withCors = (handler) => async (event, context) => {
   // Handle preflight requests
   if (event.httpMethod === 'OPTIONS') {

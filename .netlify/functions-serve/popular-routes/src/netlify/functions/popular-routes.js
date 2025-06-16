@@ -21,6 +21,9 @@ var __spreadValues = (a, b) => {
   return a;
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
 var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
@@ -1307,23 +1310,23 @@ var require_debuggability = __commonJS({
       var disableLongStackTraces = function() {
       };
       Promise2.longStackTraces = function() {
-        if (async.haveItemsQueued() && !config2.longStackTraces) {
+        if (async.haveItemsQueued() && !config3.longStackTraces) {
           throw new Error("cannot enable long stack traces after promises have been created\n\n    See http://goo.gl/MqrFmX\n");
         }
-        if (!config2.longStackTraces && longStackTracesIsSupported()) {
+        if (!config3.longStackTraces && longStackTracesIsSupported()) {
           var Promise_captureStackTrace = Promise2.prototype._captureStackTrace;
           var Promise_attachExtraTrace = Promise2.prototype._attachExtraTrace;
           var Promise_dereferenceTrace = Promise2.prototype._dereferenceTrace;
-          config2.longStackTraces = true;
+          config3.longStackTraces = true;
           disableLongStackTraces = function() {
-            if (async.haveItemsQueued() && !config2.longStackTraces) {
+            if (async.haveItemsQueued() && !config3.longStackTraces) {
               throw new Error("cannot enable long stack traces after promises have been created\n\n    See http://goo.gl/MqrFmX\n");
             }
             Promise2.prototype._captureStackTrace = Promise_captureStackTrace;
             Promise2.prototype._attachExtraTrace = Promise_attachExtraTrace;
             Promise2.prototype._dereferenceTrace = Promise_dereferenceTrace;
             Context.deactivateLongStackTraces();
-            config2.longStackTraces = false;
+            config3.longStackTraces = false;
           };
           Promise2.prototype._captureStackTrace = longStackTracesCaptureStackTrace;
           Promise2.prototype._attachExtraTrace = longStackTracesAttachExtraTrace;
@@ -1332,7 +1335,7 @@ var require_debuggability = __commonJS({
         }
       };
       Promise2.hasLongStackTraces = function() {
-        return config2.longStackTraces && longStackTracesIsSupported();
+        return config3.longStackTraces && longStackTracesIsSupported();
       };
       var legacyHandlers = {
         unhandledrejection: {
@@ -1484,15 +1487,15 @@ var require_debuggability = __commonJS({
         }
         if ("warnings" in opts) {
           var warningsOption = opts.warnings;
-          config2.warnings = !!warningsOption;
-          wForgottenReturn = config2.warnings;
+          config3.warnings = !!warningsOption;
+          wForgottenReturn = config3.warnings;
           if (util.isObject(warningsOption)) {
             if ("wForgottenReturn" in warningsOption) {
               wForgottenReturn = !!warningsOption.wForgottenReturn;
             }
           }
         }
-        if ("cancellation" in opts && opts.cancellation && !config2.cancellation) {
+        if ("cancellation" in opts && opts.cancellation && !config3.cancellation) {
           if (async.haveItemsQueued()) {
             throw new Error("cannot enable cancellation after promises are in use");
           }
@@ -1503,22 +1506,22 @@ var require_debuggability = __commonJS({
           Promise2.prototype._attachCancellationCallback = cancellationAttachCancellationCallback;
           Promise2.prototype._execute = cancellationExecute;
           propagateFromFunction = cancellationPropagateFrom;
-          config2.cancellation = true;
+          config3.cancellation = true;
         }
         if ("monitoring" in opts) {
-          if (opts.monitoring && !config2.monitoring) {
-            config2.monitoring = true;
+          if (opts.monitoring && !config3.monitoring) {
+            config3.monitoring = true;
             Promise2.prototype._fireEvent = activeFireEvent;
-          } else if (!opts.monitoring && config2.monitoring) {
-            config2.monitoring = false;
+          } else if (!opts.monitoring && config3.monitoring) {
+            config3.monitoring = false;
             Promise2.prototype._fireEvent = defaultFireEvent;
           }
         }
         if ("asyncHooks" in opts && util.nodeSupportsAsyncResource) {
-          var prev = config2.asyncHooks;
+          var prev = config3.asyncHooks;
           var cur = !!opts.asyncHooks;
           if (prev !== cur) {
-            config2.asyncHooks = cur;
+            config3.asyncHooks = cur;
             if (cur) {
               enableAsyncHooks();
             } else {
@@ -1696,13 +1699,13 @@ var require_debuggability = __commonJS({
         return warn(message);
       }
       function warn(message, shouldUseOwnTrace, promise) {
-        if (!config2.warnings)
+        if (!config3.warnings)
           return;
         var warning = new Warning(message);
         var ctx;
         if (shouldUseOwnTrace) {
           promise._attachExtraTrace(warning);
-        } else if (config2.longStackTraces && (ctx = Promise2._peekContext())) {
+        } else if (config3.longStackTraces && (ctx = Promise2._peekContext())) {
           ctx.attachExtraTrace(warning);
         } else {
           var parsed = parseStackAndMessage(warning);
@@ -2062,7 +2065,7 @@ var require_debuggability = __commonJS({
           };
         }
       }
-      var config2 = {
+      var config3 = {
         warnings,
         longStackTraces: false,
         cancellation: false,
@@ -2073,19 +2076,19 @@ var require_debuggability = __commonJS({
         Promise2.longStackTraces();
       return {
         asyncHooks: function() {
-          return config2.asyncHooks;
+          return config3.asyncHooks;
         },
         longStackTraces: function() {
-          return config2.longStackTraces;
+          return config3.longStackTraces;
         },
         warnings: function() {
-          return config2.warnings;
+          return config3.warnings;
         },
         cancellation: function() {
-          return config2.cancellation;
+          return config3.cancellation;
         },
         monitoring: function() {
-          return config2.monitoring;
+          return config3.monitoring;
         },
         propagateFromFunction: function() {
           return propagateFromFunction;
@@ -15061,7 +15064,7 @@ var require_main = __commonJS({
         return { parsed: parsedAll };
       }
     }
-    function config2(options) {
+    function config3(options) {
       if (_dotenvKey(options).length === 0) {
         return DotenvModule.configDotenv(options);
       }
@@ -15128,7 +15131,7 @@ var require_main = __commonJS({
       configDotenv,
       _configVault,
       _parseVault,
-      config: config2,
+      config: config3,
       decrypt,
       parse,
       populate
@@ -15144,6 +15147,75 @@ var require_main = __commonJS({
   }
 });
 
+// src/config/env.js
+var env_exports = {};
+__export(env_exports, {
+  default: () => env_default
+});
+var import_dotenv, import_path, import_url, import_meta, config, requiredEnvVars, missingVars, env_default;
+var init_env = __esm({
+  "src/config/env.js"() {
+    import_dotenv = __toESM(require_main(), 1);
+    import_path = __toESM(require("path"), 1);
+    import_url = require("url");
+    import_meta = {};
+    try {
+      import_dotenv.default.config({ path: import_path.default.resolve(process.cwd(), ".env") });
+    } catch (error) {
+      console.warn("Error loading .env file from process.cwd(), trying relative path...");
+      try {
+        const __filename = (0, import_url.fileURLToPath)(import_meta.url);
+        const __dirname = import_path.default.dirname(__filename);
+        import_dotenv.default.config({ path: import_path.default.resolve(__dirname, "../../../.env") });
+      } catch (innerError) {
+        console.warn("Error loading .env file from relative path, using process.env only");
+      }
+    }
+    config = {
+      nodeEnv: process.env.NODE_ENV || "development",
+      port: parseInt(process.env.PORT || "3000", 10),
+      isProduction: process.env.NODE_ENV === "production",
+      isDevelopment: process.env.NODE_ENV !== "production",
+      amadeus: {
+        apiKey: process.env.AMADEUS_API_KEY,
+        apiSecret: process.env.AMADEUS_API_SECRET,
+        hostname: process.env.AMADEUS_HOSTNAME || "production"
+      },
+      db: {
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        name: process.env.DB_NAME,
+        host: process.env.DB_HOST,
+        port: parseInt(process.env.DB_PORT || "5432", 10)
+      },
+      api: {
+        prefix: process.env.API_PREFIX || "/api"
+      },
+      cors: {
+        origin: process.env.CORS_ORIGIN || "*"
+      }
+    };
+    requiredEnvVars = [
+      "AMADEUS_API_KEY",
+      "AMADEUS_API_SECRET",
+      "DB_USER",
+      "DB_PASSWORD",
+      "DB_NAME",
+      "DB_HOST"
+    ];
+    missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
+    if (missingVars.length > 0) {
+      console.error(`Missing required environment variables: ${missingVars.join(", ")}`);
+      if (process.env.NODE_ENV === "production") {
+        process.exit(1);
+      } else {
+        console.warn("Running in development mode with missing environment variables.");
+      }
+    }
+    env_default = config;
+  }
+});
+
 // netlify/functions/popular-routes.js
 var popular_routes_exports = {};
 __export(popular_routes_exports, {
@@ -15152,71 +15224,83 @@ __export(popular_routes_exports, {
 module.exports = __toCommonJS(popular_routes_exports);
 var import_amadeus = __toESM(require_amadeus(), 1);
 
-// src/config/env.js
-var import_dotenv = __toESM(require_main(), 1);
-var import_path = __toESM(require("path"), 1);
-var import_url = require("url");
-var import_meta = {};
-try {
-  import_dotenv.default.config({ path: import_path.default.resolve(process.cwd(), ".env") });
-} catch (error) {
-  console.warn("Error loading .env file from process.cwd(), trying relative path...");
-  try {
-    const __filename = (0, import_url.fileURLToPath)(import_meta.url);
-    const __dirname = import_path.default.dirname(__filename);
-    import_dotenv.default.config({ path: import_path.default.resolve(__dirname, "../../../.env") });
-  } catch (innerError) {
-    console.warn("Error loading .env file from relative path, using process.env only");
+// netlify/functions/utils/cors.js
+var withCors = (handler2) => async (event, context) => {
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS"
+      },
+      body: ""
+    };
   }
-}
-var config = {
-  nodeEnv: process.env.NODE_ENV || "development",
-  port: parseInt(process.env.PORT || "3000", 10),
-  isProduction: process.env.NODE_ENV === "production",
-  isDevelopment: process.env.NODE_ENV !== "production",
-  amadeus: {
-    apiKey: process.env.AMADEUS_API_KEY,
-    apiSecret: process.env.AMADEUS_API_SECRET,
-    hostname: process.env.AMADEUS_HOSTNAME || "production"
-  },
-  db: {
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    name: process.env.DB_NAME,
-    host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT || "5432", 10)
-  },
-  api: {
-    prefix: process.env.API_PREFIX || "/api"
-  },
-  cors: {
-    origin: process.env.CORS_ORIGIN || "*"
+  try {
+    const response = await handler2(event, context);
+    if (!response) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "Internal server error" }),
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Content-Type": "application/json"
+        }
+      };
+    }
+    return __spreadProps(__spreadValues({}, response), {
+      headers: __spreadProps(__spreadValues({}, response.headers || {}), {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+      })
+    });
+  } catch (error) {
+    console.error("Error in handler:", error);
+    return {
+      statusCode: error.statusCode || 500,
+      body: JSON.stringify(__spreadValues({
+        error: error.message || "Internal server error"
+      }, process.env.NODE_ENV === "development" ? { stack: error.stack } : {})),
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Content-Type": "application/json"
+      }
+    };
   }
 };
-var requiredEnvVars = [
-  "AMADEUS_API_KEY",
-  "AMADEUS_API_SECRET",
-  "DB_USER",
-  "DB_PASSWORD",
-  "DB_NAME",
-  "DB_HOST"
-];
-var missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
-if (missingVars.length > 0) {
-  console.error(`Missing required environment variables: ${missingVars.join(", ")}`);
-  if (process.env.NODE_ENV === "production") {
-    process.exit(1);
-  } else {
-    console.warn("Running in development mode with missing environment variables.");
-  }
-}
-var env_default = config;
 
 // netlify/functions/popular-routes.js
+var getConfig = () => {
+  if (process.env.AMADEUS_API_KEY && process.env.AMADEUS_API_SECRET) {
+    return {
+      apiKey: process.env.AMADEUS_API_KEY,
+      apiSecret: process.env.AMADEUS_API_SECRET,
+      hostname: process.env.AMADEUS_HOSTNAME || "production"
+    };
+  }
+  try {
+    const config3 = (init_env(), __toCommonJS(env_exports));
+    return {
+      apiKey: config3.default.amadeus.apiKey,
+      apiSecret: config3.default.amadeus.apiSecret,
+      hostname: config3.default.amadeus.hostname
+    };
+  } catch (error) {
+    console.error("Failed to load config:", error);
+    throw new Error("Failed to load configuration");
+  }
+};
+var config2 = getConfig();
 var amadeus = new import_amadeus.default({
-  clientId: env_default.amadeus.apiKey,
-  clientSecret: env_default.amadeus.apiSecret,
-  hostname: env_default.amadeus.hostname
+  clientId: config2.apiKey,
+  clientSecret: config2.apiSecret,
+  hostname: config2.hostname
 });
 var formatDate = (date) => {
   const d = new Date(date);
@@ -15436,7 +15520,7 @@ var getFlightInfo = async (origin, destination) => {
     source: "default-fallback"
   };
 };
-var handler = async (event, context) => {
+var popularRoutesHandler = async (event, context) => {
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
@@ -15592,6 +15676,7 @@ var handler = async (event, context) => {
     };
   }
 };
+var handler = withCors(popularRoutesHandler);
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   handler

@@ -15223,6 +15223,59 @@ __export(search_flights_exports, {
 });
 module.exports = __toCommonJS(search_flights_exports);
 var import_amadeus = __toESM(require_amadeus(), 1);
+
+// netlify/functions/utils/cors.js
+var withCors = (handler2) => async (event, context) => {
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS"
+      },
+      body: ""
+    };
+  }
+  try {
+    const response = await handler2(event, context);
+    if (!response) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "Internal server error" }),
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Content-Type": "application/json"
+        }
+      };
+    }
+    return __spreadProps(__spreadValues({}, response), {
+      headers: __spreadProps(__spreadValues({}, response.headers || {}), {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+      })
+    });
+  } catch (error) {
+    console.error("Error in handler:", error);
+    return {
+      statusCode: error.statusCode || 500,
+      body: JSON.stringify(__spreadValues({
+        error: error.message || "Internal server error"
+      }, process.env.NODE_ENV === "development" ? { stack: error.stack } : {})),
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Content-Type": "application/json"
+      }
+    };
+  }
+};
+
+// netlify/functions/search-flights.js
 var getConfig = async () => {
   if (process.env.AMADEUS_API_KEY && process.env.AMADEUS_API_SECRET) {
     console.log("Using environment variables for Amadeus config");
@@ -15246,7 +15299,7 @@ var getConfig = async () => {
   }
 };
 var amadeus;
-var handler = async (event, context) => {
+var searchFlightsHandler = async (event, context) => {
   console.log("=== New Request ===");
   console.log("Method:", event.httpMethod);
   console.log("Path:", event.path);
@@ -15302,14 +15355,15 @@ var handler = async (event, context) => {
     console.log("Received response from Amadeus API");
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        success: true,
+        message: "Flight search successful",
         data: response.data || [],
         meta: response.meta || {}
       })
     };
   } catch (error) {
-    console.error("Amadeus API error:", error);
+    console.error("Search flights error:", error);
     const errorDetails = {
       message: error.message,
       code: error.code,
@@ -15330,6 +15384,7 @@ var handler = async (event, context) => {
     };
   }
 };
+var handler = withCors(searchFlightsHandler);
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   handler

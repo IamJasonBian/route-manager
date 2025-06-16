@@ -1,6 +1,8 @@
 var __create = Object.create;
 var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __getProtoOf = Object.getPrototypeOf;
@@ -18,8 +20,13 @@ var __spreadValues = (a, b) => {
     }
   return a;
 };
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+};
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
 };
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
@@ -30,12 +37,13 @@ var __copyProps = (to, from, except, desc) => {
   return to;
 };
 var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target, mod));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // node_modules/postgres-array/index.js
 var require_postgres_array = __commonJS({
-  "node_modules/postgres-array/index.js"(exports2) {
+  "node_modules/postgres-array/index.js"(exports) {
     "use strict";
-    exports2.parse = function(source, transform) {
+    exports.parse = function(source, transform) {
       return new ArrayParser(source, transform).parse();
     };
     var ArrayParser = class {
@@ -131,7 +139,7 @@ var require_postgres_array = __commonJS({
 
 // node_modules/pg-types/lib/arrayParser.js
 var require_arrayParser = __commonJS({
-  "node_modules/pg-types/lib/arrayParser.js"(exports2, module2) {
+  "node_modules/pg-types/lib/arrayParser.js"(exports, module2) {
     var array = require_postgres_array();
     module2.exports = {
       create: function(source, transform) {
@@ -147,7 +155,7 @@ var require_arrayParser = __commonJS({
 
 // node_modules/postgres-date/index.js
 var require_postgres_date = __commonJS({
-  "node_modules/postgres-date/index.js"(exports2, module2) {
+  "node_modules/postgres-date/index.js"(exports, module2) {
     "use strict";
     var DATE_TIME = /(\d{1,})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})(\.\d{1,})?.*?( BC)?$/;
     var DATE = /^(\d{1,})-(\d{2})-(\d{2})( BC)?$/;
@@ -235,7 +243,7 @@ var require_postgres_date = __commonJS({
 
 // node_modules/xtend/mutable.js
 var require_mutable = __commonJS({
-  "node_modules/xtend/mutable.js"(exports2, module2) {
+  "node_modules/xtend/mutable.js"(exports, module2) {
     module2.exports = extend;
     var hasOwnProperty = Object.prototype.hasOwnProperty;
     function extend(target) {
@@ -254,7 +262,7 @@ var require_mutable = __commonJS({
 
 // node_modules/postgres-interval/index.js
 var require_postgres_interval = __commonJS({
-  "node_modules/postgres-interval/index.js"(exports2, module2) {
+  "node_modules/postgres-interval/index.js"(exports, module2) {
     "use strict";
     var extend = require_mutable();
     module2.exports = PostgresInterval;
@@ -349,7 +357,7 @@ var require_postgres_interval = __commonJS({
 
 // node_modules/postgres-bytea/index.js
 var require_postgres_bytea = __commonJS({
-  "node_modules/postgres-bytea/index.js"(exports2, module2) {
+  "node_modules/postgres-bytea/index.js"(exports, module2) {
     "use strict";
     module2.exports = function parseBytea(input) {
       if (/^\\x/.test(input)) {
@@ -384,7 +392,7 @@ var require_postgres_bytea = __commonJS({
 
 // node_modules/pg-types/lib/textParsers.js
 var require_textParsers = __commonJS({
-  "node_modules/pg-types/lib/textParsers.js"(exports2, module2) {
+  "node_modules/pg-types/lib/textParsers.js"(exports, module2) {
     var array = require_postgres_array();
     var arrayParser = require_arrayParser();
     var parseDate = require_postgres_date();
@@ -589,7 +597,7 @@ var require_textParsers = __commonJS({
 
 // node_modules/pg-int8/index.js
 var require_pg_int8 = __commonJS({
-  "node_modules/pg-int8/index.js"(exports2, module2) {
+  "node_modules/pg-int8/index.js"(exports, module2) {
     "use strict";
     var BASE = 1e6;
     function readInt8(buffer) {
@@ -669,7 +677,7 @@ var require_pg_int8 = __commonJS({
 
 // node_modules/pg-types/lib/binaryParsers.js
 var require_binaryParsers = __commonJS({
-  "node_modules/pg-types/lib/binaryParsers.js"(exports2, module2) {
+  "node_modules/pg-types/lib/binaryParsers.js"(exports, module2) {
     var parseInt64 = require_pg_int8();
     var parseBits = function(data, bits, offset, invert, callback) {
       offset = offset || 0;
@@ -870,7 +878,7 @@ var require_binaryParsers = __commonJS({
 
 // node_modules/pg-types/lib/builtins.js
 var require_builtins = __commonJS({
-  "node_modules/pg-types/lib/builtins.js"(exports2, module2) {
+  "node_modules/pg-types/lib/builtins.js"(exports, module2) {
     module2.exports = {
       BOOL: 16,
       BYTEA: 17,
@@ -938,15 +946,15 @@ var require_builtins = __commonJS({
 
 // node_modules/pg-types/index.js
 var require_pg_types = __commonJS({
-  "node_modules/pg-types/index.js"(exports2) {
+  "node_modules/pg-types/index.js"(exports) {
     var textParsers = require_textParsers();
     var binaryParsers = require_binaryParsers();
     var arrayParser = require_arrayParser();
     var builtinTypes = require_builtins();
-    exports2.getTypeParser = getTypeParser;
-    exports2.setTypeParser = setTypeParser;
-    exports2.arrayParser = arrayParser;
-    exports2.builtins = builtinTypes;
+    exports.getTypeParser = getTypeParser;
+    exports.setTypeParser = setTypeParser;
+    exports.arrayParser = arrayParser;
+    exports.builtins = builtinTypes;
     var typeParsers = {
       text: {},
       binary: {}
@@ -979,7 +987,7 @@ var require_pg_types = __commonJS({
 
 // node_modules/pg/lib/defaults.js
 var require_defaults = __commonJS({
-  "node_modules/pg/lib/defaults.js"(exports2, module2) {
+  "node_modules/pg/lib/defaults.js"(exports, module2) {
     "use strict";
     module2.exports = {
       host: "localhost",
@@ -1018,9 +1026,9 @@ var require_defaults = __commonJS({
 
 // node_modules/pg/lib/utils.js
 var require_utils = __commonJS({
-  "node_modules/pg/lib/utils.js"(exports2, module2) {
+  "node_modules/pg/lib/utils.js"(exports, module2) {
     "use strict";
-    var defaults = require_defaults();
+    var defaults2 = require_defaults();
     function escapeElement(elementRepresentation) {
       const escaped = elementRepresentation.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
       return '"' + escaped + '"';
@@ -1069,7 +1077,7 @@ var require_utils = __commonJS({
           return buf.slice(val.byteOffset, val.byteOffset + val.byteLength);
         }
         if (val instanceof Date) {
-          if (defaults.parseInputDatesAsUTC) {
+          if (defaults2.parseInputDatesAsUTC) {
             return dateToStringUTC(val);
           } else {
             return dateToString(val);
@@ -1136,10 +1144,10 @@ var require_utils = __commonJS({
       }
       return config;
     }
-    var escapeIdentifier = function(str) {
+    var escapeIdentifier2 = function(str) {
       return '"' + str.replace(/"/g, '""') + '"';
     };
-    var escapeLiteral = function(str) {
+    var escapeLiteral2 = function(str) {
       let hasBackslash = false;
       let escaped = "'";
       for (let i = 0; i < str.length; i++) {
@@ -1164,15 +1172,15 @@ var require_utils = __commonJS({
         return prepareValue(value);
       },
       normalizeQueryConfig,
-      escapeIdentifier,
-      escapeLiteral
+      escapeIdentifier: escapeIdentifier2,
+      escapeLiteral: escapeLiteral2
     };
   }
 });
 
 // node_modules/pg/lib/crypto/utils-legacy.js
 var require_utils_legacy = __commonJS({
-  "node_modules/pg/lib/crypto/utils-legacy.js"(exports2, module2) {
+  "node_modules/pg/lib/crypto/utils-legacy.js"(exports, module2) {
     "use strict";
     var nodeCrypto = require("crypto");
     function md5(string) {
@@ -1210,7 +1218,7 @@ var require_utils_legacy = __commonJS({
 
 // node_modules/pg/lib/crypto/utils-webcrypto.js
 var require_utils_webcrypto = __commonJS({
-  "node_modules/pg/lib/crypto/utils-webcrypto.js"(exports2, module2) {
+  "node_modules/pg/lib/crypto/utils-webcrypto.js"(exports, module2) {
     var nodeCrypto = require("crypto");
     module2.exports = {
       postgresMd5PasswordHash,
@@ -1261,7 +1269,7 @@ var require_utils_webcrypto = __commonJS({
 
 // node_modules/pg/lib/crypto/utils.js
 var require_utils2 = __commonJS({
-  "node_modules/pg/lib/crypto/utils.js"(exports2, module2) {
+  "node_modules/pg/lib/crypto/utils.js"(exports, module2) {
     "use strict";
     var useLegacyCrypto = parseInt(process.versions && process.versions.node && process.versions.node.split(".")[0]) < 15;
     if (useLegacyCrypto) {
@@ -1274,7 +1282,7 @@ var require_utils2 = __commonJS({
 
 // node_modules/pg/lib/crypto/cert-signatures.js
 var require_cert_signatures = __commonJS({
-  "node_modules/pg/lib/crypto/cert-signatures.js"(exports2, module2) {
+  "node_modules/pg/lib/crypto/cert-signatures.js"(exports, module2) {
     function x509Error(msg, cert) {
       return new Error("SASL channel binding: " + msg + " when parsing public certificate " + cert.toString("base64"));
     }
@@ -1388,7 +1396,7 @@ var require_cert_signatures = __commonJS({
 
 // node_modules/pg/lib/crypto/sasl.js
 var require_sasl = __commonJS({
-  "node_modules/pg/lib/crypto/sasl.js"(exports2, module2) {
+  "node_modules/pg/lib/crypto/sasl.js"(exports, module2) {
     "use strict";
     var crypto = require_utils2();
     var { signatureAlgorithmHashFromCertificate } = require_cert_signatures();
@@ -1555,15 +1563,15 @@ var require_sasl = __commonJS({
 
 // node_modules/pg/lib/type-overrides.js
 var require_type_overrides = __commonJS({
-  "node_modules/pg/lib/type-overrides.js"(exports2, module2) {
+  "node_modules/pg/lib/type-overrides.js"(exports, module2) {
     "use strict";
-    var types = require_pg_types();
-    function TypeOverrides(userTypes) {
-      this._types = userTypes || types;
+    var types2 = require_pg_types();
+    function TypeOverrides2(userTypes) {
+      this._types = userTypes || types2;
       this.text = {};
       this.binary = {};
     }
-    TypeOverrides.prototype.getOverrides = function(format) {
+    TypeOverrides2.prototype.getOverrides = function(format) {
       switch (format) {
         case "text":
           return this.text;
@@ -1573,24 +1581,24 @@ var require_type_overrides = __commonJS({
           return {};
       }
     };
-    TypeOverrides.prototype.setTypeParser = function(oid, format, parseFn) {
+    TypeOverrides2.prototype.setTypeParser = function(oid, format, parseFn) {
       if (typeof format === "function") {
         parseFn = format;
         format = "text";
       }
       this.getOverrides(format)[oid] = parseFn;
     };
-    TypeOverrides.prototype.getTypeParser = function(oid, format) {
+    TypeOverrides2.prototype.getTypeParser = function(oid, format) {
       format = format || "text";
       return this.getOverrides(format)[oid] || this._types.getTypeParser(oid, format);
     };
-    module2.exports = TypeOverrides;
+    module2.exports = TypeOverrides2;
   }
 });
 
 // node_modules/pg-connection-string/index.js
 var require_pg_connection_string = __commonJS({
-  "node_modules/pg-connection-string/index.js"(exports2, module2) {
+  "node_modules/pg-connection-string/index.js"(exports, module2) {
     "use strict";
     function parse(str, options = {}) {
       if (str.charAt(0) === "/") {
@@ -1752,10 +1760,10 @@ var require_pg_connection_string = __commonJS({
 
 // node_modules/pg/lib/connection-parameters.js
 var require_connection_parameters = __commonJS({
-  "node_modules/pg/lib/connection-parameters.js"(exports2, module2) {
+  "node_modules/pg/lib/connection-parameters.js"(exports, module2) {
     "use strict";
     var dns = require("dns");
-    var defaults = require_defaults();
+    var defaults2 = require_defaults();
     var parse = require_pg_connection_string().parse;
     var val = function(key, config, envVar) {
       if (envVar === void 0) {
@@ -1764,7 +1772,7 @@ var require_connection_parameters = __commonJS({
       } else {
         envVar = process.env[envVar];
       }
-      return config[key] || envVar || defaults[key];
+      return config[key] || envVar || defaults2[key];
     };
     var readSSLConfigFromEnvironment = function() {
       switch (process.env.PGSSLMODE) {
@@ -1778,7 +1786,7 @@ var require_connection_parameters = __commonJS({
         case "no-verify":
           return { rejectUnauthorized: false };
       }
-      return defaults.ssl;
+      return defaults2.ssl;
     };
     var quoteParamValue = function(value) {
       return "'" + ("" + value).replace(/\\/g, "\\\\").replace(/'/g, "\\'") + "'";
@@ -1891,19 +1899,19 @@ var require_connection_parameters = __commonJS({
 
 // node_modules/pg/lib/result.js
 var require_result = __commonJS({
-  "node_modules/pg/lib/result.js"(exports2, module2) {
+  "node_modules/pg/lib/result.js"(exports, module2) {
     "use strict";
-    var types = require_pg_types();
+    var types2 = require_pg_types();
     var matchRegexp = /^([A-Za-z]+)(?: (\d+))?(?: (\d+))?/;
-    var Result = class {
-      constructor(rowMode, types2) {
+    var Result2 = class {
+      constructor(rowMode, types3) {
         this.command = null;
         this.rowCount = null;
         this.oid = null;
         this.rows = [];
         this.fields = [];
         this._parsers = void 0;
-        this._types = types2;
+        this._types = types3;
         this.RowCtor = null;
         this.rowAsArray = rowMode === "array";
         if (this.rowAsArray) {
@@ -1968,24 +1976,24 @@ var require_result = __commonJS({
           if (this._types) {
             this._parsers[i] = this._types.getTypeParser(desc.dataTypeID, desc.format || "text");
           } else {
-            this._parsers[i] = types.getTypeParser(desc.dataTypeID, desc.format || "text");
+            this._parsers[i] = types2.getTypeParser(desc.dataTypeID, desc.format || "text");
           }
         }
         this._prebuiltEmptyResultObject = __spreadValues({}, row);
       }
     };
-    module2.exports = Result;
+    module2.exports = Result2;
   }
 });
 
 // node_modules/pg/lib/query.js
 var require_query = __commonJS({
-  "node_modules/pg/lib/query.js"(exports2, module2) {
+  "node_modules/pg/lib/query.js"(exports, module2) {
     "use strict";
     var { EventEmitter } = require("events");
-    var Result = require_result();
+    var Result2 = require_result();
     var utils = require_utils();
-    var Query = class extends EventEmitter {
+    var Query2 = class extends EventEmitter {
       constructor(config, values, callback) {
         super();
         config = utils.normalizeQueryConfig(config, values, callback);
@@ -2002,7 +2010,7 @@ var require_query = __commonJS({
         if (process.domain && config.callback) {
           this.callback = process.domain.bind(config.callback);
         }
-        this._result = new Result(this._rowMode, this.types);
+        this._result = new Result2(this._rowMode, this.types);
         this._results = this._result;
         this._canceledDueToError = false;
       }
@@ -2029,7 +2037,7 @@ var require_query = __commonJS({
           if (!Array.isArray(this._results)) {
             this._results = [this._result];
           }
-          this._result = new Result(this._rowMode, this._result._types);
+          this._result = new Result2(this._rowMode, this._result._types);
           this._results.push(this._result);
         }
       }
@@ -2163,56 +2171,56 @@ var require_query = __commonJS({
       handleCopyData(msg, connection) {
       }
     };
-    module2.exports = Query;
+    module2.exports = Query2;
   }
 });
 
 // node_modules/pg-protocol/dist/messages.js
 var require_messages = __commonJS({
-  "node_modules/pg-protocol/dist/messages.js"(exports2) {
+  "node_modules/pg-protocol/dist/messages.js"(exports) {
     "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.NoticeMessage = exports2.DataRowMessage = exports2.CommandCompleteMessage = exports2.ReadyForQueryMessage = exports2.NotificationResponseMessage = exports2.BackendKeyDataMessage = exports2.AuthenticationMD5Password = exports2.ParameterStatusMessage = exports2.ParameterDescriptionMessage = exports2.RowDescriptionMessage = exports2.Field = exports2.CopyResponse = exports2.CopyDataMessage = exports2.DatabaseError = exports2.copyDone = exports2.emptyQuery = exports2.replicationStart = exports2.portalSuspended = exports2.noData = exports2.closeComplete = exports2.bindComplete = exports2.parseComplete = void 0;
-    exports2.parseComplete = {
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.NoticeMessage = exports.DataRowMessage = exports.CommandCompleteMessage = exports.ReadyForQueryMessage = exports.NotificationResponseMessage = exports.BackendKeyDataMessage = exports.AuthenticationMD5Password = exports.ParameterStatusMessage = exports.ParameterDescriptionMessage = exports.RowDescriptionMessage = exports.Field = exports.CopyResponse = exports.CopyDataMessage = exports.DatabaseError = exports.copyDone = exports.emptyQuery = exports.replicationStart = exports.portalSuspended = exports.noData = exports.closeComplete = exports.bindComplete = exports.parseComplete = void 0;
+    exports.parseComplete = {
       name: "parseComplete",
       length: 5
     };
-    exports2.bindComplete = {
+    exports.bindComplete = {
       name: "bindComplete",
       length: 5
     };
-    exports2.closeComplete = {
+    exports.closeComplete = {
       name: "closeComplete",
       length: 5
     };
-    exports2.noData = {
+    exports.noData = {
       name: "noData",
       length: 5
     };
-    exports2.portalSuspended = {
+    exports.portalSuspended = {
       name: "portalSuspended",
       length: 5
     };
-    exports2.replicationStart = {
+    exports.replicationStart = {
       name: "replicationStart",
       length: 4
     };
-    exports2.emptyQuery = {
+    exports.emptyQuery = {
       name: "emptyQuery",
       length: 4
     };
-    exports2.copyDone = {
+    exports.copyDone = {
       name: "copyDone",
       length: 4
     };
-    var DatabaseError = class extends Error {
+    var DatabaseError2 = class extends Error {
       constructor(message, length, name) {
         super(message);
         this.length = length;
         this.name = name;
       }
     };
-    exports2.DatabaseError = DatabaseError;
+    exports.DatabaseError = DatabaseError2;
     var CopyDataMessage = class {
       constructor(length, chunk) {
         this.length = length;
@@ -2220,7 +2228,7 @@ var require_messages = __commonJS({
         this.name = "copyData";
       }
     };
-    exports2.CopyDataMessage = CopyDataMessage;
+    exports.CopyDataMessage = CopyDataMessage;
     var CopyResponse = class {
       constructor(length, name, binary, columnCount) {
         this.length = length;
@@ -2229,7 +2237,7 @@ var require_messages = __commonJS({
         this.columnTypes = new Array(columnCount);
       }
     };
-    exports2.CopyResponse = CopyResponse;
+    exports.CopyResponse = CopyResponse;
     var Field = class {
       constructor(name, tableID, columnID, dataTypeID, dataTypeSize, dataTypeModifier, format) {
         this.name = name;
@@ -2241,7 +2249,7 @@ var require_messages = __commonJS({
         this.format = format;
       }
     };
-    exports2.Field = Field;
+    exports.Field = Field;
     var RowDescriptionMessage = class {
       constructor(length, fieldCount) {
         this.length = length;
@@ -2250,7 +2258,7 @@ var require_messages = __commonJS({
         this.fields = new Array(this.fieldCount);
       }
     };
-    exports2.RowDescriptionMessage = RowDescriptionMessage;
+    exports.RowDescriptionMessage = RowDescriptionMessage;
     var ParameterDescriptionMessage = class {
       constructor(length, parameterCount) {
         this.length = length;
@@ -2259,7 +2267,7 @@ var require_messages = __commonJS({
         this.dataTypeIDs = new Array(this.parameterCount);
       }
     };
-    exports2.ParameterDescriptionMessage = ParameterDescriptionMessage;
+    exports.ParameterDescriptionMessage = ParameterDescriptionMessage;
     var ParameterStatusMessage = class {
       constructor(length, parameterName, parameterValue) {
         this.length = length;
@@ -2268,7 +2276,7 @@ var require_messages = __commonJS({
         this.name = "parameterStatus";
       }
     };
-    exports2.ParameterStatusMessage = ParameterStatusMessage;
+    exports.ParameterStatusMessage = ParameterStatusMessage;
     var AuthenticationMD5Password = class {
       constructor(length, salt) {
         this.length = length;
@@ -2276,7 +2284,7 @@ var require_messages = __commonJS({
         this.name = "authenticationMD5Password";
       }
     };
-    exports2.AuthenticationMD5Password = AuthenticationMD5Password;
+    exports.AuthenticationMD5Password = AuthenticationMD5Password;
     var BackendKeyDataMessage = class {
       constructor(length, processID, secretKey) {
         this.length = length;
@@ -2285,7 +2293,7 @@ var require_messages = __commonJS({
         this.name = "backendKeyData";
       }
     };
-    exports2.BackendKeyDataMessage = BackendKeyDataMessage;
+    exports.BackendKeyDataMessage = BackendKeyDataMessage;
     var NotificationResponseMessage = class {
       constructor(length, processId, channel, payload) {
         this.length = length;
@@ -2295,7 +2303,7 @@ var require_messages = __commonJS({
         this.name = "notification";
       }
     };
-    exports2.NotificationResponseMessage = NotificationResponseMessage;
+    exports.NotificationResponseMessage = NotificationResponseMessage;
     var ReadyForQueryMessage = class {
       constructor(length, status) {
         this.length = length;
@@ -2303,7 +2311,7 @@ var require_messages = __commonJS({
         this.name = "readyForQuery";
       }
     };
-    exports2.ReadyForQueryMessage = ReadyForQueryMessage;
+    exports.ReadyForQueryMessage = ReadyForQueryMessage;
     var CommandCompleteMessage = class {
       constructor(length, text) {
         this.length = length;
@@ -2311,7 +2319,7 @@ var require_messages = __commonJS({
         this.name = "commandComplete";
       }
     };
-    exports2.CommandCompleteMessage = CommandCompleteMessage;
+    exports.CommandCompleteMessage = CommandCompleteMessage;
     var DataRowMessage = class {
       constructor(length, fields) {
         this.length = length;
@@ -2320,7 +2328,7 @@ var require_messages = __commonJS({
         this.fieldCount = fields.length;
       }
     };
-    exports2.DataRowMessage = DataRowMessage;
+    exports.DataRowMessage = DataRowMessage;
     var NoticeMessage = class {
       constructor(length, message) {
         this.length = length;
@@ -2328,16 +2336,16 @@ var require_messages = __commonJS({
         this.name = "notice";
       }
     };
-    exports2.NoticeMessage = NoticeMessage;
+    exports.NoticeMessage = NoticeMessage;
   }
 });
 
 // node_modules/pg-protocol/dist/buffer-writer.js
 var require_buffer_writer = __commonJS({
-  "node_modules/pg-protocol/dist/buffer-writer.js"(exports2) {
+  "node_modules/pg-protocol/dist/buffer-writer.js"(exports) {
     "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.Writer = void 0;
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Writer = void 0;
     var Writer = class {
       constructor(size = 256) {
         this.size = size;
@@ -2409,16 +2417,16 @@ var require_buffer_writer = __commonJS({
         return result;
       }
     };
-    exports2.Writer = Writer;
+    exports.Writer = Writer;
   }
 });
 
 // node_modules/pg-protocol/dist/serializer.js
 var require_serializer = __commonJS({
-  "node_modules/pg-protocol/dist/serializer.js"(exports2) {
+  "node_modules/pg-protocol/dist/serializer.js"(exports) {
     "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.serialize = void 0;
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.serialize = void 0;
     var buffer_writer_1 = require_buffer_writer();
     var writer = new buffer_writer_1.Writer();
     var startup = (opts) => {
@@ -2458,11 +2466,11 @@ var require_serializer = __commonJS({
         console.error("You supplied %s (%s)", name, name.length);
         console.error("This can cause conflicts and silent errors executing queries");
       }
-      const types = query2.types || emptyArray;
-      const len = types.length;
+      const types2 = query2.types || emptyArray;
+      const len = types2.length;
       const buffer = writer.addCString(name).addCString(query2.text).addInt16(len);
       for (let i = 0; i < len; i++) {
-        buffer.addInt32(types[i]);
+        buffer.addInt32(types2[i]);
       }
       return writer.flush(80);
     };
@@ -2574,16 +2582,16 @@ var require_serializer = __commonJS({
       copyFail,
       cancel
     };
-    exports2.serialize = serialize;
+    exports.serialize = serialize;
   }
 });
 
 // node_modules/pg-protocol/dist/buffer-reader.js
 var require_buffer_reader = __commonJS({
-  "node_modules/pg-protocol/dist/buffer-reader.js"(exports2) {
+  "node_modules/pg-protocol/dist/buffer-reader.js"(exports) {
     "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.BufferReader = void 0;
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.BufferReader = void 0;
     var emptyBuffer = Buffer.allocUnsafe(0);
     var BufferReader = class {
       constructor(offset = 0) {
@@ -2634,16 +2642,16 @@ var require_buffer_reader = __commonJS({
         return result;
       }
     };
-    exports2.BufferReader = BufferReader;
+    exports.BufferReader = BufferReader;
   }
 });
 
 // node_modules/pg-protocol/dist/parser.js
 var require_parser = __commonJS({
-  "node_modules/pg-protocol/dist/parser.js"(exports2) {
+  "node_modules/pg-protocol/dist/parser.js"(exports) {
     "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.Parser = void 0;
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Parser = void 0;
     var messages_1 = require_messages();
     var buffer_reader_1 = require_buffer_reader();
     var CODE_LENGTH = 1;
@@ -2927,22 +2935,22 @@ var require_parser = __commonJS({
         return message;
       }
     };
-    exports2.Parser = Parser;
+    exports.Parser = Parser;
   }
 });
 
 // node_modules/pg-protocol/dist/index.js
 var require_dist = __commonJS({
-  "node_modules/pg-protocol/dist/index.js"(exports2) {
+  "node_modules/pg-protocol/dist/index.js"(exports) {
     "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.DatabaseError = exports2.serialize = exports2.parse = void 0;
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.DatabaseError = exports.serialize = exports.parse = void 0;
     var messages_1 = require_messages();
-    Object.defineProperty(exports2, "DatabaseError", { enumerable: true, get: function() {
+    Object.defineProperty(exports, "DatabaseError", { enumerable: true, get: function() {
       return messages_1.DatabaseError;
     } });
     var serializer_1 = require_serializer();
-    Object.defineProperty(exports2, "serialize", { enumerable: true, get: function() {
+    Object.defineProperty(exports, "serialize", { enumerable: true, get: function() {
       return serializer_1.serialize;
     } });
     var parser_1 = require_parser();
@@ -2951,16 +2959,16 @@ var require_dist = __commonJS({
       stream.on("data", (buffer) => parser.parse(buffer, callback));
       return new Promise((resolve) => stream.on("end", () => resolve()));
     }
-    exports2.parse = parse;
+    exports.parse = parse;
   }
 });
 
 // node_modules/pg-cloudflare/dist/index.js
 var require_dist2 = __commonJS({
-  "node_modules/pg-cloudflare/dist/index.js"(exports2) {
+  "node_modules/pg-cloudflare/dist/index.js"(exports) {
     "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.CloudflareSocket = void 0;
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.CloudflareSocket = void 0;
     var events_1 = require("events");
     var CloudflareSocket = class extends events_1.EventEmitter {
       constructor(ssl) {
@@ -3088,7 +3096,7 @@ var require_dist2 = __commonJS({
         }).catch((e) => this.emit("error", e));
       }
     };
-    exports2.CloudflareSocket = CloudflareSocket;
+    exports.CloudflareSocket = CloudflareSocket;
     var debug = false;
     function dump(data) {
       if (data instanceof Uint8Array || data instanceof ArrayBuffer) {
@@ -3110,7 +3118,7 @@ var require_dist2 = __commonJS({
 
 // node_modules/pg/lib/stream.js
 var require_stream = __commonJS({
-  "node_modules/pg/lib/stream.js"(exports2, module2) {
+  "node_modules/pg/lib/stream.js"(exports, module2) {
     var { getStream, getSecureStream } = getStreamFuncs();
     module2.exports = {
       getStream,
@@ -3167,7 +3175,7 @@ var require_stream = __commonJS({
 
 // node_modules/pg/lib/connection.js
 var require_connection = __commonJS({
-  "node_modules/pg/lib/connection.js"(exports2, module2) {
+  "node_modules/pg/lib/connection.js"(exports, module2) {
     "use strict";
     var EventEmitter = require("events").EventEmitter;
     var { parse, serialize } = require_dist();
@@ -3175,7 +3183,7 @@ var require_connection = __commonJS({
     var flushBuffer = serialize.flush();
     var syncBuffer = serialize.sync();
     var endBuffer = serialize.end();
-    var Connection = class extends EventEmitter {
+    var Connection2 = class extends EventEmitter {
       constructor(config) {
         super();
         config = config || {};
@@ -3342,13 +3350,13 @@ var require_connection = __commonJS({
         this._send(serialize.copyFail(msg));
       }
     };
-    module2.exports = Connection;
+    module2.exports = Connection2;
   }
 });
 
 // node_modules/split2/index.js
 var require_split2 = __commonJS({
-  "node_modules/split2/index.js"(exports2, module2) {
+  "node_modules/split2/index.js"(exports, module2) {
     "use strict";
     var { Transform } = require("stream");
     var { StringDecoder } = require("string_decoder");
@@ -3450,7 +3458,7 @@ var require_split2 = __commonJS({
 
 // node_modules/pgpass/lib/helper.js
 var require_helper = __commonJS({
-  "node_modules/pgpass/lib/helper.js"(exports2, module2) {
+  "node_modules/pgpass/lib/helper.js"(exports, module2) {
     "use strict";
     var path = require("path");
     var Stream = require("stream").Stream;
@@ -3616,7 +3624,7 @@ var require_helper = __commonJS({
 
 // node_modules/pgpass/lib/index.js
 var require_lib = __commonJS({
-  "node_modules/pgpass/lib/index.js"(exports2, module2) {
+  "node_modules/pgpass/lib/index.js"(exports, module2) {
     "use strict";
     var path = require("path");
     var fs = require("fs");
@@ -3637,18 +3645,18 @@ var require_lib = __commonJS({
 
 // node_modules/pg/lib/client.js
 var require_client = __commonJS({
-  "node_modules/pg/lib/client.js"(exports2, module2) {
+  "node_modules/pg/lib/client.js"(exports, module2) {
     "use strict";
     var EventEmitter = require("events").EventEmitter;
     var utils = require_utils();
     var sasl = require_sasl();
-    var TypeOverrides = require_type_overrides();
+    var TypeOverrides2 = require_type_overrides();
     var ConnectionParameters = require_connection_parameters();
-    var Query = require_query();
-    var defaults = require_defaults();
-    var Connection = require_connection();
+    var Query2 = require_query();
+    var defaults2 = require_defaults();
+    var Connection2 = require_connection();
     var crypto = require_utils2();
-    var Client = class extends EventEmitter {
+    var Client2 = class extends EventEmitter {
       constructor(config) {
         super();
         this.connectionParameters = new ConnectionParameters(config);
@@ -3665,7 +3673,7 @@ var require_client = __commonJS({
         this.replication = this.connectionParameters.replication;
         const c = config || {};
         this._Promise = c.Promise || global.Promise;
-        this._types = new TypeOverrides(c.types);
+        this._types = new TypeOverrides2(c.types);
         this._ending = false;
         this._ended = false;
         this._connecting = false;
@@ -3673,7 +3681,7 @@ var require_client = __commonJS({
         this._connectionError = false;
         this._queryable = true;
         this.enableChannelBinding = Boolean(c.enableChannelBinding);
-        this.connection = c.connection || new Connection({
+        this.connection = c.connection || new Connection2({
           stream: c.stream,
           ssl: this.connectionParameters.ssl,
           keepAlive: c.keepAlive || false,
@@ -3681,7 +3689,7 @@ var require_client = __commonJS({
           encoding: this.connectionParameters.client_encoding || "utf8"
         });
         this.queryQueue = [];
-        this.binary = c.binary || defaults.binary;
+        this.binary = c.binary || defaults2.binary;
         this.processID = null;
         this.secretKey = null;
         this.ssl = this.connectionParameters.ssl || false;
@@ -4059,7 +4067,7 @@ var require_client = __commonJS({
           }
         } else {
           readTimeout = config.query_timeout || this.connectionParameters.query_timeout;
-          query = new Query(config, values, callback);
+          query = new Query2(config, values, callback);
           if (!query.callback) {
             result = new this._Promise((resolve, reject) => {
               query.callback = (err, res) => err ? reject(err) : resolve(res);
@@ -4141,14 +4149,14 @@ var require_client = __commonJS({
         }
       }
     };
-    Client.Query = Query;
-    module2.exports = Client;
+    Client2.Query = Query2;
+    module2.exports = Client2;
   }
 });
 
 // node_modules/pg-pool/index.js
 var require_pg_pool = __commonJS({
-  "node_modules/pg-pool/index.js"(exports2, module2) {
+  "node_modules/pg-pool/index.js"(exports, module2) {
     "use strict";
     var EventEmitter = require("events").EventEmitter;
     var NOOP = function() {
@@ -4202,7 +4210,7 @@ var require_pg_pool = __commonJS({
       };
     }
     var Pool2 = class extends EventEmitter {
-      constructor(options, Client) {
+      constructor(options, Client2) {
         super();
         this.options = Object.assign({}, options);
         if (options != null && "password" in options) {
@@ -4225,7 +4233,7 @@ var require_pg_pool = __commonJS({
         this.options.maxLifetimeSeconds = this.options.maxLifetimeSeconds || 0;
         this.log = this.options.log || function() {
         };
-        this.Client = this.options.Client || Client || require_lib2().Client;
+        this.Client = this.options.Client || Client2 || require_lib2().Client;
         this.Promise = this.options.Promise || global.Promise;
         if (typeof this.options.idleTimeoutMillis === "undefined") {
           this.options.idleTimeoutMillis = 1e4;
@@ -4529,7 +4537,7 @@ var require_pg_pool = __commonJS({
 
 // node_modules/pg/lib/native/query.js
 var require_query2 = __commonJS({
-  "node_modules/pg/lib/native/query.js"(exports2, module2) {
+  "node_modules/pg/lib/native/query.js"(exports, module2) {
     "use strict";
     var EventEmitter = require("events").EventEmitter;
     var util = require("util");
@@ -4668,7 +4676,7 @@ var require_query2 = __commonJS({
 
 // node_modules/pg/lib/native/client.js
 var require_client2 = __commonJS({
-  "node_modules/pg/lib/native/client.js"(exports2, module2) {
+  "node_modules/pg/lib/native/client.js"(exports, module2) {
     "use strict";
     var Native;
     try {
@@ -4676,16 +4684,16 @@ var require_client2 = __commonJS({
     } catch (e) {
       throw e;
     }
-    var TypeOverrides = require_type_overrides();
+    var TypeOverrides2 = require_type_overrides();
     var EventEmitter = require("events").EventEmitter;
     var util = require("util");
     var ConnectionParameters = require_connection_parameters();
     var NativeQuery = require_query2();
-    var Client = module2.exports = function(config) {
+    var Client2 = module2.exports = function(config) {
       EventEmitter.call(this);
       config = config || {};
       this._Promise = config.Promise || global.Promise;
-      this._types = new TypeOverrides(config.types);
+      this._types = new TypeOverrides2(config.types);
       this.native = new Native({
         types: this._types
       });
@@ -4709,9 +4717,9 @@ var require_client2 = __commonJS({
       this.port = cp.port;
       this.namedQueries = {};
     };
-    Client.Query = NativeQuery;
-    util.inherits(Client, EventEmitter);
-    Client.prototype._errorAllQueries = function(err) {
+    Client2.Query = NativeQuery;
+    util.inherits(Client2, EventEmitter);
+    Client2.prototype._errorAllQueries = function(err) {
       const enqueueError = (query) => {
         process.nextTick(() => {
           query.native = this.native;
@@ -4725,7 +4733,7 @@ var require_client2 = __commonJS({
       this._queryQueue.forEach(enqueueError);
       this._queryQueue.length = 0;
     };
-    Client.prototype._connect = function(cb) {
+    Client2.prototype._connect = function(cb) {
       const self = this;
       if (this._connecting) {
         process.nextTick(() => cb(new Error("Client has already been connected. You cannot reuse a client.")));
@@ -4760,7 +4768,7 @@ var require_client2 = __commonJS({
         });
       });
     };
-    Client.prototype.connect = function(callback) {
+    Client2.prototype.connect = function(callback) {
       if (callback) {
         this._connect(callback);
         return;
@@ -4775,7 +4783,7 @@ var require_client2 = __commonJS({
         });
       });
     };
-    Client.prototype.query = function(config, values, callback) {
+    Client2.prototype.query = function(config, values, callback) {
       let query;
       let result;
       let readTimeout;
@@ -4843,7 +4851,7 @@ var require_client2 = __commonJS({
       this._pulseQueryQueue();
       return result;
     };
-    Client.prototype.end = function(cb) {
+    Client2.prototype.end = function(cb) {
       const self = this;
       this._ending = true;
       if (!this._connected) {
@@ -4865,10 +4873,10 @@ var require_client2 = __commonJS({
       });
       return result;
     };
-    Client.prototype._hasActiveQuery = function() {
+    Client2.prototype._hasActiveQuery = function() {
       return this._activeQuery && this._activeQuery.state !== "error" && this._activeQuery.state !== "end";
     };
-    Client.prototype._pulseQueryQueue = function(initialConnection) {
+    Client2.prototype._pulseQueryQueue = function(initialConnection) {
       if (!this._connected) {
         return;
       }
@@ -4889,7 +4897,7 @@ var require_client2 = __commonJS({
         self._pulseQueryQueue();
       });
     };
-    Client.prototype.cancel = function(query) {
+    Client2.prototype.cancel = function(query) {
       if (this._activeQuery === query) {
         this.native.cancel(function() {
         });
@@ -4897,14 +4905,14 @@ var require_client2 = __commonJS({
         this._queryQueue.splice(this._queryQueue.indexOf(query), 1);
       }
     };
-    Client.prototype.ref = function() {
+    Client2.prototype.ref = function() {
     };
-    Client.prototype.unref = function() {
+    Client2.prototype.unref = function() {
     };
-    Client.prototype.setTypeParser = function(oid, format, parseFn) {
+    Client2.prototype.setTypeParser = function(oid, format, parseFn) {
       return this._types.setTypeParser(oid, format, parseFn);
     };
-    Client.prototype.getTypeParser = function(oid, format) {
+    Client2.prototype.getTypeParser = function(oid, format) {
       return this._types.getTypeParser(oid, format);
     };
   }
@@ -4912,7 +4920,7 @@ var require_client2 = __commonJS({
 
 // node_modules/pg/lib/native/index.js
 var require_native = __commonJS({
-  "node_modules/pg/lib/native/index.js"(exports2, module2) {
+  "node_modules/pg/lib/native/index.js"(exports, module2) {
     "use strict";
     module2.exports = require_client2();
   }
@@ -4920,43 +4928,43 @@ var require_native = __commonJS({
 
 // node_modules/pg/lib/index.js
 var require_lib2 = __commonJS({
-  "node_modules/pg/lib/index.js"(exports2, module2) {
+  "node_modules/pg/lib/index.js"(exports, module2) {
     "use strict";
-    var Client = require_client();
-    var defaults = require_defaults();
-    var Connection = require_connection();
-    var Result = require_result();
+    var Client2 = require_client();
+    var defaults2 = require_defaults();
+    var Connection2 = require_connection();
+    var Result2 = require_result();
     var utils = require_utils();
     var Pool2 = require_pg_pool();
-    var TypeOverrides = require_type_overrides();
-    var { DatabaseError } = require_dist();
-    var { escapeIdentifier, escapeLiteral } = require_utils();
-    var poolFactory = (Client2) => {
+    var TypeOverrides2 = require_type_overrides();
+    var { DatabaseError: DatabaseError2 } = require_dist();
+    var { escapeIdentifier: escapeIdentifier2, escapeLiteral: escapeLiteral2 } = require_utils();
+    var poolFactory = (Client3) => {
       return class BoundPool extends Pool2 {
         constructor(options) {
-          super(options, Client2);
+          super(options, Client3);
         }
       };
     };
     var PG = function(clientConstructor) {
-      this.defaults = defaults;
+      this.defaults = defaults2;
       this.Client = clientConstructor;
       this.Query = this.Client.Query;
       this.Pool = poolFactory(this.Client);
       this._pools = [];
-      this.Connection = Connection;
+      this.Connection = Connection2;
       this.types = require_pg_types();
-      this.DatabaseError = DatabaseError;
-      this.TypeOverrides = TypeOverrides;
-      this.escapeIdentifier = escapeIdentifier;
-      this.escapeLiteral = escapeLiteral;
-      this.Result = Result;
+      this.DatabaseError = DatabaseError2;
+      this.TypeOverrides = TypeOverrides2;
+      this.escapeIdentifier = escapeIdentifier2;
+      this.escapeLiteral = escapeLiteral2;
+      this.Result = Result2;
       this.utils = utils;
     };
     if (typeof process.env.NODE_PG_FORCE_NATIVE !== "undefined") {
       module2.exports = new PG(require_native());
     } else {
-      module2.exports = new PG(Client);
+      module2.exports = new PG(Client2);
       Object.defineProperty(module2.exports, "native", {
         configurable: true,
         enumerable: false,
@@ -4980,8 +4988,79 @@ var require_lib2 = __commonJS({
 });
 
 // netlify/functions/get-routes-summary.js
-var { Pool } = require_lib2();
-exports.handler = async (event, context) => {
+var get_routes_summary_exports = {};
+__export(get_routes_summary_exports, {
+  handler: () => handler
+});
+module.exports = __toCommonJS(get_routes_summary_exports);
+
+// node_modules/pg/esm/index.mjs
+var import_lib = __toESM(require_lib2(), 1);
+var Client = import_lib.default.Client;
+var Pool = import_lib.default.Pool;
+var Connection = import_lib.default.Connection;
+var types = import_lib.default.types;
+var Query = import_lib.default.Query;
+var DatabaseError = import_lib.default.DatabaseError;
+var escapeIdentifier = import_lib.default.escapeIdentifier;
+var escapeLiteral = import_lib.default.escapeLiteral;
+var Result = import_lib.default.Result;
+var TypeOverrides = import_lib.default.TypeOverrides;
+var defaults = import_lib.default.defaults;
+
+// netlify/functions/utils/cors.js
+var withCors = (handler2) => async (event, context) => {
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS"
+      },
+      body: ""
+    };
+  }
+  try {
+    const response = await handler2(event, context);
+    if (!response) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "Internal server error" }),
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Content-Type": "application/json"
+        }
+      };
+    }
+    return __spreadProps(__spreadValues({}, response), {
+      headers: __spreadProps(__spreadValues({}, response.headers || {}), {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+      })
+    });
+  } catch (error) {
+    console.error("Error in handler:", error);
+    return {
+      statusCode: error.statusCode || 500,
+      body: JSON.stringify(__spreadValues({
+        error: error.message || "Internal server error"
+      }, process.env.NODE_ENV === "development" ? { stack: error.stack } : {})),
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Content-Type": "application/json"
+      }
+    };
+  }
+};
+
+// netlify/functions/get-routes-summary.js
+var getRoutesSummaryHandler = async (event, context) => {
   if (event.httpMethod !== "GET") {
     return {
       statusCode: 405,
@@ -5005,22 +5084,24 @@ exports.handler = async (event, context) => {
           price,
           recorded_at,
           ROW_NUMBER() OVER (PARTITION BY route_id ORDER BY recorded_at DESC) as rn
-        FROM route_prices
+        FROM price_history
       )
       SELECT 
         r.id as route_id,
         r.origin,
         r.destination,
-        json_agg(
-          json_build_object(
-            'price', p.price,
-            'recorded_at', p.recorded_at
-          ) ORDER BY p.recorded_at
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'price', p.price,
+              'recorded_at', p.recorded_at
+            ) ORDER BY p.recorded_at
+            ) FILTER (WHERE p.price IS NOT NULL),
+          '[]'::json
         ) as price_history
       FROM routes r
-      LEFT JOIN route_prices p ON r.id = p.route_id
+      LEFT JOIN price_history p ON r.id = p.route_id
       GROUP BY r.id, r.origin, r.destination
-      HAVING COUNT(p.id) > 0
       ORDER BY r.origin, r.destination;
     `;
     const { rows } = await pool.query(query);
@@ -5057,4 +5138,9 @@ exports.handler = async (event, context) => {
     await pool.end();
   }
 };
+var handler = withCors(getRoutesSummaryHandler);
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  handler
+});
 //# sourceMappingURL=get-routes-summary.js.map
