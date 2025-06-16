@@ -27,11 +27,15 @@ interface RouteCardProps {
     duration: string;
   };
   onLoad?: () => void;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }
 
 export const RouteCard: React.FC<RouteCardProps> = ({
   route,
-  onLoad
+  onLoad,
+  selected = false,
+  onToggleSelect
 }) => {
   // Call onLoad when the component mounts
   const isMounted = React.useRef(false);
@@ -56,7 +60,7 @@ export const RouteCard: React.FC<RouteCardProps> = ({
   return <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
       <div className="flex flex-col space-y-4">
         <div className="flex justify-between items-start">
-          <div>
+          <div className="flex-1">
             <div className="flex items-center space-x-2">
               <MapPinIcon className="h-5 w-5 text-blue-600" />
               <h3 className="text-lg font-semibold text-gray-800">
@@ -79,15 +83,18 @@ export const RouteCard: React.FC<RouteCardProps> = ({
               View on Google Flights
             </a>
           </div>
-          <div className="bg-green-50 px-4 py-2 rounded-lg">
-            <div className="flex items-center text-green-700">
-              <TrendingDownIcon className="h-4 w-4 mr-1" />
-              <span className="text-sm font-medium">Best Deal</span>
+          <div className="flex items-start space-x-2">
+            <input type="checkbox" checked={selected} onChange={onToggleSelect} className="mt-1" />
+            <div className="bg-green-50 px-4 py-2 rounded-lg">
+              <div className="flex items-center text-green-700">
+                <TrendingDownIcon className="h-4 w-4 mr-1" />
+                <span className="text-sm font-medium">Best Deal</span>
+              </div>
+              <div className="text-xl font-bold text-green-800">
+                ${lowestPrice}
+              </div>
+              {savings > 0 && <div className="text-xs text-green-600">Save ${savings}</div>}
             </div>
-            <div className="text-xl font-bold text-green-800">
-              ${lowestPrice}
-            </div>
-            {savings > 0 && <div className="text-xs text-green-600">Save ${savings}</div>}
           </div>
         </div>
         <div className="h-52 mt-2">

@@ -1,6 +1,7 @@
 import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { format } from 'date-fns';
 import { Route } from '../services/api';
+import { useSelectedRoutes } from '../context/SelectedRoutesContext';
 
 interface RoutesDashboardProps {
   routes: Route[];
@@ -42,7 +43,11 @@ const formatTooltipDate = (date: Date | string) => {
 };
 
 export const RoutesDashboard: React.FC<RoutesDashboardProps> = ({ routes }) => {
-  if (routes.length === 0) {
+  const { selectedRouteIds } = useSelectedRoutes();
+  const displayedRoutes = selectedRouteIds.length > 0
+    ? routes.filter(r => selectedRouteIds.includes(r.id))
+    : routes;
+  if (displayedRoutes.length === 0) {
     return (
       <div className="text-center py-8">
         <p className="text-gray-500">No routes available. Add a route to see price trends.</p>
@@ -51,7 +56,7 @@ export const RoutesDashboard: React.FC<RoutesDashboardProps> = ({ routes }) => {
   }
 
   // Prepare data points for the scatter plot
-  const data: ChartPoint[] = routes.flatMap(route => 
+  const data: ChartPoint[] = displayedRoutes.flatMap(route =>
     route.prices.map(price => ({
       x: new Date(price.date),
       y: price.price,
@@ -64,10 +69,10 @@ export const RoutesDashboard: React.FC<RoutesDashboardProps> = ({ routes }) => {
   );
 
   // Get unique routes for legend
-  const uniqueRoutes = Array.from(new Set(routes.map(r => `${r.from}-${r.to}`)));
+  const uniqueRoutes = Array.from(new Set(displayedRoutes.map(r => `${r.from}-${r.to}`)));
   
   // Calculate price range for Y-axis
-  const allPrices = routes.flatMap(route => route.prices.map(p => p.price));
+  const allPrices = displayedRoutes.flatMap(route => route.prices.map(p => p.price));
   const minPrice = Math.min(...allPrices);
   const maxPrice = Math.max(...allPrices);
   const yDomain = [Math.floor(minPrice * 0.95), Math.ceil(maxPrice * 1.05)];

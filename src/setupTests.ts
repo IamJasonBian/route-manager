@@ -14,3 +14,13 @@ window.SVGElement.prototype.getBBox = () => ({
   bottom: 0,
   left: 0,
 });
+
+// Polyfill ResizeObserver for recharts components in tests
+class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+// @ts-expect-error jest environment
+window.ResizeObserver = window.ResizeObserver || ResizeObserver;
