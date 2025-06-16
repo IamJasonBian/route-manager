@@ -1,5 +1,31 @@
 import Amadeus from 'amadeus';
-import config from '../../src/config/env.js';
+import { withCors } from './utils/cors';
+
+// Try to get config from environment variables first (for Netlify)
+const getConfig = () => {
+  if (process.env.AMADEUS_API_KEY && process.env.AMADEUS_API_SECRET) {
+    return {
+      apiKey: process.env.AMADEUS_API_KEY,
+      apiSecret: process.env.AMADEUS_API_SECRET,
+      hostname: process.env.AMADEUS_HOSTNAME || 'production'
+    };
+  }
+  
+  // Fallback to config import (for local development)
+  try {
+    const config = require('../../src/config/env.js');
+    return {
+      apiKey: config.default.amadeus.apiKey,
+      apiSecret: config.default.amadeus.apiSecret,
+      hostname: config.default.amadeus.hostname
+    };
+  } catch (error) {
+    console.error('Failed to load config:', error);
+    throw new Error('Failed to load configuration');
+  }
+};
+
+const config = getConfig();
 
 // Initialize Amadeus client with config
 const amadeus = new Amadeus({
@@ -66,7 +92,7 @@ const getFlightPricesForDates = async (origin, destination, dates) => {
   return prices.filter(price => price.price !== null);
 };
 
-export const handler = async (event, context) => {
+const flightPricesHandler = async (event, context) => {
   // Debug: Log environment variables (excluding sensitive ones)
   console.log('Environment variables:', {
     AMADEUS_API_KEY: process.env.AMADEUS_API_KEY ? '***' : 'Not set',
@@ -166,25 +192,30 @@ export const handler = async (event, context) => {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        prices,
-        basePrice,
-        lowestPrice,
-        highestPrice,
-        source: 'amadeus'
+        success: true,
+        message: 'Flight prices retrieved successfully',
+        data: {
+          origin,
+          destination,
+          prices: prices.filter(Boolean)
+        }
       })
     };
     
   } catch (error) {
     console.error('Error in flight-prices function:', error);
-    
-    // Return error response
     return {
-      statusCode: 500,
+      statusCode: error.statusCode || 500,
       headers,
-      body: JSON.stringify({ 
-        error: 'Error fetching flight prices',
-        message: error.message
+      body: JSON.stringify({
+        success: false,
+        error: 'Failed to fetch flight prices',
+        message: error.message,
+        ...(process.env.NODE_ENV === 'development' ? { stack: error.stack } : {})
       })
     };
   }
 };
+
+// Export the handler with CORS support
+export const handler = withCors(flightPricesHandler);

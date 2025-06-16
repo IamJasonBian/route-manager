@@ -1,4 +1,5 @@
 import Amadeus from 'amadeus';
+import { withCors } from './utils/cors';
 
 // Helper function to get config with fallbacks
 const getConfig = async () => {
@@ -30,7 +31,7 @@ const getConfig = async () => {
 // Initialize Amadeus client
 let amadeus;
 
-export const handler = async (event, context) => {
+const searchFlightsHandler = async (event, context) => {
   console.log('=== New Request ===');
   console.log('Method:', event.httpMethod);
   console.log('Path:', event.path);
@@ -98,14 +99,15 @@ export const handler = async (event, context) => {
     
     return {
       statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+      body: JSON.stringify({ 
+        success: true,
+        message: 'Flight search successful', 
         data: response.data || [],
         meta: response.meta || {}
       })
     };
   } catch (error) {
-    console.error('Amadeus API error:', error);
+    console.error('Search flights error:', error);
     
     // Enhanced error logging
     const errorDetails = {
