@@ -71,6 +71,6 @@ export async function loadPricesForAllRoutes(days: number = 14): Promise<FlightP
     console.error('Error in loadPricesForAllRoutes:', error);
     throw error;
   }
-};
+}
 
 // This file is meant to be imported by loadPrices.ts

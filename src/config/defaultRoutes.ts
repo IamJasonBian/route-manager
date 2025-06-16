@@ -1,4 +1,4 @@
-import { ApiRoute } from '../src/services/api';
+import { ApiRoute } from '../services/api';
 
 // This file is auto-generated. Run 'npm run fetch-default-routes' to update.
 // Last updated: 2025-05-26T04:31:05.929Z

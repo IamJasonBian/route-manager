@@ -15,6 +15,7 @@ export interface RouteMeta {
   lowestPrice?: number;
   highestPrice?: number;
   _error?: string;
+  updatedAt?: string;
 }
 
 // API configuration
@@ -307,7 +308,7 @@ export const generateFallbackRoutes = (): ApiRoute[] => {
 };
 
 // Helper function to generate mock price data for one-day flights starting from today
-const generateMockPrices = (basePrice: number = 550): FlightPrice[] => {
+export const generateMockPrices = (basePrice: number = 550): FlightPrice[] => {
   const prices: FlightPrice[] = [];
   const today = new Date();
   
@@ -420,3 +421,6 @@ export const getRoutes = async (): Promise<ApiRoute[]> => {
     console.groupEnd();
   }
 };
+
+// Re-export fallback generators for testing compatibility
+export { generateFallbackRoutes as generateMockRoutes };
