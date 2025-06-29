@@ -1,10 +1,11 @@
-const Amadeus = require('amadeus');
+import Amadeus from 'amadeus';
+import config from '../../src/config/env.js';
 
-// Initialize Amadeus client with environment variables
+// Initialize Amadeus client with config
 const amadeus = new Amadeus({
-  clientId: process.env.AMADEUS_API_KEY || 'YOUR_AMADEUS_API_KEY',
-  clientSecret: process.env.AMADEUS_API_SECRET || 'YOUR_AMADEUS_API_SECRET',
-  hostname: process.env.AMADEUS_HOSTNAME || 'test' // 'test' or 'production'
+  clientId: config.amadeus.apiKey,
+  clientSecret: config.amadeus.apiSecret,
+  hostname: config.amadeus.hostname
 });
 
 // Helper function to format date to YYYY-MM-DD
@@ -65,12 +66,21 @@ const getFlightPricesForDates = async (origin, destination, dates) => {
   return prices.filter(price => price.price !== null);
 };
 
-exports.handler = async (event, context) => {
+export const handler = async (event, context) => {
+  // Debug: Log environment variables (excluding sensitive ones)
+  console.log('Environment variables:', {
+    AMADEUS_API_KEY: process.env.AMADEUS_API_KEY ? '***' : 'Not set',
+    AMADEUS_API_SECRET: process.env.AMADEUS_API_SECRET ? '***' : 'Not set',
+    AMADEUS_HOSTNAME: process.env.AMADEUS_HOSTNAME || 'Not set',
+    NODE_ENV: process.env.NODE_ENV || 'Not set'
+  });
+
   // Set CORS headers
   const headers = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': 'http://localhost:5173',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Credentials': 'true',
   };
   
   // Handle preflight OPTIONS request

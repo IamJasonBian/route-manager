@@ -1,4 +1,4 @@
-import React from 'react';
+// React import removed as it's not used
 import { render, screen } from '@testing-library/react';
 import { PriceChart } from '../PriceChart';
 import { FlightPrice } from '../../services/api';
