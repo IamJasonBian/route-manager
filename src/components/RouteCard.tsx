@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { MapPinIcon, ClockIcon, ArrowRightIcon, TrendingDownIcon, ExternalLinkIcon } from 'lucide-react';
 import { PriceChart } from './PriceChart';
 // Helper function to generate a Google Flights URL for one-day flights starting from today

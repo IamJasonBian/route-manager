@@ -106,7 +106,7 @@ describe('API Service', () => {
       expect(mockPrices[0]).toHaveProperty('date');
       
       // Check that prices follow expected patterns
-      const prices = mockPrices.map(p => p.price);
+      const prices = mockPrices.map((p: { price: number }) => p.price);
       const minPrice = Math.min(...prices);
       const maxPrice = Math.max(...prices);
       
