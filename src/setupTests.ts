@@ -3,6 +3,16 @@
 // expect(element).toHaveTextContent(/react/i)
 import '@testing-library/jest-dom';
 
+// Mock ResizeObserver which is required by Recharts
+class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+// Add ResizeObserver to the global window object
+window.ResizeObserver = ResizeObserver;
+
 // Mock the SVG elements that might not be available in the test environment
 (window.SVGElement.prototype as any).getBBox = () => ({
   x: 0,
