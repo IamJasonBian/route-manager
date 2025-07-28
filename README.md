@@ -8,9 +8,9 @@
     <a href="https://opensource.org/licenses/MIT">
       <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT">
     </a>
-    <a href="https://github.com/yourusername/route-manager/actions">
-      <img src="https://github.com/yourusername/route-manager/actions/workflows/main.yml/badge.svg" alt="Build Status">
-    </a>
+  <a href="https://github.com/yourusername/route-manager/actions">
+    <img src="https://github.com/yourusername/route-manager/actions/workflows/deploy.yml/badge.svg" alt="Build Status">
+  </a>
   </p>
 </div>
 
@@ -18,7 +18,7 @@
 
 ## Features
 
-- **Price Analysis** - Monitor flight prices with 4-month forecasting and price + volatitity curves. Understand the efficient frontier of transfers and 1 stop + nonstop routes across multiples nodes into one outbound node. Analyze all good destinations from a single flight node.
+- **Price Analysis** - Monitor flight prices with 4-month forecasting and price + volatility curves. Understand the efficient frontier of transfers and 1 stop + nonstop routes across multiples nodes into one outbound node. Analyze all good destinations from a single flight node.
 - **Same-day books** - Find flights where prices don't significantly change over time (shuttle routes) and opportunistic day of drops and bookings
 - **Push Alerts** - Get notified about price drops and good day of bookings
 
@@ -61,7 +61,13 @@ For detailed documentation, please refer to our [Wiki](https://github.com/yourus
 ## 🌐 Mock Deployments
 
 * Single site demo: [Design 1](https://apollo-route-manager-0acz9.netlify.app/)
-* Multi-Page flight manager demo: [Design 2](https://route-manager-demo.netlify.app/) 
+* Multi-Page flight manager demo: [Design 2](https://route-manager-demo.netlify.app/)
+
+## 🚀 Continuous Deployment
+
+This project uses a GitHub Actions workflow to deploy to Netlify on `push`,
+`pull_request`, and manual `workflow_dispatch` events. The workflow lives in
+`.github/workflows/deploy.yml` and builds the app before publishing.
 
 ## 🛠️ Testing locally with your apis
 
