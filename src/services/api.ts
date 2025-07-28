@@ -14,6 +14,7 @@ export interface RouteMeta {
   source: string;
   lowestPrice?: number;
   highestPrice?: number;
+  updatedAt?: string;
   _error?: string;
 }
 
@@ -307,7 +308,7 @@ export const generateFallbackRoutes = (): ApiRoute[] => {
 };
 
 // Helper function to generate mock price data for one-day flights starting from today
-const generateMockPrices = (basePrice: number = 550): FlightPrice[] => {
+export const generateMockPrices = (basePrice: number = 550): FlightPrice[] => {
   const prices: FlightPrice[] = [];
   const today = new Date();
   
@@ -328,6 +329,9 @@ const generateMockPrices = (basePrice: number = 550): FlightPrice[] => {
   
   return prices;
 };
+
+// Alias for backwards compatibility in tests
+export const generateMockRoutes = (): ApiRoute[] => generateFallbackRoutes();
 
 // Import default routes
 import { defaultRoutes } from '../config/defaultRoutes';

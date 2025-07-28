@@ -1,16 +1,32 @@
-import React, { useState } from 'react';
+import { useState, type FC, ChangeEvent, FormEvent } from 'react';
 import { PlusCircleIcon } from 'lucide-react';
-export const AddRouteForm = ({
+interface AddRouteFormProps {
+  onAddRoute: (route: {
+    from: string;
+    to: string;
+    basePrice: number | '';
+    duration: string;
+    distance: string;
+  }) => void;
+}
+
+export const AddRouteForm: FC<AddRouteFormProps> = ({
   onAddRoute
 }) => {
-  const [routeData, setRouteData] = useState({
+  const [routeData, setRouteData] = useState<{
+    from: string;
+    to: string;
+    basePrice: number | '';
+    duration: string;
+    distance: string;
+  }>({
     from: '',
     to: '',
     basePrice: '',
     duration: '',
     distance: ''
   });
-  const handleChange = e => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const {
       name,
       value
@@ -20,7 +36,7 @@ export const AddRouteForm = ({
       [name]: name === 'basePrice' ? parseInt(value) || '' : value
     }));
   };
-  const handleSubmit = e => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     onAddRoute(routeData);
     setRouteData({
