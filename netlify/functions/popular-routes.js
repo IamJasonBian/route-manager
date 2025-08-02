@@ -1,4 +1,4 @@
-const Amadeus = require('amadeus');
+import Amadeus from 'amadeus';
 
 // Initialize Amadeus client with environment variables
 const amadeus = new Amadeus({
@@ -317,7 +317,7 @@ const getFlightInfo = async (origin, destination) => {
   };
 };
 
-exports.handler = async (event, context) => {
+export const handler = async (event, context) => {
   // Set CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',

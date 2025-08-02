@@ -5,10 +5,12 @@ export interface QueryResult<T> {
   rowCount: number;
 }
 
-// In development, use the same origin as the frontend since they're served together
-const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? '/.netlify/functions'
-  : '/.netlify/functions';
+// API configuration
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.DEV
+    ? 'http://localhost:8889/.netlify/functions'
+    : '/.netlify/functions');
 
 /**
  * Executes a database query and returns the result
