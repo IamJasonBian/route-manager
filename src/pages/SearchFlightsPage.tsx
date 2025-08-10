@@ -51,7 +51,7 @@ export default function SearchFlightsPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [flights, setFlights] = useState<Flight[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [suggestions, setSuggestions] = useState<{iataCode: string, name: string}[]>([]);
+
   const [showOriginSuggestions, setShowOriginSuggestions] = useState(false);
   const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
   
