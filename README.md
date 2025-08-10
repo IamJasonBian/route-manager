@@ -45,7 +45,8 @@ cp .env.example .env
 
 ### Running the Application
 
-```bash
+```
+bash
 # Development server
 npm run dev
 
@@ -53,13 +54,17 @@ npm run dev
 npm run build
 npm run preview
 ```
-## E2E:
 
+
+## E2E
+
+```
 npm install
 npm run build
 docker compose up -d
 npm run dev -- --port 5177
 npx netlify dev --targetPort 5177 --port 3005
+```
 
 ## 📚 Documentation
 
