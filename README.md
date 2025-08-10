@@ -53,6 +53,13 @@ npm run dev
 npm run build
 npm run preview
 ```
+## E2E:
+
+npm install
+npm run build
+docker compose up -d
+npm run dev -- --port 5177
+npx netlify dev --targetPort 5177 --port 3005
 
 ## 📚 Documentation
 
@@ -104,6 +111,9 @@ select count(*),
 select count(*), 
   avg(price), origin from routes group by origin;
 ```
+
+
+
 
 ## 🤝 Contributing
 
