@@ -48,6 +48,11 @@ export default defineConfig({
       transformMixedEsModules: true,
     },
   },
+  server: {
+    // Let Netlify Dev handle the proxy
+    port: 5173, // Explicitly set the Vite dev server port
+    strictPort: true, // Don't try to find another port if 5173 is in use
+  },
   define: {
     'process.env.NODE_ENV': `"${process.env.NODE_ENV || 'development'}"`,
     global: 'globalThis',
