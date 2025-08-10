@@ -157,9 +157,10 @@ npm run preview
 
 For detailed documentation, please refer to our [Wiki](https://github.com/yourusername/route-manager/wiki).
 
-## 🌐 Mock Deployment 
+## 🌐 Mock Deployments
 
-Experience the application live: [Demo](https://apollo-route-manager-0acz9.netlify.app/)
+* Single site demo: [Design 1](https://apollo-route-manager-0acz9.netlify.app/)
+* Multi-Page flight manager demo: [Design 2](https://route-manager-demo.netlify.app/) 
 
 ## 🛠️ Testing locally with your apis
 

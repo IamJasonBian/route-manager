@@ -1,4 +1,3 @@
-// React import removed as it's not used
 import { render, screen } from '@testing-library/react';
 import { RouteCard } from '../RouteCard';
 import { Route } from '../../services/api';
@@ -7,11 +6,9 @@ describe('RouteCard Component', () => {
   // Sample test data
   const sampleRoute: Route = {
     id: '1',
-    from: 'JFK',
-    to: 'LHR',
-    fromCity: 'New York',
-    toCity: 'London',
-    distance: '3461',
+    from: 'New York',
+    to: 'London',
+    distance: '3,461 miles',
     duration: '7h 25m',
     prices: [
       { price: 450, date: '2025-05-18' },

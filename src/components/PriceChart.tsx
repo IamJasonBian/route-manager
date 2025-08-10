@@ -66,7 +66,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({ prices, basePrice, lowes
   };
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden">
+    <div className="flex flex-col h-full w-full overflow-hidden" data-testid="price-chart">
       <div className="flex-1 h-full">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart

@@ -46,8 +46,8 @@ export async function loadLatestSnapshot(): Promise<FlightPrice[] | null> {
   ensureSnapshotsDir();
   
   try {
-    const files = fs.readdirSync(SNAPSHOTS_DIR)
-      .filter(file => file.startsWith('prices_') && file.endsWith('.json'))
+  const files = fs.readdirSync(SNAPSHOTS_DIR)
+    .filter((file: string) => file.startsWith('prices_') && file.endsWith('.json'))
       .sort()
       .reverse();
     

@@ -1,6 +1,6 @@
 import axios from 'axios';
-import { getFlightPrices, getRoutes } from '../api';
-import { FlightPrice } from '../api';
+import * as api from '../api';
+const { getFlightPrices, getRoutes, generateMockPrices, generateMockRoutes } = api;
 
 // Mock axios
 jest.mock('axios');
@@ -72,7 +72,7 @@ describe('API Service', () => {
       ];
       
       // Spy on getFlightPrices to return mock prices
-      jest.spyOn(global, 'getFlightPrices' as any).mockResolvedValue(mockPrices);
+      jest.spyOn(api, 'getFlightPrices').mockResolvedValue(mockPrices as any);
       
       const result = await getRoutes();
       
@@ -85,7 +85,7 @@ describe('API Service', () => {
     
     it('should return mock routes when API call fails', async () => {
       // Mock failed API response
-      jest.spyOn(global, 'getFlightPrices' as any).mockRejectedValue(new Error('API Error'));
+      jest.spyOn(api, 'getFlightPrices').mockRejectedValue(new Error('API Error'));
       
       const result = await getRoutes();
       
@@ -107,7 +107,7 @@ describe('API Service', () => {
       expect(mockPrices[0]).toHaveProperty('date');
       
       // Check that prices follow expected patterns
-      const prices = mockPrices.map((p: FlightPrice) => p.price);
+      const prices = mockPrices.map((p: { price: number }) => p.price);
       const minPrice = Math.min(...prices);
       const maxPrice = Math.max(...prices);
       

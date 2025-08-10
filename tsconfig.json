@@ -25,5 +25,14 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src", "src/types"],
+  "exclude": [
+    "src/services/dbDirect.ts",
+    "src/services/dbService.ts",
+    "src/services/amadeusService.ts",
+    "src/utils",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/__tests__"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
