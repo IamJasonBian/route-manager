@@ -29,8 +29,13 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: List Netlify functions before deploy
+        run: ls -lR ./netlify/functions || echo "No functions directory found"
+
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v3
+        # Alternative CLI deploy (uncomment to use):
+        # run: npx netlify deploy --build --prod --site ${{ secrets.NETLIFY_SITE_ID }}
         with:
           publish-dir: './dist'
           production-branch: main
