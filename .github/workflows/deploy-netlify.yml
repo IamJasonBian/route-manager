@@ -32,22 +32,14 @@ jobs:
       - name: List Netlify functions before deploy
         run: ls -lR ./netlify/functions || echo "No functions directory found"
 
-      - name: Deploy to Netlify
-        uses: nwtgck/actions-netlify@v3
-        # Alternative CLI deploy (uncomment to use):
-        # run: npx netlify deploy --build --prod --site ${{ secrets.NETLIFY_SITE_ID }}
-        with:
-          publish-dir: './dist'
-          production-branch: main
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: "Deploy from GitHub Actions"
-          enable-pull-request-comment: false
-          enable-commit-comment: false
-          overwrites-pull-request-comment: true
+      - name: Install Netlify CLI
+        run: npm install -g netlify-cli
+
+      - name: Deploy to Netlify (CLI)
+        run: netlify deploy --build --prod --site ${{ secrets.NETLIFY_SITE_ID }}
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
           AMADEUS_API_KEY: ${{ secrets.AMADEUS_API_KEY }}
           AMADEUS_API_SECRET: ${{ secrets.AMADEUS_API_SECRET }}
           AMADEUS_HOSTNAME: ${{ secrets.AMADEUS_HOSTNAME }}
-        timeout-minutes: 1 
+
