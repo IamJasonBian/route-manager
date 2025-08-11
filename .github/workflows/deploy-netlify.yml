@@ -30,7 +30,9 @@ jobs:
         run: npm run build
 
       - name: List Netlify functions before deploy
-        run: ls -lR ./netlify/functions || echo "No functions directory found"
+        run: |
+          echo "Listing functions in netlify/functions:";
+          find ./netlify/functions -type f -name "*.js" -exec echo " - {}" \;
 
       - name: Check Amadeus env variables
         run: |
@@ -48,4 +50,11 @@ jobs:
           AMADEUS_API_KEY: ${{ secrets.AMADEUS_API_KEY }}
           AMADEUS_API_SECRET: ${{ secrets.AMADEUS_API_SECRET }}
           AMADEUS_HOSTNAME: ${{ secrets.AMADEUS_HOSTNAME }}
+
+      - name: (Non-blocking) Test deployed functions
+        run: |
+          echo "Testing /test-env endpoint (ignore errors):";
+          curl --fail --silent --show-error "https://route-manager-demo.netlify.app/.netlify/functions/test-env" || echo "test-env endpoint failed (non-blocking)";
+          echo "Testing /search-flights endpoint (ignore errors):";
+          curl --fail --silent --show-error "https://route-manager-demo.netlify.app/.netlify/functions/search-flights" || echo "search-flights endpoint failed (non-blocking)";
 
