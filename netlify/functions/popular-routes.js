@@ -1,11 +1,10 @@
 import Amadeus from 'amadeus';
-import config from '../../src/config/env.js';
 
-// Initialize Amadeus client with config
+// Initialize Amadeus client with environment variables
 const amadeus = new Amadeus({
-  clientId: config.amadeus.apiKey,
-  clientSecret: config.amadeus.apiSecret,
-  hostname: config.amadeus.hostname
+  clientId: process.env.AMADEUS_API_KEY,
+  clientSecret: process.env.AMADEUS_API_SECRET,
+  hostname: process.env.AMADEUS_HOSTNAME || 'production'
 });
 
 // Helper function to format date to YYYY-MM-DD

@@ -1,15 +1,14 @@
 import { Pool } from 'pg';
-import config from '../../src/config/env.js';
 
 export const handler = async (event, context) => {
   // Log environment info for debugging
   console.log('Health check - Environment:', {
-    nodeEnv: config.nodeEnv,
-    dbHost: config.db.host,
-    dbPort: config.db.port,
-    dbName: config.db.name,
-    dbUser: config.db.user,
-    dbPassword: config.db.password ? '***' : 'Not set'
+    nodeEnv: process.env.NODE_ENV,
+    dbHost: process.env.DB_HOST,
+    dbPort: process.env.DB_PORT,
+    dbName: process.env.DB_NAME,
+    dbUser: process.env.DB_USER,
+    dbPassword: process.env.DB_PASSWORD ? '***' : 'Not set'
   });
   if (event.httpMethod !== 'GET') {
     return {
@@ -19,11 +18,11 @@ export const handler = async (event, context) => {
   }
 
   const pool = new Pool({
-    user: config.db.user,
-    host: config.db.host,
-    database: config.db.name,
-    password: config.db.password,
-    port: config.db.port,
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASSWORD,
+    port: parseInt(process.env.DB_PORT || '5432', 10),
   });
 
   try {

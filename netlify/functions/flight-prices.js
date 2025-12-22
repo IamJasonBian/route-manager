@@ -1,11 +1,10 @@
 import Amadeus from 'amadeus';
-import config from '../../src/config/env.js';
 
-// Initialize Amadeus client with config
+// Initialize Amadeus client with environment variables
 const amadeus = new Amadeus({
-  clientId: config.amadeus.apiKey,
-  clientSecret: config.amadeus.apiSecret,
-  hostname: config.amadeus.hostname
+  clientId: process.env.AMADEUS_API_KEY,
+  clientSecret: process.env.AMADEUS_API_SECRET,
+  hostname: process.env.AMADEUS_HOSTNAME || 'production'
 });
 
 // Helper function to format date to YYYY-MM-DD
@@ -75,12 +74,12 @@ export const handler = async (event, context) => {
     NODE_ENV: process.env.NODE_ENV || 'Not set'
   });
 
-  // Set CORS headers
+  // Set CORS headers - use environment variable or allow all origins
+  const allowedOrigin = process.env.CORS_ORIGIN || '*';
   const headers = {
-    'Access-Control-Allow-Origin': 'http://localhost:5173',
+    'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Credentials': 'true',
   };
   
   // Handle preflight OPTIONS request

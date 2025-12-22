@@ -10,17 +10,18 @@
   targetPort = 5173  # Port where Vite runs
   framework = "vite"
   autoLaunch = true
-  
+
   # Environment variables for local development
   [dev.environment]
     NODE_ENV = "development"
     VITE_API_URL = "/.netlify/functions"
-    
+    CORS_ORIGIN = "http://localhost:5173"
+
     # These will be loaded from .env file or system environment
     AMADEUS_API_KEY = "${AMADEUS_API_KEY}"
     AMADEUS_API_SECRET = "${AMADEUS_API_SECRET}"
     AMADEUS_HOSTNAME = "production"
-    
+
     # Database configuration
     DB_USER = "routeuser"
     DB_PASSWORD = "routepass"
@@ -32,10 +33,11 @@
   # Environment variables for Netlify Functions in production
   [functions.environment]
     NODE_ENV = "production"
+    CORS_ORIGIN = "${CORS_ORIGIN}"
     AMADEUS_API_KEY = "${AMADEUS_API_KEY}"
     AMADEUS_API_SECRET = "${AMADEUS_API_SECRET}"
     AMADEUS_HOSTNAME = "production"
-    
+
     # Database configuration (should be set in Netlify UI for production)
     DB_USER = "${DB_USER}"
     DB_PASSWORD = "${DB_PASSWORD}"
