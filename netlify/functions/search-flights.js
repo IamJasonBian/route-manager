@@ -104,6 +104,7 @@ export const handler = async (event, context) => {
       destinationLocationCode: params.destination,
       departureDate: params.departureDate,
       ...(params.returnDate && { returnDate: params.returnDate }),
+      adults: params.adults || 1,
       nonStop: params.nonStop || false,
       maxPrice: params.maxPrice,
       max: params.maxResults || 10,
