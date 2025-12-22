@@ -1,12 +1,34 @@
 import Amadeus from 'amadeus';
-import config from '../../src/config/env.js';
 
-// Initialize Amadeus client with config
-const amadeus = new Amadeus({
-  clientId: config.amadeus.apiKey,
-  clientSecret: config.amadeus.apiSecret,
-  hostname: config.amadeus.hostname
-});
+// Helper function to get config with fallbacks
+const getConfig = async () => {
+  // Try to get from environment variables first (for Netlify)
+  if (process.env.AMADEUS_API_KEY && process.env.AMADEUS_API_SECRET) {
+    console.log('Using environment variables for Amadeus config');
+    return {
+      apiKey: process.env.AMADEUS_API_KEY,
+      apiSecret: process.env.AMADEUS_API_SECRET,
+      hostname: process.env.AMADEUS_HOSTNAME || 'production'
+    };
+  }
+
+  // Fallback to config import (for local development)
+  try {
+    console.log('Trying to load config from ../../src/config/env.js');
+    const config = await import('../../src/config/env.js');
+    return {
+      apiKey: config.default.amadeus.apiKey,
+      apiSecret: config.default.amadeus.apiSecret,
+      hostname: config.default.amadeus.hostname
+    };
+  } catch (error) {
+    console.error('Failed to load config:', error);
+    throw new Error('Failed to load configuration');
+  }
+};
+
+// Initialize Amadeus client
+let amadeus;
 
 // Helper function to format date to YYYY-MM-DD
 const formatDate = (date) => {
@@ -85,6 +107,18 @@ const getFlightPricesForDates = async (origin, destination, dates) => {
 };
 
 export const handler = async (event, context) => {
+  // Initialize Amadeus client if not already initialized
+  if (!amadeus) {
+    console.log('Initializing Amadeus client...');
+    const config = await getConfig();
+    amadeus = new Amadeus({
+      clientId: config.apiKey,
+      clientSecret: config.apiSecret,
+      hostname: config.hostname
+    });
+    console.log('Amadeus client initialized successfully');
+  }
+
   // Debug: Log environment variables (excluding sensitive ones)
   console.log('Environment variables:', {
     AMADEUS_API_KEY: process.env.AMADEUS_API_KEY ? '***' : 'Not set',
