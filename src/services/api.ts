@@ -1,10 +1,22 @@
 import axios from 'axios';
 import { saveRoute as saveDbRoute, DbRoute } from './routeService';
 
+// Interface for flight details
+export interface FlightDetails {
+  carrier?: string;
+  flightNumber?: string;
+  departureTime?: string;
+  arrivalTime?: string;
+  duration?: string;
+  stops?: number;
+  bookingClass?: string;
+}
+
 // Interface for flight price data
 export interface FlightPrice {
   date: Date | string;
   price: number;
+  flightDetails?: FlightDetails;
 }
 
 // Interface for route metadata
@@ -175,7 +187,7 @@ const toApiRoute = (dbRoute: DbRoute): ApiRoute => {
 
 // Get price history for a route
 interface PriceHistoryResponse {
-  prices: Array<{ date: string; price: number }>;
+  prices: Array<{ date: string; price: number; flightDetails?: FlightDetails }>;
   basePrice: number;
   lowestPrice: number;
   highestPrice: number;
@@ -191,7 +203,8 @@ export async function getPriceHistory(from: string, to: string): Promise<PriceHi
         ...response.data,
         prices: response.data.prices.map(p => ({
           date: typeof p.date === 'string' ? p.date : new Date(p.date).toISOString().split('T')[0],
-          price: p.price
+          price: p.price,
+          flightDetails: p.flightDetails
         }))
       };
     }
@@ -203,7 +216,8 @@ export async function getPriceHistory(from: string, to: string): Promise<PriceHi
     return {
       prices: mockPrices.map(p => ({
         date: typeof p.date === 'string' ? p.date : p.date.toISOString().split('T')[0],
-        price: p.price
+        price: p.price,
+        flightDetails: p.flightDetails
       })),
       basePrice: 300,
       lowestPrice: Math.min(...mockPrices.map(p => p.price)),
