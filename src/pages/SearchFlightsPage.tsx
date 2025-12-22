@@ -72,6 +72,54 @@ export default function SearchFlightsPage() {
     return `${hours}h ${minutes}m`;
   };
 
+  // Airline name mapping
+  const getAirlineName = (carrierCode: string): string => {
+    const airlines: { [key: string]: string } = {
+      'AA': 'American Airlines',
+      'DL': 'Delta Air Lines',
+      'UA': 'United Airlines',
+      'WN': 'Southwest Airlines',
+      'B6': 'JetBlue Airways',
+      'AS': 'Alaska Airlines',
+      'NK': 'Spirit Airlines',
+      'F9': 'Frontier Airlines',
+      'G4': 'Allegiant Air',
+      'TP': 'TAP Portugal',
+      'BA': 'British Airways',
+      'LH': 'Lufthansa',
+      'AF': 'Air France',
+      'KL': 'KLM Royal Dutch Airlines',
+      'IB': 'Iberia',
+      'AZ': 'ITA Airways',
+      'EI': 'Aer Lingus',
+      'LX': 'Swiss International Air Lines',
+      'OS': 'Austrian Airlines',
+      'SN': 'Brussels Airlines',
+      'TK': 'Turkish Airlines',
+      'EK': 'Emirates',
+      'QR': 'Qatar Airways',
+      'EY': 'Etihad Airways',
+      'SV': 'Saudia',
+      'AC': 'Air Canada',
+      'NH': 'All Nippon Airways',
+      'JL': 'Japan Airlines',
+      'SQ': 'Singapore Airlines',
+      'CX': 'Cathay Pacific',
+      'QF': 'Qantas',
+      'NZ': 'Air New Zealand'
+    };
+    return airlines[carrierCode] || carrierCode;
+  };
+
+  // Generate Google Flights booking link
+  const getBookingLink = (flight: Flight): string => {
+    const dep = flight.itineraries[0].segments[0];
+    const arr = flight.itineraries[0].segments[flight.itineraries[0].segments.length - 1];
+    const depDate = dep.departure.at.split('T')[0];
+
+    return `https://www.google.com/travel/flights/search?tfs=CBwQAhopEgoyMDI1LTAxLTAxagcIARIDJHtvcmlnaW59cgwIAxIIJHtkZXN0aW5hdGlvbn0&hl=en&curr=USD`;
+  };
+
   const popularAirports = [
     { iataCode: 'JFK', name: 'John F. Kennedy Intl (New York)' },
     { iataCode: 'LAX', name: 'Los Angeles Intl' },
@@ -392,11 +440,30 @@ export default function SearchFlightsPage() {
                         </div>
                       </div>
                       <div className="mt-4 pt-4 border-t border-gray-100">
-                        <div className="text-sm text-gray-500">
-                          Flight {flight.itineraries[0].segments[0].carrierCode}{flight.itineraries[0].segments[0].number} • 
-                          {flight.travelerPricings[0].fareDetailsBySegment[0].cabin.charAt(0).toUpperCase() + 
-                           flight.travelerPricings[0].fareDetailsBySegment[0].cabin.slice(1).toLowerCase()} • 
-                          {flight.itineraries[0].segments[0].aircraft.code}
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-1">
+                            <div className="text-sm font-medium text-gray-700">
+                              {getAirlineName(flight.itineraries[0].segments[0].carrierCode)}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              Flight {flight.itineraries[0].segments[0].carrierCode}{flight.itineraries[0].segments[0].number} •
+                              {flight.travelerPricings[0].fareDetailsBySegment[0].cabin.charAt(0).toUpperCase() +
+                               flight.travelerPricings[0].fareDetailsBySegment[0].cabin.slice(1).toLowerCase()} •
+                              {flight.itineraries[0].segments[0].aircraft.code}
+                            </div>
+                          </div>
+                          <a
+                            href={getBookingLink(flight)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                          >
+                            Book Flight
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                              <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                            </svg>
+                          </a>
                         </div>
                       </div>
                     </div>
