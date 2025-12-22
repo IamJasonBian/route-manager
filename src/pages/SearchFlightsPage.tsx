@@ -1,6 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+
+interface Airport {
+  iataCode: string;
+  name: string;
+  cityName: string;
+  countryName: string;
+  type: string;
+}
 
 interface Flight {
   id: string;
@@ -42,8 +50,8 @@ interface Flight {
 }
 
 export default function SearchFlightsPage() {
-  const [origin, setOrigin] = useState('');
-  const [destination, setDestination] = useState('');
+  const [origin, setOrigin] = useState('JFK');
+  const [destination, setDestination] = useState('LAX');
   const [departureDate, setDepartureDate] = useState('');
   const [returnDate, setReturnDate] = useState('');
   const [tripType, setTripType] = useState<'one-way' | 'round-trip'>('one-way');
@@ -51,8 +59,17 @@ export default function SearchFlightsPage() {
   const [flights, setFlights] = useState<Flight[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // Airport search states
+  const [originInput, setOriginInput] = useState('JFK');
+  const [destinationInput, setDestinationInput] = useState('LAX');
+  const [originSuggestions, setOriginSuggestions] = useState<Airport[]>([]);
+  const [destinationSuggestions, setDestinationSuggestions] = useState<Airport[]>([]);
   const [showOriginSuggestions, setShowOriginSuggestions] = useState(false);
   const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
+  const [isLoadingAirports, setIsLoadingAirports] = useState(false);
+
+  const originRef = useRef<HTMLDivElement>(null);
+  const destinationRef = useRef<HTMLDivElement>(null);
   
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('en-US', {
@@ -123,33 +140,86 @@ export default function SearchFlightsPage() {
     return `https://www.google.com/travel/flights/search?tfs=CBwQAhopEgoyMDI1LTAxLTAxagcIARIDJHtvcmlnaW59cgwIAxIIJHtkZXN0aW5hdGlvbn0&hl=en&curr=USD`.replace('{origin}', origin).replace('{destination}', destination).replace('2025-01-01', depDate);
   };
 
-  const popularAirports = [
-    { iataCode: 'JFK', name: 'John F. Kennedy Intl (New York)' },
-    { iataCode: 'LAX', name: 'Los Angeles Intl' },
-    { iataCode: 'ORD', name: "Chicago O'Hare Intl" },
-    { iataCode: 'SFO', name: 'San Francisco Intl' },
-    { iataCode: 'SEA', name: 'Seattle-Tacoma Intl' },
-  ];
+  // Search for airports using Amadeus API
+  const searchAirports = async (keyword: string): Promise<Airport[]> => {
+    if (keyword.length < 2) return [];
 
-  const handleOriginFocus = () => {
-    setShowOriginSuggestions(true);
-    setShowDestinationSuggestions(false);
+    try {
+      setIsLoadingAirports(true);
+      const response = await axios.get('/.netlify/functions/airport-search', {
+        params: { keyword }
+      });
+
+      if (response.data && response.data.airports) {
+        return response.data.airports;
+      }
+      return [];
+    } catch (error) {
+      console.error('Error searching airports:', error);
+      return [];
+    } finally {
+      setIsLoadingAirports(false);
+    }
   };
 
-  const handleDestinationFocus = () => {
-    setShowDestinationSuggestions(true);
-    setShowOriginSuggestions(false);
-  };
+  // Handle origin input change
+  const handleOriginInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toUpperCase();
+    setOriginInput(value);
 
-  const handleSelectAirport = (airport: {iataCode: string, name: string}, type: 'origin' | 'destination') => {
-    if (type === 'origin') {
-      setOrigin(airport.iataCode);
-      setShowOriginSuggestions(false);
+    if (value.length >= 2) {
+      const airports = await searchAirports(value);
+      setOriginSuggestions(airports);
+      setShowOriginSuggestions(true);
     } else {
-      setDestination(airport.iataCode);
+      setOriginSuggestions([]);
+      setShowOriginSuggestions(false);
+    }
+  };
+
+  // Handle destination input change
+  const handleDestinationInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toUpperCase();
+    setDestinationInput(value);
+
+    if (value.length >= 2) {
+      const airports = await searchAirports(value);
+      setDestinationSuggestions(airports);
+      setShowDestinationSuggestions(true);
+    } else {
+      setDestinationSuggestions([]);
       setShowDestinationSuggestions(false);
     }
   };
+
+  // Select origin airport
+  const handleSelectOrigin = (airport: Airport) => {
+    setOriginInput(airport.iataCode);
+    setOrigin(airport.iataCode);
+    setShowOriginSuggestions(false);
+  };
+
+  // Select destination airport
+  const handleSelectDestination = (airport: Airport) => {
+    setDestinationInput(airport.iataCode);
+    setDestination(airport.iataCode);
+    setShowDestinationSuggestions(false);
+  };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (originRef.current && !originRef.current.contains(event.target as Node)) {
+        setShowOriginSuggestions(false);
+      }
+      if (destinationRef.current && !destinationRef.current.contains(event.target as Node)) {
+        setShowDestinationSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -225,66 +295,68 @@ export default function SearchFlightsPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              {/* Origin Input with Suggestions */}
-              <div className="relative">
+              {/* Origin Input with Autocomplete */}
+              <div ref={originRef} className="relative">
                 <label htmlFor="origin" className="block text-sm font-medium text-gray-700 mb-1">From</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    id="origin"
-                    placeholder="City or Airport"
-                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    required
-                    value={origin}
-                    onChange={(e) => setOrigin(e.target.value)}
-                    onFocus={handleOriginFocus}
-                  />
-                  {showOriginSuggestions && (
-                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg">
-                      {popularAirports.map((airport) => (
-                        <div
-                          key={airport.iataCode}
-                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                          onClick={() => handleSelectAirport(airport, 'origin')}
-                        >
-                          <div className="font-medium">{airport.iataCode}</div>
-                          <div className="text-sm text-gray-500">{airport.name}</div>
+                <input
+                  type="text"
+                  id="origin"
+                  value={originInput}
+                  onChange={handleOriginInputChange}
+                  onFocus={() => originInput.length >= 2 && setShowOriginSuggestions(true)}
+                  placeholder="City or IATA code (e.g., JFK, NYC)"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                />
+                {showOriginSuggestions && originSuggestions.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+                    {originSuggestions.map((airport) => (
+                      <div
+                        key={airport.iataCode}
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => handleSelectOrigin(airport)}
+                      >
+                        <div className="font-medium text-sm">{airport.iataCode}</div>
+                        <div className="text-xs text-gray-500">
+                          {airport.name}
+                          {airport.cityName && `, ${airport.cityName}`}
+                          {airport.countryName && `, ${airport.countryName}`}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Destination Input with Suggestions */}
-              <div className="relative">
+              {/* Destination Input with Autocomplete */}
+              <div ref={destinationRef} className="relative">
                 <label htmlFor="destination" className="block text-sm font-medium text-gray-700 mb-1">To</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    id="destination"
-                    placeholder="City or Airport"
-                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    required
-                    value={destination}
-                    onChange={(e) => setDestination(e.target.value)}
-                    onFocus={handleDestinationFocus}
-                  />
-                  {showDestinationSuggestions && (
-                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg">
-                      {popularAirports.map((airport) => (
-                        <div
-                          key={airport.iataCode}
-                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                          onClick={() => handleSelectAirport(airport, 'destination')}
-                        >
-                          <div className="font-medium">{airport.iataCode}</div>
-                          <div className="text-sm text-gray-500">{airport.name}</div>
+                <input
+                  type="text"
+                  id="destination"
+                  value={destinationInput}
+                  onChange={handleDestinationInputChange}
+                  onFocus={() => destinationInput.length >= 2 && setShowDestinationSuggestions(true)}
+                  placeholder="City or IATA code (e.g., LHR, London)"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                />
+                {showDestinationSuggestions && destinationSuggestions.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+                    {destinationSuggestions.map((airport) => (
+                      <div
+                        key={airport.iataCode}
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => handleSelectDestination(airport)}
+                      >
+                        <div className="font-medium text-sm">{airport.iataCode}</div>
+                        <div className="text-xs text-gray-500">
+                          {airport.name}
+                          {airport.cityName && `, ${airport.cityName}`}
+                          {airport.countryName && `, ${airport.countryName}`}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Departure Date */}
