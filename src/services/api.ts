@@ -31,11 +31,11 @@ export interface RouteMeta {
 }
 
 // API configuration
-// In development, use relative path so Netlify Dev can proxy correctly
-// Netlify Dev runs on port 3000 and handles function proxying
-const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://apollo-route-manager.windsurf.build/.netlify/functions'
-  : '/.netlify/functions';
+// Use relative path in both development and production
+// This ensures functions are called on the same domain as the frontend
+// Netlify Dev runs on port 3000 and handles function proxying in development
+// In production, the frontend and functions are on the same Netlify deployment
+const API_BASE_URL = '/.netlify/functions';
 
 // Create axios instance with default configuration
 export const apiClient = axios.create({
