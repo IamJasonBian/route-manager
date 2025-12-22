@@ -117,7 +117,11 @@ export default function SearchFlightsPage() {
     const arr = flight.itineraries[0].segments[flight.itineraries[0].segments.length - 1];
     const depDate = dep.departure.at.split('T')[0];
 
-    return `https://www.google.com/travel/flights/search?tfs=CBwQAhopEgoyMDI1LTAxLTAxagcIARIDJHtvcmlnaW59cgwIAxIIJHtkZXN0aW5hdGlvbn0&hl=en&curr=USD`;
+    // Build Google Flights URL with actual flight details
+    const origin = dep.departure.iataCode;
+    const destination = arr.arrival.iataCode;
+
+    return `https://www.google.com/travel/flights/search?tfs=CBwQAhopEgoyMDI1LTAxLTAxagcIARIDJHtvcmlnaW59cgwIAxIIJHtkZXN0aW5hdGlvbn0&hl=en&curr=USD`.replace('{origin}', origin).replace('{destination}', destination).replace('2025-01-01', depDate);
   };
 
   const popularAirports = [
