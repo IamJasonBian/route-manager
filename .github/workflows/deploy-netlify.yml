@@ -3,6 +3,7 @@ name: Deploy to Netlify
 permissions:
   contents: read
   deployments: write
+  statuses: write
   pull-requests: write
 
 on:
