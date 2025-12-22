@@ -77,8 +77,7 @@ export const handler = async (event, context) => {
       origin: params.origin,
       destination: params.destination,
       departureDate: params.departureDate,
-      returnDate: params.returnDate,
-      adults: params.adults || 1
+      returnDate: params.returnDate
     });
 
     // Make the API call to Amadeus
@@ -87,7 +86,6 @@ export const handler = async (event, context) => {
       destinationLocationCode: params.destination,
       departureDate: params.departureDate,
       ...(params.returnDate && { returnDate: params.returnDate }),
-      adults: params.adults || 1,
       nonStop: params.nonStop || false,
       maxPrice: params.maxPrice,
       max: params.maxResults || 10,
