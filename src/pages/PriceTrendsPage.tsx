@@ -1,21 +1,31 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 import PriceHistoryChart, { ChartType } from '../components/PriceHistoryChart';
 import { getPriceHistory } from '../services/api';
 
-// Airport data for the dropdowns
-const AIRPORTS = [
-  { code: 'JFK', name: 'New York (JFK)' },
-  { code: 'LHR', name: 'London (LHR)' },
-  { code: 'SFO', name: 'San Francisco (SFO)' },
-  { code: 'NRT', name: 'Tokyo (NRT)' },
-  { code: 'CDG', name: 'Paris (CDG)' },
-  { code: 'SYD', name: 'Sydney (SYD)' },
-];
+interface Airport {
+  iataCode: string;
+  name: string;
+  cityName: string;
+  countryName: string;
+  type: string;
+}
+
+interface FlightDetails {
+  carrier?: string;
+  flightNumber?: string;
+  departureTime?: string;
+  arrivalTime?: string;
+  duration?: string;
+  stops?: number;
+  bookingClass?: string;
+}
 
 interface PricePoint {
   price: number;
   recorded_at: string;
+  flightDetails?: FlightDetails;
 }
 
 interface TabPanelProps {
@@ -39,11 +49,23 @@ function TabPanel({ children, isActive, id }: TabPanelProps) {
 
 export default function PriceTrendsPage() {
   const [prices, setPrices] = useState<PricePoint[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [origin, setOrigin] = useState('JFK');
   const [destination, setDestination] = useState('LHR');
   const [tabValue, setTabValue] = useState(0);
+
+  // Airport search states
+  const [originInput, setOriginInput] = useState('JFK');
+  const [destinationInput, setDestinationInput] = useState('LHR');
+  const [originSuggestions, setOriginSuggestions] = useState<Airport[]>([]);
+  const [destinationSuggestions, setDestinationSuggestions] = useState<Airport[]>([]);
+  const [showOriginSuggestions, setShowOriginSuggestions] = useState(false);
+  const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const originRef = useRef<HTMLDivElement>(null);
+  const destinationRef = useRef<HTMLDivElement>(null);
 
   const chartTypes: ChartType[] = ['line', 'burn-down', 'draw-down'];
   const chartTitles = [
@@ -56,6 +78,87 @@ export default function PriceTrendsPage() {
     setTabValue(newValue);
   };
 
+  // Search for airports using Amadeus API
+  const searchAirports = async (keyword: string): Promise<Airport[]> => {
+    if (keyword.length < 2) return [];
+
+    try {
+      setIsSearching(true);
+      const response = await axios.get('/.netlify/functions/airport-search', {
+        params: { keyword }
+      });
+
+      if (response.data && response.data.airports) {
+        return response.data.airports;
+      }
+      return [];
+    } catch (error) {
+      console.error('Error searching airports:', error);
+      return [];
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Handle origin input change
+  const handleOriginInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toUpperCase();
+    setOriginInput(value);
+
+    if (value.length >= 2) {
+      const airports = await searchAirports(value);
+      setOriginSuggestions(airports);
+      setShowOriginSuggestions(true);
+    } else {
+      setOriginSuggestions([]);
+      setShowOriginSuggestions(false);
+    }
+  };
+
+  // Handle destination input change
+  const handleDestinationInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toUpperCase();
+    setDestinationInput(value);
+
+    if (value.length >= 2) {
+      const airports = await searchAirports(value);
+      setDestinationSuggestions(airports);
+      setShowDestinationSuggestions(true);
+    } else {
+      setDestinationSuggestions([]);
+      setShowDestinationSuggestions(false);
+    }
+  };
+
+  // Select origin airport
+  const handleSelectOrigin = (airport: Airport) => {
+    setOriginInput(airport.iataCode);
+    setOrigin(airport.iataCode);
+    setShowOriginSuggestions(false);
+  };
+
+  // Select destination airport
+  const handleSelectDestination = (airport: Airport) => {
+    setDestinationInput(airport.iataCode);
+    setDestination(airport.iataCode);
+    setShowDestinationSuggestions(false);
+  };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (originRef.current && !originRef.current.contains(event.target as Node)) {
+        setShowOriginSuggestions(false);
+      }
+      if (destinationRef.current && !destinationRef.current.contains(event.target as Node)) {
+        setShowDestinationSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const fetchPriceTrends = async (from: string, to: string) => {
     try {
       setIsLoading(true);
@@ -64,7 +167,8 @@ export default function PriceTrendsPage() {
       // Transform the prices array to match the expected format
       const formattedPrices = response.prices.map(item => ({
         price: item.price,
-        recorded_at: item.date
+        recorded_at: item.date,
+        flightDetails: item.flightDetails
       }));
       
       setPrices(formattedPrices);
@@ -79,18 +183,13 @@ export default function PriceTrendsPage() {
 
   useEffect(() => {
     fetchPriceTrends(origin, destination);
-  }, []);
+  }, [origin, destination]);
 
   const handleUpdate = () => {
-    fetchPriceTrends(origin, destination);
-  };
-
-  const handleOriginChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setOrigin(e.target.value);
-  };
-
-  const handleDestinationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setDestination(e.target.value);
+    if (originInput.length >= 3 && destinationInput.length >= 3) {
+      setOrigin(originInput);
+      setDestination(destinationInput);
+    }
   };
 
   return (
@@ -113,45 +212,77 @@ export default function PriceTrendsPage() {
           
           <div className="mb-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div>
+              {/* Origin Input with Autocomplete */}
+              <div ref={originRef} className="relative">
                 <label htmlFor="origin" className="block text-sm font-medium text-gray-700 mb-1">From</label>
-                <select
+                <input
+                  type="text"
                   id="origin"
-                  value={origin}
-                  onChange={handleOriginChange}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                >
-                  {AIRPORTS.map(airport => (
-                    <option key={`origin-${airport.code}`} value={airport.code}>
-                      {airport.name}
-                    </option>
-                  ))}
-                </select>
+                  value={originInput}
+                  onChange={handleOriginInputChange}
+                  onFocus={() => originInput.length >= 2 && setShowOriginSuggestions(true)}
+                  placeholder="City or IATA code (e.g., JFK, NYC)"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                />
+                {showOriginSuggestions && originSuggestions.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+                    {originSuggestions.map((airport) => (
+                      <div
+                        key={airport.iataCode}
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => handleSelectOrigin(airport)}
+                      >
+                        <div className="font-medium text-sm">{airport.iataCode}</div>
+                        <div className="text-xs text-gray-500">
+                          {airport.name}
+                          {airport.cityName && `, ${airport.cityName}`}
+                          {airport.countryName && `, ${airport.countryName}`}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              
-              <div>
+
+              {/* Destination Input with Autocomplete */}
+              <div ref={destinationRef} className="relative">
                 <label htmlFor="destination" className="block text-sm font-medium text-gray-700 mb-1">To</label>
-                <select
+                <input
+                  type="text"
                   id="destination"
-                  value={destination}
-                  onChange={handleDestinationChange}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                >
-                  {AIRPORTS.filter(airport => airport.code !== origin).map(airport => (
-                    <option key={`dest-${airport.code}`} value={airport.code}>
-                      {airport.name}
-                    </option>
-                  ))}
-                </select>
+                  value={destinationInput}
+                  onChange={handleDestinationInputChange}
+                  onFocus={() => destinationInput.length >= 2 && setShowDestinationSuggestions(true)}
+                  placeholder="City or IATA code (e.g., LHR, London)"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                />
+                {showDestinationSuggestions && destinationSuggestions.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+                    {destinationSuggestions.map((airport) => (
+                      <div
+                        key={airport.iataCode}
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => handleSelectDestination(airport)}
+                      >
+                        <div className="font-medium text-sm">{airport.iataCode}</div>
+                        <div className="text-xs text-gray-500">
+                          {airport.name}
+                          {airport.cityName && `, ${airport.cityName}`}
+                          {airport.countryName && `, ${airport.countryName}`}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              
+
               <div className="flex items-end">
                 <button
                   type="button"
                   onClick={handleUpdate}
-                  disabled={isLoading}
+                  disabled={isLoading || isSearching}
                   className={`w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
-                    isLoading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
+                    isLoading || isSearching ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
                   } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
                 >
                   {isLoading ? 'Loading...' : 'Update Chart'}
