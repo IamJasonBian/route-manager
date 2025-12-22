@@ -46,7 +46,6 @@ export default function SearchFlightsPage() {
   const [destination, setDestination] = useState('');
   const [departureDate, setDepartureDate] = useState('');
   const [returnDate, setReturnDate] = useState('');
-  const [passengers, setPassengers] = useState(1);
   const [tripType, setTripType] = useState<'one-way' | 'round-trip'>('one-way');
   const [isSearching, setIsSearching] = useState(false);
   const [flights, setFlights] = useState<Flight[]>([]);
@@ -170,7 +169,6 @@ export default function SearchFlightsPage() {
         departureDate,
         returnDate: tripType === 'round-trip' ? returnDate : undefined,
         maxResults: 10,
-        adults: passengers,
         nonStop: false
       });
       
@@ -190,22 +188,26 @@ export default function SearchFlightsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+    <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center mb-6">
-          <Link to="/" className="text-blue-600 hover:underline flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
-            </svg>
-            Back to Home
+        <div className="flex items-center mb-8">
+          <Link to="/" className="text-blue-600 hover:underline mr-4">
+            &larr; Back to Home
           </Link>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 ml-4">Search Flights</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Search Flights</h1>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-md mb-8">
-          <form onSubmit={handleSearch} className="space-y-4">
+        <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+          <div className="mb-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-2">Find Your Perfect Flight</h2>
+            <p className="text-sm text-gray-500">
+              Search for flights and compare prices from multiple airlines
+            </p>
+          </div>
+
+          <form onSubmit={handleSearch}>
             {/* Trip Type Toggle */}
-            <div className="flex space-x-2 mb-4">
+            <div className="flex space-x-2 mb-6">
               <button
                 type="button"
                 className={`px-4 py-2 rounded-l-lg text-sm font-medium ${tripType === 'one-way' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
@@ -222,7 +224,7 @@ export default function SearchFlightsPage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               {/* Origin Input with Suggestions */}
               <div className="relative">
                 <label htmlFor="origin" className="block text-sm font-medium text-gray-700 mb-1">From</label>
@@ -316,32 +318,14 @@ export default function SearchFlightsPage() {
               )}
             </div>
 
-            {/* Passengers and Search Button */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-2">
-              <div className="w-full sm:w-auto">
-                <label htmlFor="passengers" className="block text-sm font-medium text-gray-700 mb-1">Passengers</label>
-                <select
-                  id="passengers"
-                  className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  value={passengers}
-                  onChange={(e) => setPassengers(parseInt(e.target.value))}
-                >
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                    <option key={num} value={num}>
-                      {num} {num === 1 ? 'Passenger' : 'Passengers'}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
+            {/* Search Button */}
+            <div className="flex items-end">
               <button
                 type="submit"
                 disabled={isSearching}
-                className={`w-full sm:w-auto px-6 py-3 rounded-lg text-white font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors ${
-                  isSearching
-                    ? 'bg-blue-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700'
-                }`}
+                className={`w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
+                  isSearching ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
+                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
               >
                 {isSearching ? (
                   <span className="flex items-center justify-center">
