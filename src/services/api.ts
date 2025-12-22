@@ -1,10 +1,22 @@
 import axios from 'axios';
 import { saveRoute as saveDbRoute, DbRoute } from './routeService';
 
+// Interface for flight details
+export interface FlightDetails {
+  carrier?: string;
+  flightNumber?: string;
+  departureTime?: string;
+  arrivalTime?: string;
+  duration?: string;
+  stops?: number;
+  bookingClass?: string;
+}
+
 // Interface for flight price data
 export interface FlightPrice {
   date: Date | string;
   price: number;
+  flightDetails?: FlightDetails;
 }
 
 // Interface for route metadata
@@ -19,9 +31,11 @@ export interface RouteMeta {
 }
 
 // API configuration
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://apollo-route-manager.windsurf.build/.netlify/functions'
-  : 'http://localhost:8888/.netlify/functions';
+// Use relative path in both development and production
+// This ensures functions are called on the same domain as the frontend
+// Netlify Dev runs on port 3000 and handles function proxying in development
+// In production, the frontend and functions are on the same Netlify deployment
+const API_BASE_URL = '/.netlify/functions';
 
 // Create axios instance with default configuration
 export const apiClient = axios.create({
@@ -173,7 +187,7 @@ const toApiRoute = (dbRoute: DbRoute): ApiRoute => {
 
 // Get price history for a route
 interface PriceHistoryResponse {
-  prices: Array<{ date: string; price: number }>;
+  prices: Array<{ date: string; price: number; flightDetails?: FlightDetails }>;
   basePrice: number;
   lowestPrice: number;
   highestPrice: number;
@@ -189,7 +203,8 @@ export async function getPriceHistory(from: string, to: string): Promise<PriceHi
         ...response.data,
         prices: response.data.prices.map(p => ({
           date: typeof p.date === 'string' ? p.date : new Date(p.date).toISOString().split('T')[0],
-          price: p.price
+          price: p.price,
+          flightDetails: p.flightDetails
         }))
       };
     }
@@ -201,7 +216,8 @@ export async function getPriceHistory(from: string, to: string): Promise<PriceHi
     return {
       prices: mockPrices.map(p => ({
         date: typeof p.date === 'string' ? p.date : p.date.toISOString().split('T')[0],
-        price: p.price
+        price: p.price,
+        flightDetails: p.flightDetails
       })),
       basePrice: 300,
       lowestPrice: Math.min(...mockPrices.map(p => p.price)),

@@ -30,9 +30,20 @@ ChartJS.register(
 
 export type ChartType = 'line' | 'burn-down' | 'draw-down';
 
+export interface FlightDetails {
+  carrier?: string;
+  flightNumber?: string;
+  departureTime?: string;
+  arrivalTime?: string;
+  duration?: string;
+  stops?: number;
+  bookingClass?: string;
+}
+
 export interface PricePoint {
   price: number;
   recorded_at: string;
+  flightDetails?: FlightDetails;
 }
 
 export interface PriceHistoryChartProps {
@@ -135,12 +146,51 @@ const PriceHistoryChart: React.FC<PriceHistoryChartProps> = ({
           callbacks: {
             label: (context) => {
               const value = context.parsed.y;
+              const pricePoint = prices[context.dataIndex];
+              const labels: string[] = [];
+
+              // Add price label
               if (chartType === 'draw-down') {
-                return `${value.toFixed(2)}%`;
+                labels.push(`${value.toFixed(2)}%`);
               } else if (chartType === 'burn-down') {
-                return `$${value.toFixed(2)} below peak`;
+                labels.push(`$${value.toFixed(2)} below peak`);
+              } else {
+                labels.push(`Price: $${value.toFixed(2)}`);
               }
-              return `$${value.toFixed(2)}`;
+
+              // Add flight details if available
+              if (pricePoint?.flightDetails) {
+                const fd = pricePoint.flightDetails;
+                if (fd.flightNumber) {
+                  labels.push(`Flight: ${fd.flightNumber}`);
+                }
+                if (fd.stops !== undefined) {
+                  labels.push(`Stops: ${fd.stops === 0 ? 'Nonstop' : fd.stops}`);
+                }
+                if (fd.duration) {
+                  // Convert PT8H30M to 8h 30m
+                  const duration = fd.duration.replace('PT', '').replace('H', 'h ').replace('M', 'm');
+                  labels.push(`Duration: ${duration}`);
+                }
+                if (fd.bookingClass) {
+                  labels.push(`Class: ${fd.bookingClass}`);
+                }
+              }
+
+              return labels;
+            },
+            title: (context) => {
+              const pricePoint = prices[context[0].dataIndex];
+              if (pricePoint?.flightDetails?.departureTime) {
+                const date = new Date(pricePoint.flightDetails.departureTime);
+                return date.toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric'
+                });
+              }
+              return context[0].label;
             }
           }
         }

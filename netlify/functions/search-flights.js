@@ -35,14 +35,32 @@ export const handler = async (event, context) => {
   console.log('Method:', event.httpMethod);
   console.log('Path:', event.path);
   console.log('Query:', event.queryStringParameters);
-  
+
+  // Set CORS headers - use environment variable or allow all origins
+  const allowedOrigin = process.env.CORS_ORIGIN || '*';
+  const headers = {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Content-Type': 'application/json'
+  };
+
+  // Handle preflight OPTIONS request
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers,
+      body: ''
+    };
+  }
+
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     const error = { error: 'Method Not Allowed', allowed: ['POST'] };
     console.error('Method not allowed:', error);
     return {
       statusCode: 405,
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(error),
     };
   }
@@ -66,9 +84,9 @@ export const handler = async (event, context) => {
     if (!params.origin || !params.destination || !params.departureDate) {
       return {
         statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          error: 'Missing required parameters: origin, destination, departureDate' 
+        headers,
+        body: JSON.stringify({
+          error: 'Missing required parameters: origin, destination, departureDate'
         })
       };
     }
@@ -77,8 +95,7 @@ export const handler = async (event, context) => {
       origin: params.origin,
       destination: params.destination,
       departureDate: params.departureDate,
-      returnDate: params.returnDate,
-      adults: params.adults || 1
+      returnDate: params.returnDate
     });
 
     // Make the API call to Amadeus
@@ -95,10 +112,10 @@ export const handler = async (event, context) => {
     });
 
     console.log('Received response from Amadeus API');
-    
+
     return {
       statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         data: response.data || [],
         meta: response.meta || {}
@@ -118,10 +135,10 @@ export const handler = async (event, context) => {
     };
     
     console.error('Error details:', JSON.stringify(errorDetails, null, 2));
-    
+
     return {
       statusCode: error.response?.statusCode || 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         error: 'Failed to fetch flight data',
         details: process.env.NODE_ENV === 'development' ? errorDetails : undefined,

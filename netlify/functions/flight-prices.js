@@ -1,12 +1,34 @@
 import Amadeus from 'amadeus';
-import config from '../../src/config/env.js';
 
-// Initialize Amadeus client with config
-const amadeus = new Amadeus({
-  clientId: config.amadeus.apiKey,
-  clientSecret: config.amadeus.apiSecret,
-  hostname: config.amadeus.hostname
-});
+// Helper function to get config with fallbacks
+const getConfig = async () => {
+  // Try to get from environment variables first (for Netlify)
+  if (process.env.AMADEUS_API_KEY && process.env.AMADEUS_API_SECRET) {
+    console.log('Using environment variables for Amadeus config');
+    return {
+      apiKey: process.env.AMADEUS_API_KEY,
+      apiSecret: process.env.AMADEUS_API_SECRET,
+      hostname: process.env.AMADEUS_HOSTNAME || 'production'
+    };
+  }
+
+  // Fallback to config import (for local development)
+  try {
+    console.log('Trying to load config from ../../src/config/env.js');
+    const config = await import('../../src/config/env.js');
+    return {
+      apiKey: config.default.amadeus.apiKey,
+      apiSecret: config.default.amadeus.apiSecret,
+      hostname: config.default.amadeus.hostname
+    };
+  } catch (error) {
+    console.error('Failed to load config:', error);
+    throw new Error('Failed to load configuration');
+  }
+};
+
+// Initialize Amadeus client
+let amadeus;
 
 // Helper function to format date to YYYY-MM-DD
 const formatDate = (date) => {
@@ -44,13 +66,31 @@ const getFlightPricesForDates = async (origin, destination, dates) => {
       
       // Log the raw Amadeus API response
       console.log(`Amadeus API response for ${origin} to ${destination} on ${date}:`, JSON.stringify(response, null, 2));
-      
-      // Extract the price from the response
+
+      // Extract the price and flight details from the response
       if (response.data && response.data.length > 0) {
-        const price = parseFloat(response.data[0].price.total);
-        return { date, price };
+        const flight = response.data[0];
+        const price = parseFloat(flight.price.total);
+
+        // Extract flight details
+        const firstSegment = flight.itineraries[0].segments[0];
+        const lastSegment = flight.itineraries[0].segments[flight.itineraries[0].segments.length - 1];
+
+        return {
+          date,
+          price,
+          flightDetails: {
+            carrier: firstSegment.carrierCode,
+            flightNumber: `${firstSegment.carrierCode}${firstSegment.number}`,
+            departureTime: firstSegment.departure.at,
+            arrivalTime: lastSegment.arrival.at,
+            duration: flight.itineraries[0].duration,
+            stops: flight.itineraries[0].segments.length - 1,
+            bookingClass: flight.travelerPricings?.[0]?.fareDetailsBySegment?.[0]?.cabin || 'ECONOMY'
+          }
+        };
       }
-      
+
       // If no offers found, return null
       return { date, price: null };
     } catch (error) {
@@ -67,6 +107,18 @@ const getFlightPricesForDates = async (origin, destination, dates) => {
 };
 
 export const handler = async (event, context) => {
+  // Initialize Amadeus client if not already initialized
+  if (!amadeus) {
+    console.log('Initializing Amadeus client...');
+    const config = await getConfig();
+    amadeus = new Amadeus({
+      clientId: config.apiKey,
+      clientSecret: config.apiSecret,
+      hostname: config.hostname
+    });
+    console.log('Amadeus client initialized successfully');
+  }
+
   // Debug: Log environment variables (excluding sensitive ones)
   console.log('Environment variables:', {
     AMADEUS_API_KEY: process.env.AMADEUS_API_KEY ? '***' : 'Not set',
@@ -75,9 +127,17 @@ export const handler = async (event, context) => {
     NODE_ENV: process.env.NODE_ENV || 'Not set'
   });
 
-  // Set CORS headers
+  // Set CORS headers - allow both localhost and production
+  const origin = event.headers.origin || event.headers.Origin || '';
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://apollo-route-manager.windsurf.build',
+    'https://route-manager-demo.netlify.app'
+  ];
+
   const headers = {
-    'Access-Control-Allow-Origin': 'http://localhost:5173',
+    'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : allowedOrigins[2],
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Credentials': 'true',
@@ -135,11 +195,24 @@ export const handler = async (event, context) => {
       console.log('No prices found, falling back to mock data');
       // Generate mock data as fallback
       const basePrice = 500 + Math.random() * 200;
-      const mockPrices = dates.map(date => {
+      const carriers = ['AA', 'DL', 'UA', 'BA', 'AF'];
+      const mockPrices = dates.map((date, index) => {
         const randomVariation = Math.random() * 100 - 50;
+        const carrier = carriers[index % carriers.length];
+        const flightNum = Math.floor(1000 + Math.random() * 9000);
+
         return {
           date,
-          price: Math.round(basePrice + randomVariation)
+          price: Math.round(basePrice + randomVariation),
+          flightDetails: {
+            carrier: carrier,
+            flightNumber: `${carrier}${flightNum}`,
+            departureTime: `${date}T08:00:00`,
+            arrivalTime: `${date}T16:30:00`,
+            duration: 'PT8H30M',
+            stops: Math.floor(Math.random() * 2),
+            bookingClass: 'ECONOMY'
+          }
         };
       });
       

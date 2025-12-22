@@ -1,6 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+
+interface Airport {
+  iataCode: string;
+  name: string;
+  cityName: string;
+  countryName: string;
+  type: string;
+}
 
 interface Flight {
   id: string;
@@ -42,18 +50,26 @@ interface Flight {
 }
 
 export default function SearchFlightsPage() {
-  const [origin, setOrigin] = useState('');
-  const [destination, setDestination] = useState('');
+  const [origin, setOrigin] = useState('JFK');
+  const [destination, setDestination] = useState('LAX');
   const [departureDate, setDepartureDate] = useState('');
   const [returnDate, setReturnDate] = useState('');
-  const [passengers, setPassengers] = useState(1);
   const [tripType, setTripType] = useState<'one-way' | 'round-trip'>('one-way');
   const [isSearching, setIsSearching] = useState(false);
   const [flights, setFlights] = useState<Flight[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // Airport search states
+  const [originInput, setOriginInput] = useState('JFK');
+  const [destinationInput, setDestinationInput] = useState('LAX');
+  const [originSuggestions, setOriginSuggestions] = useState<Airport[]>([]);
+  const [destinationSuggestions, setDestinationSuggestions] = useState<Airport[]>([]);
   const [showOriginSuggestions, setShowOriginSuggestions] = useState(false);
   const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
+  const [isLoadingAirports, setIsLoadingAirports] = useState(false);
+
+  const originRef = useRef<HTMLDivElement>(null);
+  const destinationRef = useRef<HTMLDivElement>(null);
   
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('en-US', {
@@ -72,33 +88,138 @@ export default function SearchFlightsPage() {
     return `${hours}h ${minutes}m`;
   };
 
-  const popularAirports = [
-    { iataCode: 'JFK', name: 'John F. Kennedy Intl (New York)' },
-    { iataCode: 'LAX', name: 'Los Angeles Intl' },
-    { iataCode: 'ORD', name: "Chicago O'Hare Intl" },
-    { iataCode: 'SFO', name: 'San Francisco Intl' },
-    { iataCode: 'SEA', name: 'Seattle-Tacoma Intl' },
-  ];
-
-  const handleOriginFocus = () => {
-    setShowOriginSuggestions(true);
-    setShowDestinationSuggestions(false);
+  // Airline name mapping
+  const getAirlineName = (carrierCode: string): string => {
+    const airlines: { [key: string]: string } = {
+      'AA': 'American Airlines',
+      'DL': 'Delta Air Lines',
+      'UA': 'United Airlines',
+      'WN': 'Southwest Airlines',
+      'B6': 'JetBlue Airways',
+      'AS': 'Alaska Airlines',
+      'NK': 'Spirit Airlines',
+      'F9': 'Frontier Airlines',
+      'G4': 'Allegiant Air',
+      'TP': 'TAP Portugal',
+      'BA': 'British Airways',
+      'LH': 'Lufthansa',
+      'AF': 'Air France',
+      'KL': 'KLM Royal Dutch Airlines',
+      'IB': 'Iberia',
+      'AZ': 'ITA Airways',
+      'EI': 'Aer Lingus',
+      'LX': 'Swiss International Air Lines',
+      'OS': 'Austrian Airlines',
+      'SN': 'Brussels Airlines',
+      'TK': 'Turkish Airlines',
+      'EK': 'Emirates',
+      'QR': 'Qatar Airways',
+      'EY': 'Etihad Airways',
+      'SV': 'Saudia',
+      'AC': 'Air Canada',
+      'NH': 'All Nippon Airways',
+      'JL': 'Japan Airlines',
+      'SQ': 'Singapore Airlines',
+      'CX': 'Cathay Pacific',
+      'QF': 'Qantas',
+      'NZ': 'Air New Zealand'
+    };
+    return airlines[carrierCode] || carrierCode;
   };
 
-  const handleDestinationFocus = () => {
-    setShowDestinationSuggestions(true);
-    setShowOriginSuggestions(false);
+  // Generate Google Flights booking link
+  const getBookingLink = (flight: Flight): string => {
+    const dep = flight.itineraries[0].segments[0];
+    const arr = flight.itineraries[0].segments[flight.itineraries[0].segments.length - 1];
+    const depDate = dep.departure.at.split('T')[0];
+
+    // Build Google Flights URL with actual flight details
+    const origin = dep.departure.iataCode;
+    const destination = arr.arrival.iataCode;
+
+    return `https://www.google.com/travel/flights/search?tfs=CBwQAhopEgoyMDI1LTAxLTAxagcIARIDJHtvcmlnaW59cgwIAxIIJHtkZXN0aW5hdGlvbn0&hl=en&curr=USD`.replace('{origin}', origin).replace('{destination}', destination).replace('2025-01-01', depDate);
   };
 
-  const handleSelectAirport = (airport: {iataCode: string, name: string}, type: 'origin' | 'destination') => {
-    if (type === 'origin') {
-      setOrigin(airport.iataCode);
-      setShowOriginSuggestions(false);
+  // Search for airports using Amadeus API
+  const searchAirports = async (keyword: string): Promise<Airport[]> => {
+    if (keyword.length < 2) return [];
+
+    try {
+      setIsLoadingAirports(true);
+      const response = await axios.get('/.netlify/functions/airport-search', {
+        params: { keyword }
+      });
+
+      if (response.data && response.data.airports) {
+        return response.data.airports;
+      }
+      return [];
+    } catch (error) {
+      console.error('Error searching airports:', error);
+      return [];
+    } finally {
+      setIsLoadingAirports(false);
+    }
+  };
+
+  // Handle origin input change
+  const handleOriginInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toUpperCase();
+    setOriginInput(value);
+
+    if (value.length >= 2) {
+      const airports = await searchAirports(value);
+      setOriginSuggestions(airports);
+      setShowOriginSuggestions(true);
     } else {
-      setDestination(airport.iataCode);
+      setOriginSuggestions([]);
+      setShowOriginSuggestions(false);
+    }
+  };
+
+  // Handle destination input change
+  const handleDestinationInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toUpperCase();
+    setDestinationInput(value);
+
+    if (value.length >= 2) {
+      const airports = await searchAirports(value);
+      setDestinationSuggestions(airports);
+      setShowDestinationSuggestions(true);
+    } else {
+      setDestinationSuggestions([]);
       setShowDestinationSuggestions(false);
     }
   };
+
+  // Select origin airport
+  const handleSelectOrigin = (airport: Airport) => {
+    setOriginInput(airport.iataCode);
+    setOrigin(airport.iataCode);
+    setShowOriginSuggestions(false);
+  };
+
+  // Select destination airport
+  const handleSelectDestination = (airport: Airport) => {
+    setDestinationInput(airport.iataCode);
+    setDestination(airport.iataCode);
+    setShowDestinationSuggestions(false);
+  };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (originRef.current && !originRef.current.contains(event.target as Node)) {
+        setShowOriginSuggestions(false);
+      }
+      if (destinationRef.current && !destinationRef.current.contains(event.target as Node)) {
+        setShowDestinationSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,7 +239,6 @@ export default function SearchFlightsPage() {
         departureDate,
         returnDate: tripType === 'round-trip' ? returnDate : undefined,
         maxResults: 10,
-        adults: passengers,
         nonStop: false
       });
       
@@ -138,22 +258,26 @@ export default function SearchFlightsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+    <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center mb-6">
-          <Link to="/" className="text-blue-600 hover:underline flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
-            </svg>
-            Back to Home
+        <div className="flex items-center mb-8">
+          <Link to="/" className="text-blue-600 hover:underline mr-4">
+            &larr; Back to Home
           </Link>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 ml-4">Search Flights</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Search Flights</h1>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-md mb-8">
-          <form onSubmit={handleSearch} className="space-y-4">
+        <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+          <div className="mb-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-2">Find Your Perfect Flight</h2>
+            <p className="text-sm text-gray-500">
+              Search for flights and compare prices from multiple airlines
+            </p>
+          </div>
+
+          <form onSubmit={handleSearch}>
             {/* Trip Type Toggle */}
-            <div className="flex space-x-2 mb-4">
+            <div className="flex space-x-2 mb-6">
               <button
                 type="button"
                 className={`px-4 py-2 rounded-l-lg text-sm font-medium ${tripType === 'one-way' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
@@ -170,67 +294,69 @@ export default function SearchFlightsPage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {/* Origin Input with Suggestions */}
-              <div className="relative">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              {/* Origin Input with Autocomplete */}
+              <div ref={originRef} className="relative">
                 <label htmlFor="origin" className="block text-sm font-medium text-gray-700 mb-1">From</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    id="origin"
-                    placeholder="City or Airport"
-                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    required
-                    value={origin}
-                    onChange={(e) => setOrigin(e.target.value)}
-                    onFocus={handleOriginFocus}
-                  />
-                  {showOriginSuggestions && (
-                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg">
-                      {popularAirports.map((airport) => (
-                        <div
-                          key={airport.iataCode}
-                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                          onClick={() => handleSelectAirport(airport, 'origin')}
-                        >
-                          <div className="font-medium">{airport.iataCode}</div>
-                          <div className="text-sm text-gray-500">{airport.name}</div>
+                <input
+                  type="text"
+                  id="origin"
+                  value={originInput}
+                  onChange={handleOriginInputChange}
+                  onFocus={() => originInput.length >= 2 && setShowOriginSuggestions(true)}
+                  placeholder="City or IATA code (e.g., JFK, NYC)"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                />
+                {showOriginSuggestions && originSuggestions.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+                    {originSuggestions.map((airport) => (
+                      <div
+                        key={airport.iataCode}
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => handleSelectOrigin(airport)}
+                      >
+                        <div className="font-medium text-sm">{airport.iataCode}</div>
+                        <div className="text-xs text-gray-500">
+                          {airport.name}
+                          {airport.cityName && `, ${airport.cityName}`}
+                          {airport.countryName && `, ${airport.countryName}`}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Destination Input with Suggestions */}
-              <div className="relative">
+              {/* Destination Input with Autocomplete */}
+              <div ref={destinationRef} className="relative">
                 <label htmlFor="destination" className="block text-sm font-medium text-gray-700 mb-1">To</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    id="destination"
-                    placeholder="City or Airport"
-                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    required
-                    value={destination}
-                    onChange={(e) => setDestination(e.target.value)}
-                    onFocus={handleDestinationFocus}
-                  />
-                  {showDestinationSuggestions && (
-                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg">
-                      {popularAirports.map((airport) => (
-                        <div
-                          key={airport.iataCode}
-                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                          onClick={() => handleSelectAirport(airport, 'destination')}
-                        >
-                          <div className="font-medium">{airport.iataCode}</div>
-                          <div className="text-sm text-gray-500">{airport.name}</div>
+                <input
+                  type="text"
+                  id="destination"
+                  value={destinationInput}
+                  onChange={handleDestinationInputChange}
+                  onFocus={() => destinationInput.length >= 2 && setShowDestinationSuggestions(true)}
+                  placeholder="City or IATA code (e.g., LHR, London)"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                />
+                {showDestinationSuggestions && destinationSuggestions.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+                    {destinationSuggestions.map((airport) => (
+                      <div
+                        key={airport.iataCode}
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => handleSelectDestination(airport)}
+                      >
+                        <div className="font-medium text-sm">{airport.iataCode}</div>
+                        <div className="text-xs text-gray-500">
+                          {airport.name}
+                          {airport.cityName && `, ${airport.cityName}`}
+                          {airport.countryName && `, ${airport.countryName}`}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Departure Date */}
@@ -264,32 +390,14 @@ export default function SearchFlightsPage() {
               )}
             </div>
 
-            {/* Passengers and Search Button */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-2">
-              <div className="w-full sm:w-auto">
-                <label htmlFor="passengers" className="block text-sm font-medium text-gray-700 mb-1">Passengers</label>
-                <select
-                  id="passengers"
-                  className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  value={passengers}
-                  onChange={(e) => setPassengers(parseInt(e.target.value))}
-                >
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                    <option key={num} value={num}>
-                      {num} {num === 1 ? 'Passenger' : 'Passengers'}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
+            {/* Search Button */}
+            <div className="flex items-end">
               <button
                 type="submit"
-                disabled={isSearching}
-                className={`w-full sm:w-auto px-6 py-3 rounded-lg text-white font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors ${
-                  isSearching
-                    ? 'bg-blue-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700'
-                }`}
+                disabled={isSearching || isLoadingAirports}
+                className={`w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
+                  isSearching || isLoadingAirports ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
+                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
               >
                 {isSearching ? (
                   <span className="flex items-center justify-center">
@@ -392,11 +500,30 @@ export default function SearchFlightsPage() {
                         </div>
                       </div>
                       <div className="mt-4 pt-4 border-t border-gray-100">
-                        <div className="text-sm text-gray-500">
-                          Flight {flight.itineraries[0].segments[0].carrierCode}{flight.itineraries[0].segments[0].number} • 
-                          {flight.travelerPricings[0].fareDetailsBySegment[0].cabin.charAt(0).toUpperCase() + 
-                           flight.travelerPricings[0].fareDetailsBySegment[0].cabin.slice(1).toLowerCase()} • 
-                          {flight.itineraries[0].segments[0].aircraft.code}
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-1">
+                            <div className="text-sm font-medium text-gray-700">
+                              {getAirlineName(flight.itineraries[0].segments[0].carrierCode)}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              Flight {flight.itineraries[0].segments[0].carrierCode}{flight.itineraries[0].segments[0].number} •
+                              {flight.travelerPricings[0].fareDetailsBySegment[0].cabin.charAt(0).toUpperCase() +
+                               flight.travelerPricings[0].fareDetailsBySegment[0].cabin.slice(1).toLowerCase()} •
+                              {flight.itineraries[0].segments[0].aircraft.code}
+                            </div>
+                          </div>
+                          <a
+                            href={getBookingLink(flight)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                          >
+                            Book Flight
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                              <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                            </svg>
+                          </a>
                         </div>
                       </div>
                     </div>
