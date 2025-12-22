@@ -9,9 +9,17 @@ const amadeus = new Amadeus({
 });
 
 export const handler = async (event, context) => {
-  // Set CORS headers
+  // Set CORS headers - allow both localhost and production
+  const origin = event.headers.origin || event.headers.Origin || '';
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://apollo-route-manager.windsurf.build',
+    'https://route-manager-demo.netlify.app'
+  ];
+
   const headers = {
-    'Access-Control-Allow-Origin': 'http://localhost:5173',
+    'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : allowedOrigins[2],
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Credentials': 'true',
