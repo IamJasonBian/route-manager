@@ -60,6 +60,8 @@ npm run deploy
 
 ## Workspace Structure
 
+**IMPORTANT**: Only look inside the directories defined below. Do not explore or modify files outside this structure.
+
 ```
 monterrey/
 ├── src/
@@ -82,8 +84,7 @@ monterrey/
 │       ├── popular-routes.js
 │       ├── health.js
 │       └── ...
-├── common/               # Shared code between frontend and functions
-└── data/                 # Static data files
+└── common/               # Shared code between frontend and functions
 ```
 
 ## Architecture Patterns
