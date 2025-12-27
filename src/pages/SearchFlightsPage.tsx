@@ -52,7 +52,7 @@ interface Flight {
 export default function SearchFlightsPage() {
   const [origin, setOrigin] = useState('JFK');
   const [destination, setDestination] = useState('LAX');
-  const [departureDate, setDepartureDate] = useState('');
+  const [departureDate, setDepartureDate] = useState(new Date().toISOString().split('T')[0]);
   const [returnDate, setReturnDate] = useState('');
   const [tripType, setTripType] = useState<'one-way' | 'round-trip'>('one-way');
   const [isSearching, setIsSearching] = useState(false);

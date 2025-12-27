@@ -391,25 +391,6 @@ export default function PriceTrendsPage() {
           </div>
           </div>
           
-          <div className="mt-8">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Price Alerts</h3>
-            <p className="text-sm text-gray-500 mb-4">
-              Set up price alerts to be notified when prices drop for this route.
-            </p>
-            <div className="flex items-center">
-              <input
-                type="email"
-                placeholder="your@email.com"
-                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              />
-              <button
-                type="button"
-                className="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Set Alert
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
