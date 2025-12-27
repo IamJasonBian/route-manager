@@ -29,7 +29,6 @@ Apollo Flight Trader (Route Manager) is a flight price monitoring and booking op
 | Charts | Recharts, Chart.js |
 | Backend | Netlify Functions (serverless) |
 | API | Amadeus Flight API |
-| Database | PostgreSQL (via Supabase) |
 | Deployment | Netlify, GitHub Actions |
 
 ## Development Commands
@@ -57,12 +56,6 @@ npm run lint
 # Deploy to Netlify
 npm run deploy
 
-# Data scripts
-npm run fetch-default-routes
-npm run load-default-routes
-npm run load-prices
-npm run test-single-route
-npm run test-all-routes
 ```
 
 ## Workspace Structure
@@ -89,10 +82,8 @@ monterrey/
 │       ├── popular-routes.js
 │       ├── health.js
 │       └── ...
-├── scripts/              # Data loading and testing scripts
 ├── common/               # Shared code between frontend and functions
-├── data/                 # Static data files
-└── supabase/             # Database migrations and config
+└── data/                 # Static data files
 ```
 
 ## Architecture Patterns
@@ -100,13 +91,10 @@ monterrey/
 ### Frontend
 - **Component Structure**: Functional components with hooks
 - **State Management**: React useState/useEffect (no Redux)
-- **Routing**: React Router v7
-- **API Calls**: Axios via service layer
 
 ### Backend (Netlify Functions)
 - **Pattern**: Serverless functions with CORS middleware
 - **API Integration**: Amadeus SDK for flight data
-- **Database**: PostgreSQL connection pooling via pg
 
 ### Deployment
 - **Environments**: Gamma (staging) and Prod (protected)
