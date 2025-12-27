@@ -223,13 +223,6 @@ export default function PriceTrendsPage() {
         
         <div className="bg-white p-6 rounded-lg shadow-md">
           <div className="mb-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-2">Flight Price History</h2>
-            <p className="text-sm text-gray-500">
-              Track price changes over time for your selected route
-            </p>
-          </div>
-          
-          <div className="mb-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               {/* Origin Input with Autocomplete */}
               <div ref={originRef} className="relative">

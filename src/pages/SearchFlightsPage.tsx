@@ -276,13 +276,6 @@ export default function SearchFlightsPage() {
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-          <div className="mb-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-2">Find Your Perfect Flight</h2>
-            <p className="text-sm text-gray-500">
-              Search for flights and compare prices from multiple airlines
-            </p>
-          </div>
-
           <form onSubmit={handleSearch}>
             {/* Trip Type Toggle */}
             <div className="flex space-x-2 mb-6">
