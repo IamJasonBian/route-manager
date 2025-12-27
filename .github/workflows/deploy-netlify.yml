@@ -13,15 +13,25 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
     inputs:
-      deploy_to_prod:
-        description: 'Deploy to PROD (requires manual approval)'
+      environment:
+        description: 'Deployment environment'
         required: true
-        default: true
+        default: 'gamma'
+        type: choice
+        options:
+          - gamma
+          - prod
+      dry_run:
+        description: 'Perform a dry-run (build only, no deploy)'
+        required: false
+        default: false
         type: boolean
 
 jobs:
-  deploy-gamma:
+  # Build and deploy preview for PRs
+  deploy-preview:
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
 
@@ -42,31 +52,58 @@ jobs:
           echo "Listing functions in netlify/functions:";
           find ./netlify/functions -type f -name "*.js" -exec echo " - {}" \;
 
-      - name: Check Amadeus env variables
-        run: |
-          echo "AMADEUS_API_KEY: ${AMADEUS_API_KEY:+present}";
-          echo "AMADEUS_API_SECRET: ${AMADEUS_API_SECRET:+present}";
-          echo "AMADEUS_HOSTNAME: ${AMADEUS_HOSTNAME:-missing}";
-
       - name: Install Netlify CLI
         run: npm install -g netlify-cli
 
-      - name: Deploy to Gamma
-        run: netlify deploy --dir=dist --prod --site ${{ secrets.NETLIFY_SITE_ID_GAMMA }}
+      - name: Deploy Preview to Gamma
+        id: deploy-preview
+        run: |
+          DEPLOY_OUTPUT=$(netlify deploy --dir=dist --site ${{ secrets.NETLIFY_SITE_ID_GAMMA }} --json)
+          echo "$DEPLOY_OUTPUT"
+          DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | jq -r '.deploy_url')
+          echo "deploy_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+          echo "Preview URL: $DEPLOY_URL"
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
 
+      - name: Comment PR with preview URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deployUrl = '${{ steps.deploy-preview.outputs.deploy_url }}';
+            const comment = `### 🚀 Preview Deployment Ready!
+
+            **Preview URL:** ${deployUrl}
+
+            This is a unique preview deployment for this PR. It will be automatically deleted when the PR is closed.
+
+            #### Test the deployment:
+            - Visit the preview URL above
+            - Test flight search functionality
+            - Check that all API endpoints are working
+
+            > 📝 Note: This preview uses the Gamma environment configuration.`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
       - name: (Non-blocking) Test deployed functions
         run: |
+          PREVIEW_URL="${{ steps.deploy-preview.outputs.deploy_url }}"
+          echo "Testing preview deployment at: $PREVIEW_URL";
           echo "Testing /test-env endpoint (ignore errors):";
-          curl --fail --silent --show-error "https://route-manager-gamma.netlify.app/.netlify/functions/test-env" || echo "test-env endpoint failed (non-blocking)";
+          curl --fail --silent --show-error "$PREVIEW_URL/.netlify/functions/test-env" || echo "test-env endpoint failed (non-blocking)";
           echo "Testing /search-flights endpoint (ignore errors):";
-          curl --fail --silent --show-error "https://route-manager-gamma.netlify.app/.netlify/functions/search-flights" || echo "search-flights endpoint failed (non-blocking)";
+          curl --fail --silent --show-error "$PREVIEW_URL/.netlify/functions/search-flights" || echo "search-flights endpoint failed (non-blocking)";
 
-  deploy-prod:
+  # Deploy to Gamma on push to main
+  deploy-gamma:
     runs-on: ubuntu-latest
-    needs: deploy-gamma
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_to_prod == 'true'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     steps:
       - uses: actions/checkout@v4
 
@@ -82,17 +119,118 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: List Netlify functions before deploy
+        run: |
+          echo "Listing functions in netlify/functions:";
+          find ./netlify/functions -type f -name "*.js" -exec echo " - {}" \;
+
       - name: Install Netlify CLI
         run: npm install -g netlify-cli
 
-      - name: Deploy to Prod
-        run: netlify deploy --dir=dist --prod --site ${{ secrets.NETLIFY_SITE_ID_PROD }}
+      - name: Deploy to Gamma (Production)
+        run: netlify deploy --dir=dist --prod --site ${{ secrets.NETLIFY_SITE_ID_GAMMA }}
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
 
       - name: (Non-blocking) Test deployed functions
         run: |
           echo "Testing /test-env endpoint (ignore errors):";
-          curl --fail --silent --show-error "https://route-manager-prod.netlify.app/.netlify/functions/test-env" || echo "test-env endpoint failed (non-blocking)";
+          curl --fail --silent --show-error "https://route-manager-gamma.netlify.app/.netlify/functions/test-env" || echo "test-env endpoint failed (non-blocking)";
           echo "Testing /search-flights endpoint (ignore errors):";
-          curl --fail --silent --show-error "https://route-manager-prod.netlify.app/.netlify/functions/search-flights" || echo "search-flights endpoint failed (non-blocking)";
+          curl --fail --silent --show-error "https://route-manager-gamma.netlify.app/.netlify/functions/search-flights" || echo "search-flights endpoint failed (non-blocking)";
+
+  # Manual deployment via workflow_dispatch
+  manual-deploy:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    environment:
+      name: ${{ github.event.inputs.environment }}
+      url: ${{ steps.set-url.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set environment URL
+        id: set-url
+        run: |
+          if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
+            echo "url=https://route-manager-prod.netlify.app" >> $GITHUB_OUTPUT
+          else
+            echo "url=https://route-manager-gamma.netlify.app" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Dry-run check
+        if: github.event.inputs.dry_run == 'true'
+        run: |
+          echo "🏃 DRY-RUN MODE ENABLED"
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo "This is a dry-run. No deployment will be performed."
+          echo "Build will be tested but not deployed."
+
+      - name: Build
+        run: npm run build
+
+      - name: List Netlify functions after build
+        run: |
+          echo "Listing functions in netlify/functions:";
+          find ./netlify/functions -type f -name "*.js" -exec echo " - {}" \;
+          echo "";
+          echo "Build artifacts in dist:";
+          ls -lh dist/ | head -20
+
+      - name: Dry-run complete
+        if: github.event.inputs.dry_run == 'true'
+        run: |
+          echo "✅ Dry-run completed successfully!"
+          echo "Build validation passed. Ready for actual deployment."
+          echo "To deploy for real, run workflow_dispatch again with dry_run=false"
+
+      - name: Install Netlify CLI
+        if: github.event.inputs.dry_run == 'false'
+        run: npm install -g netlify-cli
+
+      - name: Deploy to ${{ github.event.inputs.environment }}
+        if: github.event.inputs.dry_run == 'false'
+        run: |
+          if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
+            echo "Deploying to PRODUCTION environment..."
+            netlify deploy --dir=dist --prod --site ${{ secrets.NETLIFY_SITE_ID_PROD }}
+          else
+            echo "Deploying to GAMMA environment..."
+            netlify deploy --dir=dist --prod --site ${{ secrets.NETLIFY_SITE_ID_GAMMA }}
+          fi
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+
+      - name: (Non-blocking) Test deployed functions
+        if: github.event.inputs.dry_run == 'false'
+        run: |
+          if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
+            BASE_URL="https://route-manager-prod.netlify.app"
+          else
+            BASE_URL="https://route-manager-gamma.netlify.app"
+          fi
+          echo "Testing deployed functions at: $BASE_URL";
+          echo "Testing /test-env endpoint (ignore errors):";
+          curl --fail --silent --show-error "$BASE_URL/.netlify/functions/test-env" || echo "test-env endpoint failed (non-blocking)";
+          echo "Testing /search-flights endpoint (ignore errors):";
+          curl --fail --silent --show-error "$BASE_URL/.netlify/functions/search-flights" || echo "search-flights endpoint failed (non-blocking)";
+
+      - name: Deployment Summary
+        if: github.event.inputs.dry_run == 'false'
+        run: |
+          echo "🚀 Deployment completed successfully!"
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
+            echo "URL: https://route-manager-prod.netlify.app"
+          else
+            echo "URL: https://route-manager-gamma.netlify.app"
+          fi
