@@ -6,7 +6,6 @@ import { PlaneTakeoffIcon, Loader2 } from 'lucide-react';
 import HomePage from './pages/HomePage';
 import SearchFlightsPage from './pages/SearchFlightsPage';
 import PriceTrendsPage from './pages/PriceTrendsPage';
-import RouteSummaryPage from './pages/RouteSummaryPage';
 
 function AppContent() {
   const [isLoading, setIsLoading] = useState(false);
@@ -40,7 +39,6 @@ function AppContent() {
               <Link to="/" className="text-gray-500 hover:text-gray-700 font-medium">Home</Link>
               <Link to="/search" className="text-gray-500 hover:text-gray-700 font-medium">Search Flights</Link>
               <Link to="/trends" className="text-gray-500 hover:text-gray-700 font-medium">Price Trends</Link>
-              <Link to="/route-summary" className="text-gray-500 hover:text-gray-700 font-medium">Route Summary</Link>
             </nav>
           </div>
         </div>
@@ -55,7 +53,6 @@ function AppContent() {
           } />
           <Route path="/search" element={<SearchFlightsPage />} />
           <Route path="/trends" element={<PriceTrendsPage />} />
-          <Route path="/route-summary" element={<RouteSummaryPage />} />
         </Routes>
       </main>
     </div>
