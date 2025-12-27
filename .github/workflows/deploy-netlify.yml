@@ -52,7 +52,7 @@ jobs:
         run: npm install -g netlify-cli
 
       - name: Deploy to Gamma
-        run: netlify deploy --build --prod --site ${{ secrets.NETLIFY_SITE_ID_GAMMA }}
+        run: netlify deploy --dir=dist --prod --site ${{ secrets.NETLIFY_SITE_ID_GAMMA }}
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
 
@@ -86,7 +86,7 @@ jobs:
         run: npm install -g netlify-cli
 
       - name: Deploy to Prod
-        run: netlify deploy --build --prod --site ${{ secrets.NETLIFY_SITE_ID_PROD }}
+        run: netlify deploy --dir=dist --prod --site ${{ secrets.NETLIFY_SITE_ID_PROD }}
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
 
