@@ -127,17 +127,25 @@ export default function SearchFlightsPage() {
     return airlines[carrierCode] || carrierCode;
   };
 
-  // Generate Google Flights booking link
+  // Generate Google Flights booking link with one-way and economy preset
   const getBookingLink = (flight: Flight): string => {
     const dep = flight.itineraries[0].segments[0];
     const arr = flight.itineraries[0].segments[flight.itineraries[0].segments.length - 1];
     const depDate = dep.departure.at.split('T')[0];
 
-    // Build Google Flights URL with actual flight details
     const origin = dep.departure.iataCode;
     const destination = arr.arrival.iataCode;
 
-    return `https://www.google.com/travel/flights/search?tfs=CBwQAhopEgoyMDI1LTAxLTAxagcIARIDJHtvcmlnaW59cgwIAxIIJHtkZXN0aW5hdGlvbn0&hl=en&curr=USD`.replace('{origin}', origin).replace('{destination}', destination).replace('2025-01-01', depDate);
+    // Build URL using Google Flights query string format
+    const query = `Flights from ${origin} to ${destination} on ${depDate} one way economy`;
+    const params = new URLSearchParams({
+      hl: 'en',
+      gl: 'us',
+      curr: 'USD',
+      q: query,
+    });
+
+    return `https://www.google.com/travel/flights?${params.toString()}`;
   };
 
   // Search for airports using Amadeus API
