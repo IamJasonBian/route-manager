@@ -184,7 +184,7 @@ npm run test:watch
 
 # Scratch
 
-## E2E Docker Build (depreciated)
+## E2E Docker Build (deprecated)
 
 ```
 npm install
