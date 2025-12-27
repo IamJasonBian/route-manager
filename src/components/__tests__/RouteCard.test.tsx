@@ -50,7 +50,7 @@ describe('RouteCard Component', () => {
     expect(link).toBeInTheDocument();
     
     // Check that link has correct attributes
-    expect(link.closest('a')).toHaveAttribute('href', expect.stringContaining('google.com/flights'));
+    expect(link.closest('a')).toHaveAttribute('href', expect.stringContaining('google.com/travel/flights'));
     expect(link.closest('a')).toHaveAttribute('target', '_blank');
     expect(link.closest('a')).toHaveAttribute('rel', 'noopener noreferrer');
   });
