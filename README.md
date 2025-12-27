@@ -14,24 +14,40 @@
 
 ## PROD: ##
 
-https://chipper-blini-f1d9c8.netlify.app/
+https://route-manager-demo.netlify.app/
 
+# Overview 
 
-## 🚀 Features
+##  Features
 
-- **Price Analysis** - Monitor flight prices with forecasting and volatility analysis
-- **Route Management** - Track and analyze flight routes and pricing
-- **API Integration** - Seamless integration with Amadeus Flight API
-- **Real-time Data** - Get up-to-date flight information and pricing
+Route Manager is designed to enable last minute travel by prebooking commonly taken flights at flex/main levels. This allows for spontaneous trips and upgrades and reduces overall airport planning. Additionally, by solving for price and modeling travel risks and dependencies, Route Manager can increase travel optionality.
 
-## 🚀 Quick Start
+- **Low Latency Flight Monitoring** - Fetch flight prices with historical, projected, volatility and delay (planned) analysis
+- **Route Management** - Track common flight routes and associated pricing
+- **API Integration** - Direct Integration with Amadeus Flight API 
+- **Booking, Rescheduling, and Buying Agent (planned)**
+  * Track and Book commonly flown routes at historical lows with reasonable refund, exchange, and rescheduling fees in anticipation of future upgrades as we approach the travel date
+      * Notification based - Change Management via the original airline site or travel brokers (I.E. VentureX) - user inputs the flight into the system
+      * Agentic - Policy driven Ticket and Change Management via the Amadeus Flight API 
+
+Route Manager is good at
+* Finding the best price in context of a specific user
+* Reducing and simplifying the technical dependencies surrounding air travel by improving ease of access
+
+Route Manager not good at
+* Finding the best price overall on the market
+
+##  Tenants
+
+# Quick Start
 
 ### Prerequisites
 - Node.js 18+ & npm 9+
-- Amadeus API credentials (for production use)
-- PostgreSQL (for local development)
+- Amadeus API credentials (for live data and production use)
+- Netlify Account (for hosting data access functions, we're using netlify rather than doing direct calls from front-end code)
+- Github Repository and Pipelines (for managing personal stacks across local and remote environments)
 
-### 🛠️ Environment Setup
+### Environment Setup
 
 1. **Clone the repository**
    ```bash
@@ -51,13 +67,14 @@ https://chipper-blini-f1d9c8.netlify.app/
    cp .env.example .env
    ```
 
-4. **Database setup**
-   - Ensure PostgreSQL is running
-   - Update the database connection details in `.env`
+4. **Netlify and Amadeus setup**
+   - Set up an Amadeus account to provision prod keys
+   - Set up Netlify environments (Amadeus variables are loaded into the Netlify environment and accessed at runtime)
 
-### 🏃‍♂️ Running Locally
+### Running Locally
 
-#### Development Mode
+#### Development Build
+
 ```bash
 # Start the development server
 npm run dev:clean
@@ -68,7 +85,12 @@ This will start:
 - Netlify dev server on http://localhost:8888
 - API endpoints under `/.netlify/functions/`
 
+```
+# Start the netlify functions (add instructions)
+```
+
 #### Production Build
+
 ```bash
 # Build the application
 npm run build
@@ -77,16 +99,25 @@ npm run build
 npm run preview
 ```
 
-### 🌐 Available API Endpoints
+#### Deployment
+
+Currently, github actions is setup to build the gamma site on pull request
+We can also manually dry-run the github actions build via - 
+
+```
+#gh dry run command (add instructions)
+```
+
+### Available Netlify API Endpoints in Gamma and Prod
 
 - `GET /.netlify/functions/health` - Health check
 - `POST /.netlify/functions/search-flights` - Search for flights
 - `GET /.netlify/functions/popular-routes` - Get popular routes
 - `GET /.netlify/functions/flight-prices` - Get flight prices
 
-## 🔧 Configuration
+##  Configuration
 
-### Environment Variables
+### Development Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
@@ -101,7 +132,7 @@ npm run preview
 | `DB_HOST` | Database host | `localhost` |
 | `DB_PORT` | Database port | `5432` |
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Run tests
@@ -111,57 +142,16 @@ npm test
 npm run test:watch
 ```
 
-## 🚀 Deployment
+## Other Deployments [ Environment | Latest Design ] 
 
-### Netlify
-
-1. Connect your GitHub repository to Netlify
-2. Set up the following environment variables in the Netlify dashboard:
-   - `AMADEUS_API_KEY`
-   - `AMADEUS_API_SECRET`
-   - Database connection variables
-
-3. Deploy!
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/route-manager.git
-cd route-manager
-
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your credentials
-```
-
-### Running the Application
-
-```
-bash
-# Development server
-npm run dev
-
-# Production build
-npm run build
-npm run preview
-```
+* Alpha | Single Page Analytics Demo: [Design 1](https://apollo-route-manager-0acz9.netlify.app/)
+* Gamma | Multi-Passenger Bulk Feature: [Design 2](https://chipper-blini-f1d9c8.netlify.app/)
 
 
-## E2E
+
+# Scratch
+
+## E2E Docker Build (depreciated)
 
 ```
 npm install
@@ -170,18 +160,9 @@ docker compose up -d
 npm run dev -- --port 5177
 npx netlify dev --targetPort 5177 --port 3005
 ```
+ 
 
-## 📚 Documentation
-
-For detailed documentation, please refer to our [Wiki](https://github.com/yourusername/route-manager/wiki).
-
-## 🌐 Mock Deployments
-
-
-* Single site demo: [Design 1](https://apollo-route-manager-0acz9.netlify.app/)
-* Multi-Page flight manager demo: [Design 2](https://route-manager-demo.netlify.app/) 
-
-## 🛠️ Testing locally with your apis
+## Calling the Api Locally
 
 ### Authentication
 
@@ -205,38 +186,12 @@ curl -X GET "https://api.amadeus.com/v2/shopping/flight-offers" \
   --data-urlencode "adults=1"
 ```
 
-### Running the local postgres db
+##  Contributing
 
-```bash
-# Start the database
-npm run db:up
+1. Fork the repository
+2. Create a new Pull Request
+3. Feel free to contact me at jason.bian64@gmail.com for any requests or questions!
 
-# Stop the database
-npm run db:down
-
-#Example SQL
-
-select count(*), 
-  avg(price), destination from routes group by destination;
-
-select count(*), 
-  avg(price), origin from routes group by origin;
-```
-
-
-
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
-
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-<div align="center">
-  Made in 🏠 in NYC, ready to go to LGA, JFK, or EWK anytime
-</div>
-# Test Netlify env injection
