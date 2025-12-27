@@ -53,14 +53,15 @@ export default function PriceTrendsPage() {
   const [prices, setPrices] = useState<PricePoint[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [origin, setOrigin] = useState('DTW');
-  const [destination, setDestination] = useState('JFK');
+  const [origin, setOrigin] = useState('JFK');
+  const [destination, setDestination] = useState('DTW');
   const [tabValue, setTabValue] = useState(0);
   const [stopsFilter, setStopsFilter] = useState<StopsFilter>('cheapest');
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
 
   // Airport search states
-  const [originInput, setOriginInput] = useState('DTW');
-  const [destinationInput, setDestinationInput] = useState('JFK');
+  const [originInput, setOriginInput] = useState('JFK');
+  const [destinationInput, setDestinationInput] = useState('DTW');
   const [originSuggestions, setOriginSuggestions] = useState<Airport[]>([]);
   const [destinationSuggestions, setDestinationSuggestions] = useState<Airport[]>([]);
   const [showOriginSuggestions, setShowOriginSuggestions] = useState(false);
@@ -178,6 +179,29 @@ export default function PriceTrendsPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Check if we should show location prompt and load saved airport
+  useEffect(() => {
+    const savedAirport = localStorage.getItem('userHomeAirport');
+    if (savedAirport) {
+      setOrigin(savedAirport);
+      setOriginInput(savedAirport);
+    } else {
+      setShowLocationPrompt(true);
+    }
+  }, []);
+
+  const handleSetHomeAirport = (airport: string) => {
+    localStorage.setItem('userHomeAirport', airport);
+    setOrigin(airport);
+    setOriginInput(airport);
+    setShowLocationPrompt(false);
+  };
+
+  const dismissLocationPrompt = () => {
+    localStorage.setItem('userHomeAirport', 'JFK'); // Default to JFK
+    setShowLocationPrompt(false);
+  };
+
   const fetchPriceTrends = async (from: string, to: string) => {
     try {
       setIsLoading(true);
@@ -221,6 +245,62 @@ export default function PriceTrendsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Price Trends</h1>
         </div>
         
+        {showLocationPrompt && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3 flex-1">
+                <h3 className="text-sm font-medium text-blue-800">Set your home airport</h3>
+                <p className="mt-1 text-sm text-blue-700">Select your home airport for personalized route defaults.</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => handleSetHomeAirport('DTW')}
+                    className="px-3 py-1 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-100"
+                  >
+                    DTW (Detroit)
+                  </button>
+                  <button
+                    onClick={() => handleSetHomeAirport('JFK')}
+                    className="px-3 py-1 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-100"
+                  >
+                    JFK (New York)
+                  </button>
+                  <button
+                    onClick={() => handleSetHomeAirport('LAX')}
+                    className="px-3 py-1 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-100"
+                  >
+                    LAX (Los Angeles)
+                  </button>
+                  <button
+                    onClick={() => handleSetHomeAirport('ORD')}
+                    className="px-3 py-1 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-100"
+                  >
+                    ORD (Chicago)
+                  </button>
+                  <button
+                    onClick={() => handleSetHomeAirport('SFO')}
+                    className="px-3 py-1 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-100"
+                  >
+                    SFO (San Francisco)
+                  </button>
+                </div>
+              </div>
+              <button
+                onClick={dismissLocationPrompt}
+                className="ml-4 text-blue-400 hover:text-blue-600"
+              >
+                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="bg-white p-6 rounded-lg shadow-md">
           <div className="mb-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
