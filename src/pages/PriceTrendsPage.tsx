@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import PriceHistoryChart, { ChartType } from '../components/PriceHistoryChart';
@@ -47,6 +47,8 @@ function TabPanel({ children, isActive, id }: TabPanelProps) {
   );
 }
 
+type StopsFilter = 'cheapest' | '0' | '1' | '2' | '3+';
+
 export default function PriceTrendsPage() {
   const [prices, setPrices] = useState<PricePoint[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,6 +56,7 @@ export default function PriceTrendsPage() {
   const [origin, setOrigin] = useState('JFK');
   const [destination, setDestination] = useState('LHR');
   const [tabValue, setTabValue] = useState(0);
+  const [stopsFilter, setStopsFilter] = useState<StopsFilter>('cheapest');
 
   // Airport search states
   const [originInput, setOriginInput] = useState('JFK');
@@ -66,6 +69,22 @@ export default function PriceTrendsPage() {
 
   const originRef = useRef<HTMLDivElement>(null);
   const destinationRef = useRef<HTMLDivElement>(null);
+
+  const filteredPrices = useMemo(() => {
+    if (stopsFilter === 'cheapest') {
+      return prices;
+    }
+
+    return prices.filter(p => {
+      const stops = p.flightDetails?.stops;
+      if (stops === undefined) return false;
+
+      if (stopsFilter === '3+') {
+        return stops >= 3;
+      }
+      return stops === parseInt(stopsFilter, 10);
+    });
+  }, [prices, stopsFilter]);
 
   const chartTypes: ChartType[] = ['line', 'burn-down', 'draw-down'];
   const chartTitles = [
@@ -211,7 +230,7 @@ export default function PriceTrendsPage() {
           </div>
           
           <div className="mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               {/* Origin Input with Autocomplete */}
               <div ref={originRef} className="relative">
                 <label htmlFor="origin" className="block text-sm font-medium text-gray-700 mb-1">From</label>
@@ -276,6 +295,23 @@ export default function PriceTrendsPage() {
                 )}
               </div>
 
+              {/* Stops Filter */}
+              <div>
+                <label htmlFor="stops" className="block text-sm font-medium text-gray-700 mb-1">Stops</label>
+                <select
+                  id="stops"
+                  value={stopsFilter}
+                  onChange={(e) => setStopsFilter(e.target.value as StopsFilter)}
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                >
+                  <option value="cheapest">Cheapest</option>
+                  <option value="0">Nonstop</option>
+                  <option value="1">1 Stop</option>
+                  <option value="2">2 Stops</option>
+                  <option value="3+">3+ Stops</option>
+                </select>
+              </div>
+
               <div className="flex items-end">
                 <button
                   type="button"
@@ -337,10 +373,14 @@ export default function PriceTrendsPage() {
                           </div>
                         </div>
                       </div>
+                    ) : filteredPrices.length === 0 ? (
+                      <div className="flex items-center justify-center h-full text-gray-500">
+                        No flights found with {stopsFilter === '0' ? 'nonstop' : stopsFilter === '3+' ? '3+ stops' : `${stopsFilter} stop${stopsFilter === '1' ? '' : 's'}`}
+                      </div>
                     ) : (
-                      <PriceHistoryChart 
-                        prices={prices} 
-                        loading={isLoading} 
+                      <PriceHistoryChart
+                        prices={filteredPrices}
+                        loading={isLoading}
                         chartType={type}
                         title={chartTitles[index]}
                       />
