@@ -16,7 +16,7 @@ on:
       deploy_to_prod:
         description: 'Deploy to PROD (requires manual approval)'
         required: true
-        default: 'false'
+        default: true
         type: boolean
 
 jobs:
