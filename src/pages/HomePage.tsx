@@ -10,12 +10,12 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card
             title="Search Flights"
-            description="Find the best flight options for your next trip"
+            description=""
             to="/search"
           />
           <Card
             title="Price Trends"
-            description="Analyze price history and trends for your routes"
+            description=""
             to="/trends"
           />
         </div>

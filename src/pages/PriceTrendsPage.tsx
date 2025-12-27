@@ -49,18 +49,57 @@ function TabPanel({ children, isActive, id }: TabPanelProps) {
 
 type StopsFilter = 'cheapest' | '0' | '1' | '2' | '3+';
 
+// Map of coordinates to nearest major airport
+const AIRPORT_COORDS: { code: string; lat: number; lon: number; name: string }[] = [
+  { code: 'DTW', lat: 42.2124, lon: -83.3534, name: 'Detroit' },
+  { code: 'JFK', lat: 40.6413, lon: -73.7781, name: 'New York JFK' },
+  { code: 'LGA', lat: 40.7769, lon: -73.8740, name: 'New York LaGuardia' },
+  { code: 'EWR', lat: 40.6895, lon: -74.1745, name: 'Newark' },
+  { code: 'LAX', lat: 33.9416, lon: -118.4085, name: 'Los Angeles' },
+  { code: 'ORD', lat: 41.9742, lon: -87.9073, name: 'Chicago O\'Hare' },
+  { code: 'SFO', lat: 37.6213, lon: -122.3790, name: 'San Francisco' },
+  { code: 'SEA', lat: 47.4502, lon: -122.3088, name: 'Seattle' },
+  { code: 'MIA', lat: 25.7959, lon: -80.2870, name: 'Miami' },
+  { code: 'DFW', lat: 32.8998, lon: -97.0403, name: 'Dallas' },
+  { code: 'ATL', lat: 33.6407, lon: -84.4277, name: 'Atlanta' },
+  { code: 'BOS', lat: 42.3656, lon: -71.0096, name: 'Boston' },
+  { code: 'DEN', lat: 39.8561, lon: -104.6737, name: 'Denver' },
+  { code: 'PHX', lat: 33.4373, lon: -112.0078, name: 'Phoenix' },
+  { code: 'IAH', lat: 29.9902, lon: -95.3368, name: 'Houston' },
+];
+
+function findNearestAirport(lat: number, lon: number): { code: string; name: string } {
+  let nearest = AIRPORT_COORDS[0];
+  let minDist = Infinity;
+
+  for (const airport of AIRPORT_COORDS) {
+    const dist = Math.sqrt(
+      Math.pow(airport.lat - lat, 2) + Math.pow(airport.lon - lon, 2)
+    );
+    if (dist < minDist) {
+      minDist = dist;
+      nearest = airport;
+    }
+  }
+
+  return { code: nearest.code, name: nearest.name };
+}
+
 export default function PriceTrendsPage() {
   const [prices, setPrices] = useState<PricePoint[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [origin, setOrigin] = useState('JFK');
-  const [destination, setDestination] = useState('LHR');
+  const [destination, setDestination] = useState('DTW');
   const [tabValue, setTabValue] = useState(0);
   const [stopsFilter, setStopsFilter] = useState<StopsFilter>('cheapest');
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [detectedAirport, setDetectedAirport] = useState<{ code: string; name: string } | null>(null);
 
   // Airport search states
   const [originInput, setOriginInput] = useState('JFK');
-  const [destinationInput, setDestinationInput] = useState('LHR');
+  const [destinationInput, setDestinationInput] = useState('DTW');
   const [originSuggestions, setOriginSuggestions] = useState<Airport[]>([]);
   const [destinationSuggestions, setDestinationSuggestions] = useState<Airport[]>([]);
   const [showOriginSuggestions, setShowOriginSuggestions] = useState(false);
@@ -178,6 +217,57 @@ export default function PriceTrendsPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Check if we should show location prompt and load saved airport
+  useEffect(() => {
+    const savedAirport = localStorage.getItem('userHomeAirport');
+    if (savedAirport) {
+      setOrigin(savedAirport);
+      setOriginInput(savedAirport);
+    } else {
+      setShowLocationPrompt(true);
+    }
+  }, []);
+
+  const requestLocation = () => {
+    if (!navigator.geolocation) {
+      // Fallback if geolocation not supported
+      setDetectedAirport({ code: 'JFK', name: 'New York JFK' });
+      return;
+    }
+
+    setIsDetectingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const nearest = findNearestAirport(latitude, longitude);
+        setDetectedAirport(nearest);
+        setIsDetectingLocation(false);
+      },
+      () => {
+        // On error or denial, default to JFK
+        setDetectedAirport({ code: 'JFK', name: 'New York JFK' });
+        setIsDetectingLocation(false);
+      },
+      { timeout: 10000 }
+    );
+  };
+
+  const confirmDetectedAirport = () => {
+    if (detectedAirport) {
+      localStorage.setItem('userHomeAirport', detectedAirport.code);
+      setOrigin(detectedAirport.code);
+      setOriginInput(detectedAirport.code);
+      setShowLocationPrompt(false);
+      setDetectedAirport(null);
+    }
+  };
+
+  const dismissLocationPrompt = () => {
+    localStorage.setItem('userHomeAirport', 'JFK'); // Default to JFK
+    setShowLocationPrompt(false);
+    setDetectedAirport(null);
+  };
+
   const fetchPriceTrends = async (from: string, to: string) => {
     try {
       setIsLoading(true);
@@ -221,14 +311,74 @@ export default function PriceTrendsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Price Trends</h1>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <div className="mb-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-2">Flight Price History</h2>
-            <p className="text-sm text-gray-500">
-              Track price changes over time for your selected route
-            </p>
+        {showLocationPrompt && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3 flex-1">
+                <h3 className="text-sm font-medium text-blue-800">Set your home airport</h3>
+                <p className="mt-1 text-sm text-blue-700">
+                  {detectedAirport
+                    ? `We detected you're near ${detectedAirport.name} (${detectedAirport.code}). Use this as your home airport?`
+                    : 'Allow location access to find your nearest airport.'}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {!detectedAirport && !isDetectingLocation && (
+                    <button
+                      onClick={requestLocation}
+                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 flex items-center"
+                    >
+                      <svg className="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                      </svg>
+                      Use My Location
+                    </button>
+                  )}
+                  {isDetectingLocation && (
+                    <div className="flex items-center text-sm text-blue-700">
+                      <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Detecting location...
+                    </div>
+                  )}
+                  {detectedAirport && (
+                    <>
+                      <button
+                        onClick={confirmDetectedAirport}
+                        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
+                      >
+                        Yes, use {detectedAirport.code}
+                      </button>
+                      <button
+                        onClick={() => setDetectedAirport(null)}
+                        className="px-4 py-2 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-100"
+                      >
+                        Try again
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={dismissLocationPrompt}
+                className="ml-4 text-blue-400 hover:text-blue-600"
+                title="Skip and use default (JFK)"
+              >
+                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
           </div>
-          
+        )}
+
+        <div className="bg-white p-6 rounded-lg shadow-md">
           <div className="mb-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               {/* Origin Input with Autocomplete */}
