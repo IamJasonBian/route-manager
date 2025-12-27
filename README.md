@@ -16,8 +16,8 @@
 
 | Environment | URL |
 |-------------|-----|
-| Gamma | https://chipper-blini-f1d9c8.netlify.app/ |
-| Prod | https://route-manager-demo.netlify.app/ |
+| Gamma | https://route-manager-gamma.netlify.app/ |
+| Prod | https://route-manager-prod.netlify.app/ |
 
 # Overview 
 

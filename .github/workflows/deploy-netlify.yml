@@ -59,9 +59,9 @@ jobs:
       - name: (Non-blocking) Test deployed functions
         run: |
           echo "Testing /test-env endpoint (ignore errors):";
-          curl --fail --silent --show-error "https://chipper-blini-f1d9c8.netlify.app/.netlify/functions/test-env" || echo "test-env endpoint failed (non-blocking)";
+          curl --fail --silent --show-error "https://route-manager-gamma.netlify.app/.netlify/functions/test-env" || echo "test-env endpoint failed (non-blocking)";
           echo "Testing /search-flights endpoint (ignore errors):";
-          curl --fail --silent --show-error "https://chipper-blini-f1d9c8.netlify.app/.netlify/functions/search-flights" || echo "search-flights endpoint failed (non-blocking)";
+          curl --fail --silent --show-error "https://route-manager-gamma.netlify.app/.netlify/functions/search-flights" || echo "search-flights endpoint failed (non-blocking)";
 
   deploy-prod:
     runs-on: ubuntu-latest
@@ -93,6 +93,6 @@ jobs:
       - name: (Non-blocking) Test deployed functions
         run: |
           echo "Testing /test-env endpoint (ignore errors):";
-          curl --fail --silent --show-error "https://route-manager-demo.netlify.app/.netlify/functions/test-env" || echo "test-env endpoint failed (non-blocking)";
+          curl --fail --silent --show-error "https://route-manager-prod.netlify.app/.netlify/functions/test-env" || echo "test-env endpoint failed (non-blocking)";
           echo "Testing /search-flights endpoint (ignore errors):";
-          curl --fail --silent --show-error "https://route-manager-demo.netlify.app/.netlify/functions/search-flights" || echo "search-flights endpoint failed (non-blocking)";
+          curl --fail --silent --show-error "https://route-manager-prod.netlify.app/.netlify/functions/search-flights" || echo "search-flights endpoint failed (non-blocking)";
