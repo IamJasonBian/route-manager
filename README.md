@@ -12,9 +12,12 @@
 </div>
 
 
-## PROD: ##
+## Environments
 
-https://route-manager-demo.netlify.app/
+| Environment | URL |
+|-------------|-----|
+| Gamma | https://route-manager-gamma.netlify.app/ |
+| Prod | https://route-manager-prod.netlify.app/ |
 
 # Overview 
 
@@ -101,12 +104,23 @@ npm run preview
 
 #### Deployment
 
-Currently, github actions is setup to build the gamma site on pull request
-We can also manually dry-run the github actions build via - 
+Deployments are managed via GitHub Actions:
 
-```
-#gh dry run command (add instructions)
-```
+- **Gamma**: Automatically deploys on push/PR to main
+- **Prod**: Manual deployment only (blocked by default)
+
+To deploy to prod:
+1. Go to Actions → "Deploy to Netlify"
+2. Click "Run workflow"
+3. Check "Deploy to PROD (requires manual approval)"
+4. Click "Run workflow"
+
+**Required GitHub Secrets:**
+| Secret | Description |
+|--------|-------------|
+| `NETLIFY_AUTH_TOKEN` | Your Netlify personal access token |
+| `NETLIFY_SITE_ID_GAMMA` | Site ID for gamma environment |
+| `NETLIFY_SITE_ID_PROD` | Site ID for prod environment |
 
 ### Available Netlify API Endpoints in Gamma and Prod
 
@@ -142,10 +156,9 @@ npm test
 npm run test:watch
 ```
 
-## Other Deployments [ Environment | Latest Design ] 
+## Other Deployments
 
-* Alpha | Single Page Analytics Demo: [Design 1](https://apollo-route-manager-0acz9.netlify.app/)
-* Gamma | Multi-Passenger Bulk Feature: [Design 2](https://chipper-blini-f1d9c8.netlify.app/)
+* Alpha | Single Page Analytics Demo: https://apollo-route-manager-0acz9.netlify.app/
 
 
 
