@@ -1,19 +1,25 @@
 import * as React from 'react';
 import { MapPinIcon, ClockIcon, ArrowRightIcon, TrendingDownIcon, ExternalLinkIcon } from 'lucide-react';
 import { PriceChart } from './PriceChart';
-// Helper function to generate a Google Flights URL for one-day flights starting from today
+// Helper function to generate a Google Flights URL with preset origin, destination, one-way, and economy
 const getGoogleFlightsUrl = (from: string, to: string): string => {
-  // Get today's date and tomorrow's date for a one-day flight
-  const today = new Date();
-  const tomorrow = new Date(today);
+  // Get tomorrow's date for the departure (gives more search options than today)
+  const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  
-  // Format dates as YYYY-MM-DD
-  const departDate = today.toISOString().split('T')[0];
-  const returnDate = tomorrow.toISOString().split('T')[0];
-  
-  // Build the URL with proper parameters for Google Flights
-  return `https://www.google.com/travel/flights?q=Flights%20to%20${encodeURIComponent(to)}%20from%20${encodeURIComponent(from)}%20on%20${departDate}%20through%20${returnDate}&curr=USD`;
+  const departDate = tomorrow.toISOString().split('T')[0];
+
+  // Build the URL using Google Flights query string format
+  // Format: "Flights from [origin] to [destination] on [date] one way economy"
+  const query = `Flights from ${from} to ${to} on ${departDate} one way economy`;
+
+  const params = new URLSearchParams({
+    hl: 'en',
+    gl: 'us',
+    curr: 'USD',
+    q: query,
+  });
+
+  return `https://www.google.com/travel/flights?${params.toString()}`;
 };
 
 interface RouteCardProps {
