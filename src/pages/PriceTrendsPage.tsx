@@ -53,14 +53,14 @@ export default function PriceTrendsPage() {
   const [prices, setPrices] = useState<PricePoint[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [origin, setOrigin] = useState('JFK');
-  const [destination, setDestination] = useState('LHR');
+  const [origin, setOrigin] = useState('DTW');
+  const [destination, setDestination] = useState('JFK');
   const [tabValue, setTabValue] = useState(0);
   const [stopsFilter, setStopsFilter] = useState<StopsFilter>('cheapest');
 
   // Airport search states
-  const [originInput, setOriginInput] = useState('JFK');
-  const [destinationInput, setDestinationInput] = useState('LHR');
+  const [originInput, setOriginInput] = useState('DTW');
+  const [destinationInput, setDestinationInput] = useState('JFK');
   const [originSuggestions, setOriginSuggestions] = useState<Airport[]>([]);
   const [destinationSuggestions, setDestinationSuggestions] = useState<Airport[]>([]);
   const [showOriginSuggestions, setShowOriginSuggestions] = useState(false);
