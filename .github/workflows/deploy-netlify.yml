@@ -70,7 +70,7 @@ jobs:
       - name: Deploy Preview to Netlify
         id: deploy-preview
         run: |
-          OUTPUT=$(netlify deploy --dir=dist --site ${{ secrets.NETLIFY_SITE_ID_GAMMA }} --json)
+          OUTPUT=$(netlify deploy --dir=dist --functions=netlify/functions --site ${{ secrets.NETLIFY_SITE_ID_GAMMA }} --json --build=false)
           echo "$OUTPUT"
           DEPLOY_URL=$(echo "$OUTPUT" | jq -r '.deploy_url')
           echo "deploy_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
