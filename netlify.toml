@@ -1,5 +1,6 @@
 [build]
-  command = "npm run build"
+  # Build is done in GitHub Actions, not on Netlify
+  # command = "npm run build"
   publish = "dist"
   functions = "netlify/functions"
   node_bundler = "esbuild"
