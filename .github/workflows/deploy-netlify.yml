@@ -58,9 +58,12 @@ jobs:
       - name: Deploy Preview to Gamma
         id: deploy-preview
         run: |
-          DEPLOY_OUTPUT=$(netlify deploy --dir=dist --site ${{ secrets.NETLIFY_SITE_ID_GAMMA }} --json)
-          echo "$DEPLOY_OUTPUT"
-          DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | jq -r '.deploy_url')
+          # Deploy and capture output
+          netlify deploy --dir=dist --site ${{ secrets.NETLIFY_SITE_ID_GAMMA }} --json > deploy-output.json
+          cat deploy-output.json
+
+          # Extract deploy URL using jq (pre-installed on Ubuntu runners)
+          DEPLOY_URL=$(cat deploy-output.json | jq -r '.deploy_url')
           echo "deploy_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
           echo "Preview URL: $DEPLOY_URL"
         env:
@@ -71,18 +74,20 @@ jobs:
         with:
           script: |
             const deployUrl = '${{ steps.deploy-preview.outputs.deploy_url }}';
-            const comment = `### 🚀 Preview Deployment Ready!
-
-            **Preview URL:** ${deployUrl}
-
-            This is a unique preview deployment for this PR. It will be automatically deleted when the PR is closed.
-
-            #### Test the deployment:
-            - Visit the preview URL above
-            - Test flight search functionality
-            - Check that all API endpoints are working
-
-            > 📝 Note: This preview uses the Gamma environment configuration.`;
+            const comment = [
+              '### 🚀 Preview Deployment Ready!',
+              '',
+              `**Preview URL:** ${deployUrl}`,
+              '',
+              'This is a unique preview deployment for this PR. It will be automatically deleted when the PR is closed.',
+              '',
+              '#### Test the deployment:',
+              '- Visit the preview URL above',
+              '- Test flight search functionality',
+              '- Check that all API endpoints are working',
+              '',
+              '> 📝 Note: This preview uses the Gamma environment configuration.'
+            ].join('\n');
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,
