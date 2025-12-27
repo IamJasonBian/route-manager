@@ -67,6 +67,11 @@ export default function PriceTrendsPage() {
   const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
 
+  // Price alert states
+  const [alertEmail, setAlertEmail] = useState('');
+  const [alertLoading, setAlertLoading] = useState(false);
+  const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   const originRef = useRef<HTMLDivElement>(null);
   const destinationRef = useRef<HTMLDivElement>(null);
 
@@ -208,6 +213,38 @@ export default function PriceTrendsPage() {
     if (originInput.length >= 3 && destinationInput.length >= 3) {
       setOrigin(originInput);
       setDestination(destinationInput);
+    }
+  };
+
+  const handleSetAlert = async () => {
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!alertEmail || !emailRegex.test(alertEmail)) {
+      setAlertMessage({ type: 'error', text: 'Please enter a valid email address.' });
+      return;
+    }
+
+    setAlertLoading(true);
+    setAlertMessage(null);
+
+    try {
+      const response = await axios.post('/.netlify/functions/create-alert', {
+        email: alertEmail,
+        origin,
+        destination,
+      });
+
+      if (response.data.success) {
+        setAlertMessage({ type: 'success', text: response.data.message });
+        setAlertEmail('');
+      } else {
+        setAlertMessage({ type: 'error', text: response.data.error || 'Failed to set alert.' });
+      }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to set price alert. Please try again.';
+      setAlertMessage({ type: 'error', text: errorMessage });
+    } finally {
+      setAlertLoading(false);
     }
   };
 
@@ -394,21 +431,37 @@ export default function PriceTrendsPage() {
           <div className="mt-8">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Price Alerts</h3>
             <p className="text-sm text-gray-500 mb-4">
-              Set up price alerts to be notified when prices drop for this route.
+              Set up price alerts to be notified when prices drop for {origin} → {destination}.
             </p>
             <div className="flex items-center">
               <input
                 type="email"
+                value={alertEmail}
+                onChange={(e) => setAlertEmail(e.target.value)}
                 placeholder="your@email.com"
-                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                disabled={alertLoading}
+                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100"
               />
               <button
                 type="button"
-                className="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                onClick={handleSetAlert}
+                disabled={alertLoading}
+                className={`ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${
+                  alertLoading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
               >
-                Set Alert
+                {alertLoading ? 'Setting...' : 'Set Alert'}
               </button>
             </div>
+            {alertMessage && (
+              <div className={`mt-3 p-3 rounded-md text-sm ${
+                alertMessage.type === 'success'
+                  ? 'bg-green-50 text-green-700 border border-green-200'
+                  : 'bg-red-50 text-red-700 border border-red-200'
+              }`}>
+                {alertMessage.text}
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -37,13 +37,16 @@
     AMADEUS_API_KEY = "${AMADEUS_API_KEY}"
     AMADEUS_API_SECRET = "${AMADEUS_API_SECRET}"
     AMADEUS_HOSTNAME = "production"
-    
+
     # Database configuration (should be set in Netlify UI for production)
     DB_USER = "${DB_USER}"
     DB_PASSWORD = "${DB_PASSWORD}"
     DB_NAME = "${DB_NAME}"
     DB_HOST = "${DB_HOST}"
     DB_PORT = "${DB_PORT}"
+
+    # Resend API key for email alerts
+    RESEND_API_KEY = "${RESEND_API_KEY}"
 
 [[redirects]]
   from = "/*"
