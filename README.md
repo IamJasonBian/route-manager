@@ -104,16 +104,32 @@ npm run preview
 
 #### Deployment
 
-Deployments are managed via GitHub Actions:
+Deployments are managed via GitHub Actions. See [PROD_DEPLOYMENT_SOP.md](PROD_DEPLOYMENT_SOP.md) for comprehensive deployment procedures.
 
-- **Gamma**: Automatically deploys on push/PR to main
-- **Prod**: Manual deployment only (blocked by default)
+**Deployment Types:**
+- **Preview (PRs)**: Automatically creates unique preview URLs for each pull request
+  - Format: `https://[deploy-id]--route-manager-gamma.netlify.app/`
+  - Posted as PR comment for easy testing
+- **Gamma (Staging)**: Automatically deploys on push to main branch
+  - URL: https://route-manager-gamma.netlify.app/
+- **Prod (Production)**: Manual deployment via workflow dispatch
+  - URL: https://route-manager-prod.netlify.app/
+  - Supports dry-run mode for validation
 
-To deploy to prod:
+**Quick Start - Manual Deployment:**
 1. Go to Actions → "Deploy to Netlify"
 2. Click "Run workflow"
-3. Check "Deploy to PROD (requires manual approval)"
-4. Click "Run workflow"
+3. Select environment: `gamma` or `prod`
+4. Enable `dry_run` for validation (optional)
+5. Click "Run workflow"
+
+**Quick Start - Dry-Run:**
+1. Go to Actions → "Deploy to Netlify"
+2. Click "Run workflow"
+3. Select environment: `prod`
+4. Enable `dry_run`: ✓
+5. Review build validation output
+6. Run again with `dry_run` disabled to deploy
 
 **Required GitHub Secrets:**
 | Secret | Description |
@@ -121,6 +137,10 @@ To deploy to prod:
 | `NETLIFY_AUTH_TOKEN` | Your Netlify personal access token |
 | `NETLIFY_SITE_ID_GAMMA` | Site ID for gamma environment |
 | `NETLIFY_SITE_ID_PROD` | Site ID for prod environment |
+
+📚 **Documentation**:
+- [Quick Reference Guide](DEPLOYMENT_QUICKREF.md) - Common deployment scenarios
+- [Production Deployment SOP](PROD_DEPLOYMENT_SOP.md) - Detailed procedures and troubleshooting
 
 ### Available Netlify API Endpoints in Gamma and Prod
 
@@ -164,7 +184,7 @@ npm run test:watch
 
 # Scratch
 
-## E2E Docker Build (depreciated)
+## E2E Docker Build (deprecated)
 
 ```
 npm install
