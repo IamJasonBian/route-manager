@@ -1,0 +1,208 @@
+import { useState, useEffect } from 'react';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Area,
+  AreaChart,
+} from 'recharts';
+import { getPriceHistory, PriceData, formatCurrency } from '../services/bitcoinService';
+
+interface BitcoinPriceChartProps {
+  days?: number;
+  height?: number;
+  showGrid?: boolean;
+  chartType?: 'line' | 'area';
+}
+
+export default function BitcoinPriceChart({
+  days = 30,
+  height = 400,
+  showGrid = true,
+  chartType = 'area',
+}: BitcoinPriceChartProps) {
+  const [priceData, setPriceData] = useState<PriceData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedRange, setSelectedRange] = useState(days);
+
+  const ranges = [
+    { label: '24H', value: 1 },
+    { label: '7D', value: 7 },
+    { label: '30D', value: 30 },
+    { label: '90D', value: 90 },
+    { label: '1Y', value: 365 },
+  ];
+
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getPriceHistory(selectedRange);
+        // Sample data for better performance on large datasets
+        const sampledData = selectedRange > 30
+          ? data.filter((_, i) => i % Math.ceil(data.length / 100) === 0)
+          : data;
+        setPriceData(sampledData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch price data');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [selectedRange]);
+
+  const formatXAxis = (timestamp: number) => {
+    const date = new Date(timestamp);
+    if (selectedRange <= 1) {
+      return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+    if (selectedRange <= 7) {
+      return date.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' });
+    }
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const formatTooltipDate = (timestamp: number) => {
+    return new Date(timestamp).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="animate-pulse">
+          <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-[400px] bg-gray-100 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="text-red-500 text-center py-8">
+          <p className="font-medium">Error loading chart</p>
+          <p className="text-sm text-gray-500 mt-1">{error}</p>
+          <button
+            onClick={() => setSelectedRange(selectedRange)}
+            className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const minPrice = Math.min(...priceData.map(d => d.price));
+  const maxPrice = Math.max(...priceData.map(d => d.price));
+  const priceChange = priceData.length > 0
+    ? ((priceData[priceData.length - 1].price - priceData[0].price) / priceData[0].price) * 100
+    : 0;
+  const isPositive = priceChange >= 0;
+
+  const ChartComponent = chartType === 'area' ? AreaChart : LineChart;
+  const chartColor = isPositive ? '#22c55e' : '#ef4444';
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">Price History</h3>
+          <p className={`text-sm font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+            {isPositive ? '+' : ''}{priceChange.toFixed(2)}% in {selectedRange} day{selectedRange > 1 ? 's' : ''}
+          </p>
+        </div>
+        <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+          {ranges.map((range) => (
+            <button
+              key={range.value}
+              onClick={() => setSelectedRange(range.value)}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                selectedRange === range.value
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              {range.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <ResponsiveContainer width="100%" height={height}>
+        <ChartComponent data={priceData}>
+          {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />}
+          <XAxis
+            dataKey="timestamp"
+            tickFormatter={formatXAxis}
+            tick={{ fontSize: 12, fill: '#6b7280' }}
+            axisLine={{ stroke: '#e5e7eb' }}
+            tickLine={{ stroke: '#e5e7eb' }}
+          />
+          <YAxis
+            domain={[minPrice * 0.99, maxPrice * 1.01]}
+            tickFormatter={(value) => formatCurrency(value)}
+            tick={{ fontSize: 12, fill: '#6b7280' }}
+            axisLine={{ stroke: '#e5e7eb' }}
+            tickLine={{ stroke: '#e5e7eb' }}
+            width={80}
+          />
+          <Tooltip
+            content={({ active, payload }) => {
+              if (active && payload && payload.length) {
+                const data = payload[0].payload;
+                return (
+                  <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
+                    <p className="text-sm text-gray-500">{formatTooltipDate(data.timestamp)}</p>
+                    <p className="text-lg font-semibold text-gray-900">{formatCurrency(data.price)}</p>
+                  </div>
+                );
+              }
+              return null;
+            }}
+          />
+          {chartType === 'area' ? (
+            <>
+              <defs>
+                <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={chartColor} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={chartColor} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <Area
+                type="monotone"
+                dataKey="price"
+                stroke={chartColor}
+                strokeWidth={2}
+                fill="url(#colorPrice)"
+              />
+            </>
+          ) : (
+            <Line
+              type="monotone"
+              dataKey="price"
+              stroke={chartColor}
+              strokeWidth={2}
+              dot={false}
+            />
+          )}
+        </ChartComponent>
+      </ResponsiveContainer>
+    </div>
+  );
+}

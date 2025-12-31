@@ -1,0 +1,138 @@
+import { useState, useEffect } from 'react';
+import { RefreshCw, Bitcoin } from 'lucide-react';
+import PriceCard from '../components/PriceCard';
+import BitcoinPriceChart from '../components/BitcoinPriceChart';
+import MarketStats from '../components/MarketStats';
+import {
+  getCurrentPrice,
+  getBitcoinDetails,
+  BitcoinData,
+  MarketData,
+} from '../services/bitcoinService';
+
+export default function DashboardPage() {
+  const [bitcoinData, setBitcoinData] = useState<BitcoinData | null>(null);
+  const [marketData, setMarketData] = useState<MarketData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchData = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    setError(null);
+
+    try {
+      const [priceData, detailsData] = await Promise.all([
+        getCurrentPrice(),
+        getBitcoinDetails(),
+      ]);
+      setBitcoinData(priceData);
+      setMarketData(detailsData.market_data);
+      setLastUpdated(new Date());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch data');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+
+    // Auto-refresh every 60 seconds
+    const interval = setInterval(() => fetchData(true), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Bitcoin className="w-16 h-16 text-orange-500 animate-pulse mx-auto mb-4" />
+          <p className="text-lg font-medium text-gray-900">Loading Bitcoin data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg font-medium text-red-600 mb-4">{error}</p>
+          <button
+            onClick={() => fetchData()}
+            className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Bitcoin Dashboard</h1>
+          <p className="text-gray-500 mt-1">
+            Real-time price tracking and market analysis
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          {lastUpdated && (
+            <span className="text-sm text-gray-500">
+              Updated {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
+          <button
+            onClick={() => fetchData(true)}
+            disabled={refreshing}
+            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Price Card */}
+      {bitcoinData && (
+        <div className="mb-8">
+          <PriceCard
+            name={bitcoinData.name}
+            symbol={bitcoinData.symbol}
+            image={bitcoinData.image}
+            currentPrice={bitcoinData.current_price}
+            priceChange24h={bitcoinData.price_change_24h}
+            priceChangePercentage24h={bitcoinData.price_change_percentage_24h}
+            marketCap={bitcoinData.market_cap}
+            volume24h={bitcoinData.total_volume}
+            high24h={bitcoinData.high_24h}
+            low24h={bitcoinData.low_24h}
+            sparkline={bitcoinData.sparkline_in_7d?.price}
+          />
+        </div>
+      )}
+
+      {/* Market Stats */}
+      {marketData && (
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Market Statistics</h2>
+          <MarketStats marketData={marketData} />
+        </div>
+      )}
+
+      {/* Price Chart */}
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Price Chart</h2>
+        <BitcoinPriceChart days={30} height={400} />
+      </div>
+    </div>
+  );
+}
