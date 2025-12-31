@@ -24,15 +24,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "src/types"],
-  "exclude": [
-    "src/services/dbDirect.ts",
-    "src/services/dbService.ts",
-    "src/services/amadeusService.ts",
-    "src/utils",
-    "src/**/*.test.ts",
-    "src/**/*.test.tsx",
-    "src/**/__tests__"
-  ],
+  "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
