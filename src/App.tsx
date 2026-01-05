@@ -65,14 +65,13 @@ function AppContent() {
           <p className="text-center text-sm text-gray-500">
             Data provided by{' '}
             <a
-              href="https://www.coingecko.com/"
+              href="https://twelvedata.com/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-orange-600 hover:underline"
+              className="text-blue-600 hover:underline"
             >
-              CoinGecko API
+              Twelve Data
             </a>
-            {' '} - Free, no API key required
           </p>
         </div>
       </footer>
