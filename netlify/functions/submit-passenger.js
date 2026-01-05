@@ -85,6 +85,7 @@ export const handler = async (event) => {
 
     // Prepare the row data
     const timestamp = data.submittedAt || new Date().toISOString();
+    const excludedAirlines = Array.isArray(data.excludedAirlines) ? data.excludedAirlines.join(', ') : '';
     const rowData = [
       timestamp,
       data.origin || '',
@@ -97,13 +98,14 @@ export const handler = async (event) => {
       data.countryCode,
       data.phone,
       data.email,
-      data.preferredAirline || ''
+      data.farePreference || '',
+      excludedAirlines
     ];
 
     // Google Sheets API endpoint for appending data
-    // Columns: Timestamp, From, To, First Name, Middle Name, Last Name, DOB, Gender, Country Code, Phone, Email, Preferred Airline
+    // Columns: Timestamp, From, To, First Name, Middle Name, Last Name, DOB, Gender, Country Code, Phone, Email, Fare Preference, Excluded Airlines
     const sheetName = 'Passengers';
-    const range = `${sheetName}!A:L`;
+    const range = `${sheetName}!A:M`;
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS&key=${GOOGLE_SHEETS_API_KEY}`;
 
     const response = await fetch(url, {
