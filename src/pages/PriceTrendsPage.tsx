@@ -640,7 +640,10 @@ export default function PriceTrendsPage() {
 
             {/* Flight List with Links */}
             {filteredPrices.length > 0 && (
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div
+                className="bg-gray-50 rounded-lg p-4"
+                key={`flights-container-${origin}-${destination}-${stopsFilter}-${excludedAirlines.join(',')}-${filteredPrices.length}`}
+              >
                 <h4 className="text-sm font-medium text-gray-700 mb-3">Recent Price Points (click to book)</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {filteredPrices.slice(0, 6).map((pricePoint, index) => {
@@ -651,7 +654,7 @@ export default function PriceTrendsPage() {
 
                     return (
                       <a
-                        key={`${origin}-${destination}-${pricePoint.recorded_at}-${index}`}
+                        key={`${origin}-${destination}-${stopsFilter}-${excludedAirlines.join(',')}-${pricePoint.recorded_at}-${pricePoint.price}-${index}`}
                         href={googleFlightsUrl}
                         target="_blank"
                         rel="noopener noreferrer"
