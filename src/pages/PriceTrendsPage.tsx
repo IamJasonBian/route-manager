@@ -340,8 +340,11 @@ export default function PriceTrendsPage() {
 
   const handleUpdate = () => {
     if (originInput.length >= 3 && destinationInput.length >= 3) {
+      // Update origin/destination state
       setOrigin(originInput);
       setDestination(destinationInput);
+      // Always refresh price data (even if origin/destination unchanged)
+      fetchPriceTrends(originInput, destinationInput);
     }
   };
 
