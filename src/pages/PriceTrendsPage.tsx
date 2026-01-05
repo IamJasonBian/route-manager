@@ -50,6 +50,14 @@ function TabPanel({ children, isActive, id }: TabPanelProps) {
 }
 
 type StopsFilter = 'cheapest' | '0' | '1' | '2' | '3+';
+type FarePreference = '' | 'refundable' | 'no_penalty' | 'no_restriction';
+
+const farePreferenceOptions = [
+  { code: '' as FarePreference, name: 'Any fare type' },
+  { code: 'refundable' as FarePreference, name: 'Refundable fares only' },
+  { code: 'no_penalty' as FarePreference, name: 'No change fees' },
+  { code: 'no_restriction' as FarePreference, name: 'No restrictions (flexible)' },
+];
 
 // Map of coordinates to nearest major airport
 const AIRPORT_COORDS: { code: string; lat: number; lon: number; name: string }[] = [
@@ -95,6 +103,7 @@ export default function PriceTrendsPage() {
   const [destination, setDestination] = useState('DTW');
   const [tabValue, setTabValue] = useState(0);
   const [stopsFilter, setStopsFilter] = useState<StopsFilter>('cheapest');
+  const [farePreference, setFarePreference] = useState<FarePreference>('');
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [detectedAirport, setDetectedAirport] = useState<{ code: string; name: string } | null>(null);
@@ -382,7 +391,7 @@ export default function PriceTrendsPage() {
 
         <div className="bg-white p-6 rounded-lg shadow-md">
           <div className="mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
               {/* Origin Input with Autocomplete */}
               <div ref={originRef} className="relative">
                 <label htmlFor="origin" className="block text-sm font-medium text-gray-700 mb-1">From</label>
@@ -461,6 +470,23 @@ export default function PriceTrendsPage() {
                   <option value="1">1 Stop</option>
                   <option value="2">2 Stops</option>
                   <option value="3+">3+ Stops</option>
+                </select>
+              </div>
+
+              {/* Fare Preference */}
+              <div>
+                <label htmlFor="farePreference" className="block text-sm font-medium text-gray-700 mb-1">Fare Type</label>
+                <select
+                  id="farePreference"
+                  value={farePreference}
+                  onChange={(e) => setFarePreference(e.target.value as FarePreference)}
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                >
+                  {farePreferenceOptions.map(({ code, name }) => (
+                    <option key={code} value={code}>
+                      {name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
