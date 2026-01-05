@@ -117,7 +117,7 @@ export default function PassengerForm({ origin, destination }: PassengerFormProp
     <div className="bg-white p-6 rounded-lg shadow-md">
       <h2 className="text-xl font-bold text-gray-900 mb-4">Passenger Information</h2>
       <p className="text-sm text-gray-600 mb-6">
-        Enter your details to receive personalized flight alerts and booking assistance.
+        Enter your details to start book-flights workflow.
       </p>
 
       {submitStatus === 'success' && (
