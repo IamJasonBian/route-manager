@@ -59,6 +59,14 @@ const farePreferenceOptions = [
   { code: 'no_restriction' as FarePreference, name: 'No restrictions (flexible)' },
 ];
 
+// Airlines that can be excluded from chart display
+const excludableAirlines = [
+  { code: 'NK', name: 'Spirit' },
+  { code: 'AA', name: 'American' },
+  { code: 'F9', name: 'Frontier' },
+  { code: 'B6', name: 'JetBlue' },
+];
+
 // Map of coordinates to nearest major airport
 const AIRPORT_COORDS: { code: string; lat: number; lon: number; name: string }[] = [
   { code: 'DTW', lat: 42.2124, lon: -83.3534, name: 'Detroit' },
@@ -104,6 +112,7 @@ export default function PriceTrendsPage() {
   const [tabValue, setTabValue] = useState(0);
   const [stopsFilter, setStopsFilter] = useState<StopsFilter>('cheapest');
   const [farePreference, setFarePreference] = useState<FarePreference>('');
+  const [excludedAirlines, setExcludedAirlines] = useState<string[]>([]);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [detectedAirport, setDetectedAirport] = useState<{ code: string; name: string } | null>(null);
@@ -121,20 +130,34 @@ export default function PriceTrendsPage() {
   const destinationRef = useRef<HTMLDivElement>(null);
 
   const filteredPrices = useMemo(() => {
-    if (stopsFilter === 'cheapest') {
-      return prices;
+    let filtered = prices;
+
+    // Filter by excluded airlines
+    if (excludedAirlines.length > 0) {
+      filtered = filtered.filter(p => {
+        const carrier = p.flightDetails?.carrier;
+        if (!carrier) return true; // Keep if no carrier info
+        // Extract airline code from carrier (e.g., "AA1234" -> "AA")
+        const airlineCode = carrier.match(/^[A-Z]{2}/)?.[0];
+        return !airlineCode || !excludedAirlines.includes(airlineCode);
+      });
     }
 
-    return prices.filter(p => {
-      const stops = p.flightDetails?.stops;
-      if (stops === undefined) return false;
+    // Filter by stops
+    if (stopsFilter !== 'cheapest') {
+      filtered = filtered.filter(p => {
+        const stops = p.flightDetails?.stops;
+        if (stops === undefined) return false;
 
-      if (stopsFilter === '3+') {
-        return stops >= 3;
-      }
-      return stops === parseInt(stopsFilter, 10);
-    });
-  }, [prices, stopsFilter]);
+        if (stopsFilter === '3+') {
+          return stops >= 3;
+        }
+        return stops === parseInt(stopsFilter, 10);
+      });
+    }
+
+    return filtered;
+  }, [prices, stopsFilter, excludedAirlines]);
 
   const chartTypes: ChartType[] = ['line', 'burn-down', 'draw-down'];
   const chartTitles = [
@@ -145,6 +168,16 @@ export default function PriceTrendsPage() {
 
   const handleTabChange = (newValue: number) => {
     setTabValue(newValue);
+  };
+
+  const handleAirlineExclusion = (airlineCode: string) => {
+    setExcludedAirlines(prev => {
+      if (prev.includes(airlineCode)) {
+        return prev.filter(code => code !== airlineCode);
+      } else {
+        return [...prev, airlineCode];
+      }
+    });
   };
 
   // Search for airports using Amadeus API
@@ -502,6 +535,22 @@ export default function PriceTrendsPage() {
                   {isLoading ? 'Loading...' : 'Update Chart'}
                 </button>
               </div>
+            </div>
+
+            {/* Airline Exclusions */}
+            <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-gray-200">
+              <span className="text-sm font-medium text-gray-700">Exclude Airlines:</span>
+              {excludableAirlines.map(({ code, name }) => (
+                <label key={code} className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={excludedAirlines.includes(code)}
+                    onChange={() => handleAirlineExclusion(code)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <span className="text-sm text-gray-700">{name} ({code})</span>
+                </label>
+              ))}
             </div>
             
             <div className="mt-6">
