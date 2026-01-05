@@ -1,12 +1,64 @@
 /**
  * Netlify Function to submit passenger data to Google Sheets.
  *
- * Uses Google Sheets API v4 with Service Account authentication.
+ * Uses Google Sheets API v4 with Service Account authentication via JWT.
  */
 
-import { GoogleAuth } from 'google-auth-library';
+import crypto from 'crypto';
 
 const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID;
+
+// Create a JWT for Google API authentication
+async function createJWT(clientEmail, privateKey) {
+  const header = {
+    alg: 'RS256',
+    typ: 'JWT'
+  };
+
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    iss: clientEmail,
+    scope: 'https://www.googleapis.com/auth/spreadsheets',
+    aud: 'https://oauth2.googleapis.com/token',
+    iat: now,
+    exp: now + 3600 // 1 hour
+  };
+
+  const base64Header = Buffer.from(JSON.stringify(header)).toString('base64url');
+  const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const signatureInput = `${base64Header}.${base64Payload}`;
+
+  // Sign with RSA-SHA256
+  const sign = crypto.createSign('RSA-SHA256');
+  sign.update(signatureInput);
+  const signature = sign.sign(privateKey, 'base64url');
+
+  return `${signatureInput}.${signature}`;
+}
+
+// Exchange JWT for access token
+async function getAccessToken(clientEmail, privateKey) {
+  const jwt = await createJWT(clientEmail, privateKey);
+
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion: jwt
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to get access token: ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.access_token;
+}
 
 // Build credentials from environment variables
 const getCredentials = () => {
@@ -128,14 +180,8 @@ export const handler = async (event) => {
       excludedAirlines
     ];
 
-    // Create auth client with service account credentials
-    const auth = new GoogleAuth({
-      credentials,
-      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-    });
-
-    const client = await auth.getClient();
-    const accessToken = await client.getAccessToken();
+    // Get access token using JWT
+    const accessToken = await getAccessToken(credentials.client_email, credentials.private_key);
 
     // Google Sheets API endpoint for appending data
     // Columns: Timestamp, From, To, First Name, Middle Name, Last Name, DOB, Gender, Country Code, Phone, Email, Fare Preference, Excluded Airlines
@@ -147,7 +193,7 @@ export const handler = async (event) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken.token}`,
+        'Authorization': `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
         values: [rowData]
