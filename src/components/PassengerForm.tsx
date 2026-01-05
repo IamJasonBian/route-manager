@@ -15,7 +15,8 @@ interface PassengerFormData {
   countryCode: string;
   phone: string;
   email: string;
-  preferredAirline: string;
+  farePreference: string;
+  excludedAirlines: string[];
 }
 
 const initialFormData: PassengerFormData = {
@@ -27,33 +28,24 @@ const initialFormData: PassengerFormData = {
   countryCode: '+1',
   phone: '',
   email: '',
-  preferredAirline: '',
+  farePreference: '',
+  excludedAirlines: [],
 };
 
-// Major airlines
-const airlines = [
-  { code: '', name: 'No preference' },
-  { code: 'AA', name: 'American Airlines' },
-  { code: 'DL', name: 'Delta Air Lines' },
-  { code: 'UA', name: 'United Airlines' },
-  { code: 'WN', name: 'Southwest Airlines' },
-  { code: 'B6', name: 'JetBlue Airways' },
-  { code: 'AS', name: 'Alaska Airlines' },
+// Fare preferences based on Amadeus API capabilities
+const farePreferences = [
+  { code: '', name: 'Any fare type' },
+  { code: 'refundable', name: 'Refundable fares only' },
+  { code: 'no_penalty', name: 'No change fees' },
+  { code: 'no_restriction', name: 'No restrictions (flexible)' },
+];
+
+// Airlines that can be excluded (budget carriers)
+const excludableAirlines = [
   { code: 'NK', name: 'Spirit Airlines' },
+  { code: 'AA', name: 'American Airlines' },
   { code: 'F9', name: 'Frontier Airlines' },
-  { code: 'HA', name: 'Hawaiian Airlines' },
-  { code: 'SY', name: 'Sun Country Airlines' },
-  { code: 'AC', name: 'Air Canada' },
-  { code: 'BA', name: 'British Airways' },
-  { code: 'LH', name: 'Lufthansa' },
-  { code: 'AF', name: 'Air France' },
-  { code: 'KL', name: 'KLM' },
-  { code: 'EK', name: 'Emirates' },
-  { code: 'QR', name: 'Qatar Airways' },
-  { code: 'SQ', name: 'Singapore Airlines' },
-  { code: 'CX', name: 'Cathay Pacific' },
-  { code: 'JL', name: 'Japan Airlines' },
-  { code: 'NH', name: 'ANA' },
+  { code: 'B6', name: 'JetBlue Airways' },
 ];
 
 // Common country codes
@@ -79,6 +71,17 @@ export default function PassengerForm({ origin, destination }: PassengerFormProp
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAirlineExclusion = (airlineCode: string) => {
+    setFormData(prev => {
+      const currentExclusions = prev.excludedAirlines;
+      if (currentExclusions.includes(airlineCode)) {
+        return { ...prev, excludedAirlines: currentExclusions.filter(code => code !== airlineCode) };
+      } else {
+        return { ...prev, excludedAirlines: [...currentExclusions, airlineCode] };
+      }
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -277,24 +280,47 @@ export default function PassengerForm({ origin, destination }: PassengerFormProp
           />
         </div>
 
-        {/* Preferred Airline */}
+        {/* Fare Preference */}
         <div>
-          <label htmlFor="preferredAirline" className="block text-sm font-medium text-gray-700 mb-1">
-            Preferred Airline <span className="text-gray-400">(optional)</span>
+          <label htmlFor="farePreference" className="block text-sm font-medium text-gray-700 mb-1">
+            Fare Preference <span className="text-gray-400">(optional)</span>
           </label>
           <select
-            id="preferredAirline"
-            name="preferredAirline"
-            value={formData.preferredAirline}
+            id="farePreference"
+            name="farePreference"
+            value={formData.farePreference}
             onChange={handleChange}
             className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
           >
-            {airlines.map(({ code, name }) => (
+            {farePreferences.map(({ code, name }) => (
               <option key={code} value={code}>
-                {code ? `${name} (${code})` : name}
+                {name}
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Airline Exclusions */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Exclude Airlines <span className="text-gray-400">(optional)</span>
+          </label>
+          <p className="text-xs text-gray-500 mb-3">
+            Select airlines you want to exclude from search results.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            {excludableAirlines.map(({ code, name }) => (
+              <label key={code} className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.excludedAirlines.includes(code)}
+                  onChange={() => handleAirlineExclusion(code)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <span className="text-sm text-gray-700">{name} ({code})</span>
+              </label>
+            ))}
+          </div>
         </div>
 
         {/* Submit Button */}
