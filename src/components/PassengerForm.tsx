@@ -15,6 +15,7 @@ interface PassengerFormData {
   countryCode: string;
   phone: string;
   email: string;
+  preferredAirline: string;
 }
 
 const initialFormData: PassengerFormData = {
@@ -26,7 +27,34 @@ const initialFormData: PassengerFormData = {
   countryCode: '+1',
   phone: '',
   email: '',
+  preferredAirline: '',
 };
+
+// Major airlines
+const airlines = [
+  { code: '', name: 'No preference' },
+  { code: 'AA', name: 'American Airlines' },
+  { code: 'DL', name: 'Delta Air Lines' },
+  { code: 'UA', name: 'United Airlines' },
+  { code: 'WN', name: 'Southwest Airlines' },
+  { code: 'B6', name: 'JetBlue Airways' },
+  { code: 'AS', name: 'Alaska Airlines' },
+  { code: 'NK', name: 'Spirit Airlines' },
+  { code: 'F9', name: 'Frontier Airlines' },
+  { code: 'HA', name: 'Hawaiian Airlines' },
+  { code: 'SY', name: 'Sun Country Airlines' },
+  { code: 'AC', name: 'Air Canada' },
+  { code: 'BA', name: 'British Airways' },
+  { code: 'LH', name: 'Lufthansa' },
+  { code: 'AF', name: 'Air France' },
+  { code: 'KL', name: 'KLM' },
+  { code: 'EK', name: 'Emirates' },
+  { code: 'QR', name: 'Qatar Airways' },
+  { code: 'SQ', name: 'Singapore Airlines' },
+  { code: 'CX', name: 'Cathay Pacific' },
+  { code: 'JL', name: 'Japan Airlines' },
+  { code: 'NH', name: 'ANA' },
+];
 
 // Common country codes
 const countryCodes = [
@@ -247,6 +275,26 @@ export default function PassengerForm({ origin, destination }: PassengerFormProp
             className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
             placeholder="john.doe@example.com"
           />
+        </div>
+
+        {/* Preferred Airline */}
+        <div>
+          <label htmlFor="preferredAirline" className="block text-sm font-medium text-gray-700 mb-1">
+            Preferred Airline <span className="text-gray-400">(optional)</span>
+          </label>
+          <select
+            id="preferredAirline"
+            name="preferredAirline"
+            value={formData.preferredAirline}
+            onChange={handleChange}
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+          >
+            {airlines.map(({ code, name }) => (
+              <option key={code} value={code}>
+                {code ? `${name} (${code})` : name}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Submit Button */}
