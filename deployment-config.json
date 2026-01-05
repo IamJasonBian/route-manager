@@ -1,0 +1,5 @@
+{
+  "$schema": "./deployment-config.schema.json",
+  "targetEnvironment": "alpha",
+  "_comment": "Valid values: 'alpha', 'gamma', 'prod'. Default is 'alpha'. To deploy to a different environment, change targetEnvironment and submit a PR."
+}

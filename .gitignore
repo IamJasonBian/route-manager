@@ -30,3 +30,10 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+
+# CDK
+cdk/node_modules
+cdk/dist
+cdk/cdk.out
+*.js.map
+*.d.ts
