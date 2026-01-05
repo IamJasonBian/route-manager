@@ -7,7 +7,7 @@
     "targetEnvironment": {
       "type": "string",
       "enum": ["alpha", "gamma", "prod"],
-      "default": "gamma",
+      "default": "alpha",
       "description": "The target environment for deployment. 'alpha' for early testing, 'gamma' for staging, 'prod' for production."
     },
     "_comment": {

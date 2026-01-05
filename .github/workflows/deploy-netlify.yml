@@ -16,7 +16,7 @@ on:
       target_environment:
         description: 'Target environment for deployment'
         required: true
-        default: 'gamma'
+        default: 'alpha'
         type: choice
         options:
           - alpha
@@ -44,14 +44,14 @@ jobs:
             echo "target_env=${{ github.event.inputs.target_environment }}" >> $GITHUB_OUTPUT
             echo "Using workflow input: ${{ github.event.inputs.target_environment }}"
           else
-            # Read from deployment-config.json, default to gamma
+            # Read from deployment-config.json, default to alpha
             if [ -f deployment-config.json ]; then
-              TARGET=$(jq -r '.targetEnvironment // "gamma"' deployment-config.json)
+              TARGET=$(jq -r '.targetEnvironment // "alpha"' deployment-config.json)
               echo "target_env=$TARGET" >> $GITHUB_OUTPUT
               echo "Using config file: $TARGET"
             else
-              echo "target_env=gamma" >> $GITHUB_OUTPUT
-              echo "No config file found, using default: gamma"
+              echo "target_env=alpha" >> $GITHUB_OUTPUT
+              echo "No config file found, using default: alpha"
             fi
           fi
 

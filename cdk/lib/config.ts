@@ -48,7 +48,7 @@ export const environments: Record<Environment, EnvironmentConfig> = {
  * Default environment for deployments.
  * This is used when no specific environment is specified.
  */
-export const defaultEnvironment: Environment = 'gamma';
+export const defaultEnvironment: Environment = 'alpha';
 
 /**
  * Gets the configuration for an environment.
