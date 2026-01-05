@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import PriceHistoryChart, { ChartType } from '../components/PriceHistoryChart';
 import { getPriceHistory } from '../services/api';
+import { generateGoogleFlightsUrl, generateGoogleFlightsExploreUrl } from '../utils/googleFlights';
+import PassengerForm from '../components/PassengerForm';
 
 interface Airport {
   iataCode: string;
@@ -500,8 +502,8 @@ export default function PriceTrendsPage() {
               </div>
               
               {chartTypes.map((type, index) => (
-                <TabPanel 
-                  key={type} 
+                <TabPanel
+                  key={type}
                   id={`${type}-panel`}
                   isActive={tabValue === index}
                 >
@@ -540,7 +542,77 @@ export default function PriceTrendsPage() {
               ))}
           </div>
           </div>
-          
+
+          {/* Google Flights Quick Links */}
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Book on Google Flights</h3>
+              <a
+                href={generateGoogleFlightsExploreUrl(origin, destination)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              >
+                <svg className="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+                Search {origin} → {destination}
+              </a>
+            </div>
+
+            {/* Flight List with Links */}
+            {filteredPrices.length > 0 && (
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Recent Price Points (click to book)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {filteredPrices.slice(0, 6).map((pricePoint, index) => {
+                    const date = pricePoint.flightDetails?.departureTime
+                      ? new Date(pricePoint.flightDetails.departureTime)
+                      : new Date(pricePoint.recorded_at);
+                    const googleFlightsUrl = generateGoogleFlightsUrl(origin, destination, date);
+
+                    return (
+                      <a
+                        key={index}
+                        href={googleFlightsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all"
+                      >
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                          </div>
+                          {pricePoint.flightDetails?.flightNumber && (
+                            <div className="text-xs text-gray-500">
+                              {pricePoint.flightDetails.flightNumber}
+                              {pricePoint.flightDetails.stops !== undefined && (
+                                <span className="ml-2">
+                                  {pricePoint.flightDetails.stops === 0 ? 'Nonstop' : `${pricePoint.flightDetails.stops} stop${pricePoint.flightDetails.stops > 1 ? 's' : ''}`}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center">
+                          <span className="text-lg font-bold text-green-600">${pricePoint.price}</span>
+                          <svg className="ml-2 h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+        </div>
+
+        {/* Passenger Form Section */}
+        <div className="mt-8">
+          <PassengerForm />
         </div>
       </div>
     </div>
