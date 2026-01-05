@@ -96,13 +96,14 @@ export const handler = async (event) => {
       data.gender,
       data.countryCode,
       data.phone,
-      data.email
+      data.email,
+      data.preferredAirline || ''
     ];
 
     // Google Sheets API endpoint for appending data
-    // Columns: Timestamp, From, To, First Name, Middle Name, Last Name, DOB, Gender, Country Code, Phone, Email
+    // Columns: Timestamp, From, To, First Name, Middle Name, Last Name, DOB, Gender, Country Code, Phone, Email, Preferred Airline
     const sheetName = 'Passengers';
-    const range = `${sheetName}!A:K`;
+    const range = `${sheetName}!A:L`;
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS&key=${GOOGLE_SHEETS_API_KEY}`;
 
     const response = await fetch(url, {
