@@ -612,7 +612,7 @@ export default function PriceTrendsPage() {
 
         {/* Passenger Form Section */}
         <div className="mt-8">
-          <PassengerForm />
+          <PassengerForm origin={origin} destination={destination} />
         </div>
       </div>
     </div>

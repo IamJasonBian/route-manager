@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import axios from 'axios';
 
+interface PassengerFormProps {
+  origin?: string;
+  destination?: string;
+}
+
 interface PassengerFormData {
   firstName: string;
   middleName: string;
@@ -37,7 +42,7 @@ const countryCodes = [
   { code: '+52', country: 'MX' },
 ];
 
-export default function PassengerForm() {
+export default function PassengerForm({ origin, destination }: PassengerFormProps) {
   const [formData, setFormData] = useState<PassengerFormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -55,7 +60,13 @@ export default function PassengerForm() {
     setErrorMessage('');
 
     try {
-      const response = await axios.post('/.netlify/functions/submit-passenger', formData);
+      const submissionData = {
+        ...formData,
+        origin: origin || '',
+        destination: destination || '',
+        submittedAt: new Date().toISOString(),
+      };
+      const response = await axios.post('/.netlify/functions/submit-passenger', submissionData);
 
       if (response.data.success) {
         setSubmitStatus('success');
