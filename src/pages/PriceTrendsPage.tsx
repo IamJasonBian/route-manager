@@ -648,7 +648,7 @@ export default function PriceTrendsPage() {
 
                     return (
                       <a
-                        key={index}
+                        key={`${origin}-${destination}-${pricePoint.recorded_at}-${index}`}
                         href={googleFlightsUrl}
                         target="_blank"
                         rel="noopener noreferrer"
