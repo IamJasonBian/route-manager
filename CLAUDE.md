@@ -98,9 +98,12 @@ monterrey/
 - **API Integration**: Amadeus SDK for flight data
 
 ### Deployment
-- **Environments**: Gamma (staging) and Prod (protected)
-- **CI/CD**: GitHub Actions with manual prod deployment gate
+- **Environments**: Alpha (development), Gamma (staging), and Prod (protected)
+- **CI/CD**: GitHub Actions with config-driven environment selection
+- **Configuration**: Edit `deployment-config.json` to change target environment
+- **CDK**: Optional AWS CDK infrastructure in `/cdk` directory
 - **Secrets**: `NETLIFY_AUTH_TOKEN`, `NETLIFY_SITE_ID_GAMMA`, `NETLIFY_SITE_ID_PROD`
+- **Alpha Site ID**: `b26b3133-30c1-46f3-b976-59ab7c928b57` (hardcoded)
 
 ## Authentication
 
@@ -115,7 +118,18 @@ Project backlog: https://github.com/users/IamJasonBian/projects/1
 
 ## Environments
 
-| Environment | URL |
-|-------------|-----|
-| Gamma | https://route-manager-gamma.netlify.app/ |
-| Prod | https://route-manager-prod.netlify.app/ |
+| Environment | URL | Site ID |
+|-------------|-----|---------|
+| Alpha | https://route-manager-alpha.netlify.app/ | b26b3133-30c1-46f3-b976-59ab7c928b57 |
+| Gamma | https://route-manager-gamma.netlify.app/ | (GitHub secret) |
+| Prod | https://route-manager-prod.netlify.app/ | (GitHub secret) |
+
+## Changing Deployment Target
+
+To deploy to a different environment:
+1. Edit `deployment-config.json` in the root directory
+2. Change `targetEnvironment` to `"alpha"`, `"gamma"`, or `"prod"`
+3. Submit a PR with the change
+4. Once merged, the workflow will deploy to the specified environment
+
+Alternatively, use the manual workflow dispatch in GitHub Actions to deploy to any environment on-demand.

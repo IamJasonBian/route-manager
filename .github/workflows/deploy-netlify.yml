@@ -13,15 +13,91 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
     inputs:
-      deploy_to_prod:
-        description: 'Deploy to PROD (requires manual approval)'
+      target_environment:
+        description: 'Target environment for deployment'
         required: true
-        default: true
-        type: boolean
+        default: 'gamma'
+        type: choice
+        options:
+          - alpha
+          - gamma
+          - prod
+
+env:
+  # Alpha site ID (hardcoded as it's not sensitive)
+  NETLIFY_SITE_ID_ALPHA: 'b26b3133-30c1-46f3-b976-59ab7c928b57'
 
 jobs:
+  # Determine target environment from config file or workflow input
+  determine-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      target_env: ${{ steps.set-env.outputs.target_env }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine target environment
+        id: set-env
+        run: |
+          # If manually triggered, use the input
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "target_env=${{ github.event.inputs.target_environment }}" >> $GITHUB_OUTPUT
+            echo "Using workflow input: ${{ github.event.inputs.target_environment }}"
+          else
+            # Read from deployment-config.json, default to gamma
+            if [ -f deployment-config.json ]; then
+              TARGET=$(jq -r '.targetEnvironment // "gamma"' deployment-config.json)
+              echo "target_env=$TARGET" >> $GITHUB_OUTPUT
+              echo "Using config file: $TARGET"
+            else
+              echo "target_env=gamma" >> $GITHUB_OUTPUT
+              echo "No config file found, using default: gamma"
+            fi
+          fi
+
+  deploy-alpha:
+    runs-on: ubuntu-latest
+    needs: determine-environment
+    if: needs.determine-environment.outputs.target_env == 'alpha'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: List Netlify functions before deploy
+        run: |
+          echo "Listing functions in netlify/functions:";
+          find ./netlify/functions -type f -name "*.js" -exec echo " - {}" \;
+
+      - name: Install Netlify CLI
+        run: npm install -g netlify-cli
+
+      - name: Deploy to Alpha
+        run: netlify deploy --dir=dist --prod --site ${{ env.NETLIFY_SITE_ID_ALPHA }}
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+
+      - name: (Non-blocking) Test deployed functions
+        run: |
+          echo "Testing /test-env endpoint (ignore errors):";
+          curl --fail --silent --show-error "https://route-manager-alpha.netlify.app/.netlify/functions/test-env" || echo "test-env endpoint failed (non-blocking)";
+          echo "Testing /search-flights endpoint (ignore errors):";
+          curl --fail --silent --show-error "https://route-manager-alpha.netlify.app/.netlify/functions/search-flights" || echo "search-flights endpoint failed (non-blocking)";
+
   deploy-gamma:
     runs-on: ubuntu-latest
+    needs: determine-environment
+    if: needs.determine-environment.outputs.target_env == 'gamma'
     steps:
       - uses: actions/checkout@v4
 
@@ -65,8 +141,9 @@ jobs:
 
   deploy-prod:
     runs-on: ubuntu-latest
-    needs: deploy-gamma
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_to_prod == 'true'
+    needs: determine-environment
+    if: needs.determine-environment.outputs.target_env == 'prod'
+    environment: production
     steps:
       - uses: actions/checkout@v4
 

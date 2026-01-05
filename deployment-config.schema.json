@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Route Manager Deployment Configuration",
+  "description": "Configuration for deploying Route Manager to different environments",
+  "type": "object",
+  "properties": {
+    "targetEnvironment": {
+      "type": "string",
+      "enum": ["alpha", "gamma", "prod"],
+      "default": "gamma",
+      "description": "The target environment for deployment. 'alpha' for early testing, 'gamma' for staging, 'prod' for production."
+    },
+    "_comment": {
+      "type": "string",
+      "description": "Optional comment field for documentation purposes"
+    }
+  },
+  "required": ["targetEnvironment"],
+  "additionalProperties": false
+}
