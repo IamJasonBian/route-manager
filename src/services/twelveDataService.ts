@@ -48,6 +48,7 @@ const getApiKey = (): string => {
 
 // Map time ranges to output sizes and intervals
 const RANGE_CONFIG: Record<string, { outputsize: number; interval: string }> = {
+  '1W': { outputsize: 7, interval: '1day' },
   '1M': { outputsize: 22, interval: '1day' },
   '3M': { outputsize: 66, interval: '1day' },
   '6M': { outputsize: 130, interval: '1day' },

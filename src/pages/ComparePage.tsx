@@ -5,6 +5,7 @@ import { getPortfolioData, PORTFOLIO_ASSETS, PortfolioAsset } from '../services/
 import { processPortfolioReturns } from '../utils/portfolioCalculations';
 
 const TIME_RANGES = [
+  { label: '1W', value: '1W' },
   { label: '1M', value: '1M' },
   { label: '3M', value: '3M' },
   { label: '6M', value: '6M' },
