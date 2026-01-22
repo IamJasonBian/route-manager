@@ -5,6 +5,7 @@ import { getPortfolioData, PORTFOLIO_ASSETS, PortfolioAsset } from '../services/
 import { processPortfolioReturns } from '../utils/portfolioCalculations';
 
 const TIME_RANGES = [
+  { label: '1W', value: '1W' },
   { label: '1M', value: '1M' },
   { label: '3M', value: '3M' },
   { label: '6M', value: '6M' },
@@ -22,6 +23,7 @@ export default function ComparePage() {
     'BTC/USD': 0,
     'QQQ': 0,
     'SPY': 0,
+    'AMZN': 0,
   });
 
   const fetchData = async (isRefresh = false) => {
@@ -89,7 +91,7 @@ export default function ComparePage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Portfolio Comparison</h1>
           <p className="text-gray-500 mt-1">
-            Compare returns across BTC, QQQ, and S&P 500 with custom fee adjustments
+            Compare returns across BTC, QQQ, S&P 500, and Amazon with custom fee adjustments
           </p>
         </div>
         <button
@@ -122,7 +124,7 @@ export default function ComparePage() {
       {/* Fee Inputs */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
         <h2 className="text-sm font-medium text-gray-700 mb-3">Yearly Fees (%)</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {PORTFOLIO_ASSETS.map((asset) => (
             <div key={asset.symbol} className="flex items-center gap-3">
               <div
@@ -155,7 +157,7 @@ export default function ComparePage() {
 
       {/* Legend with current returns */}
       {chartData.length > 0 && (
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {chartData.map((asset) => {
             const lastReturn = asset.returns[asset.returns.length - 1]?.returnPercent ?? 0;
             const isPositive = lastReturn >= 0;
