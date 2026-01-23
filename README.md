@@ -116,6 +116,9 @@ To deploy to prod:
 4. Click "Run workflow"
 
 **Required GitHub Secrets:**
+
+Netlify Account Used: jasonzb@umich.edu
+
 | Secret | Description |
 |--------|-------------|
 | `NETLIFY_AUTH_TOKEN` | Your Netlify personal access token |
