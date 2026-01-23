@@ -12,12 +12,6 @@
   framework = "vite"
   autoLaunch = true
 
-# API function redirects (must come before SPA catch-all)
-[[redirects]]
-  from = "/.netlify/functions/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-
 [[redirects]]
   from = "/*"
   to = "/index.html"
