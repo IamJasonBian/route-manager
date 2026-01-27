@@ -3,6 +3,31 @@
 
 const API_BASE = '/.netlify/functions';
 
+// Auth types
+export interface AuthStatus {
+  authenticated: boolean;
+  message: string;
+  expiresAt?: string;
+  expiresIn?: number;
+  hasRefreshToken?: boolean;
+  updatedAt?: string;
+  error?: string;
+  pendingVerification?: {
+    type: 'mfa' | 'device';
+    elapsedSeconds: number;
+  };
+}
+
+export interface AuthResult {
+  authenticated: boolean;
+  message: string;
+  requiresVerification?: boolean;
+  requiresMFA?: boolean;
+  verificationType?: 'device' | 'mfa';
+  challengeType?: string;
+  error?: string;
+}
+
 export interface Position {
   symbol: string;
   name: string;
@@ -166,4 +191,25 @@ export function getGainBgColor(value: number): string {
   if (value > 0) return 'bg-green-100';
   if (value < 0) return 'bg-red-100';
   return 'bg-gray-100';
+}
+
+// Auth functions
+export async function getAuthStatus(): Promise<AuthStatus> {
+  return fetchApi<AuthStatus>('/robinhood-auth?action=status');
+}
+
+export async function connectRobinhood(): Promise<AuthResult> {
+  return fetchApi<AuthResult>('/robinhood-auth?action=connect');
+}
+
+export async function checkVerification(): Promise<AuthResult & { status?: string; elapsedSeconds?: number }> {
+  return fetchApi<AuthResult & { status?: string; elapsedSeconds?: number }>('/robinhood-auth?action=verify');
+}
+
+export async function submitMFA(code: string): Promise<AuthResult> {
+  return fetchApi<AuthResult>(`/robinhood-auth?action=mfa&code=${encodeURIComponent(code)}`);
+}
+
+export async function disconnectRobinhood(): Promise<AuthResult> {
+  return fetchApi<AuthResult>('/robinhood-auth?action=disconnect');
 }

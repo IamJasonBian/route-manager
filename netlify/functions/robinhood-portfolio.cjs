@@ -1,11 +1,10 @@
 // Robinhood Portfolio Netlify Function
 // Fetches portfolio data from Robinhood API
+// Uses Netlify Blobs for token persistence
+
+const tokenStore = require('./lib/tokenStore.cjs');
 
 const ROBINHOOD_API_BASE = 'https://api.robinhood.com';
-
-// Store session token in memory (will reset on function cold start)
-let authToken = null;
-let tokenExpiry = null;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,68 +12,19 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
-async function authenticate() {
-  const username = process.env.RH_USER;
-  const password = process.env.RH_PASS;
-
-  if (!username || !password) {
-    throw new Error('RH_USER and RH_PASS environment variables are required');
+/**
+ * Get authentication token from Blob store.
+ */
+async function getAuthToken() {
+  const token = await tokenStore.getToken();
+  if (!token) {
+    throw new Error('Not authenticated. Connect to Robinhood first.');
   }
-
-  // Check if we have a valid cached token
-  if (authToken && tokenExpiry && Date.now() < tokenExpiry) {
-    return authToken;
-  }
-
-  const response = await fetch(`${ROBINHOOD_API_BASE}/oauth2/token/`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Accept': 'application/json',
-    },
-    body: new URLSearchParams({
-      grant_type: 'password',
-      scope: 'internal',
-      client_id: 'c82SH0WZOsabOXGP2sxqcj34FxkvfnWRZBKlBjFS',
-      username: username,
-      password: password,
-      device_token: generateDeviceToken(),
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Auth error:', errorText);
-    throw new Error('Authentication failed. Check your Robinhood credentials.');
-  }
-
-  const data = await response.json();
-
-  if (data.mfa_required) {
-    throw new Error('MFA is required. Please disable MFA or use a different authentication method.');
-  }
-
-  authToken = data.access_token;
-  // Token expires in expires_in seconds, cache for slightly less
-  tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
-
-  return authToken;
-}
-
-function generateDeviceToken() {
-  // Generate a consistent device token based on username
-  const username = process.env.RH_USER || '';
-  let hash = 0;
-  for (let i = 0; i < username.length; i++) {
-    const char = username.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return `${Math.abs(hash).toString(16).padStart(8, '0')}-0000-0000-0000-000000000000`;
+  return token;
 }
 
 async function fetchWithAuth(endpoint) {
-  const token = await authenticate();
+  const token = await getAuthToken();
 
   const response = await fetch(`${ROBINHOOD_API_BASE}${endpoint}`, {
     headers: {
@@ -85,10 +35,9 @@ async function fetchWithAuth(endpoint) {
 
   if (!response.ok) {
     if (response.status === 401) {
-      // Token expired, clear cache and retry
-      authToken = null;
-      tokenExpiry = null;
-      throw new Error('Session expired. Please retry.');
+      // Token expired, clear cache
+      await tokenStore.clearToken();
+      throw new Error('Session expired. Please reconnect to Robinhood.');
     }
     throw new Error(`API request failed: ${response.status}`);
   }
@@ -212,14 +161,20 @@ exports.handler = async (event) => {
 
     let data;
     switch (action) {
+      case 'status':
+        data = await tokenStore.getAuthStatus();
+        break;
+
       case 'portfolio':
         data = await getPortfolio();
         break;
+
       case 'orders':
         data = await getRecentOrders();
         break;
+
       default:
-        throw new Error(`Unknown action: ${action}`);
+        throw new Error(`Unknown action: ${action}. Available: status, portfolio, orders`);
     }
 
     return {
@@ -232,14 +187,18 @@ exports.handler = async (event) => {
     };
   } catch (error) {
     console.error('Robinhood API error:', error);
+
+    const isAuthError = error.message.includes('Not authenticated') || error.message.includes('expired');
+
     return {
-      statusCode: 500,
+      statusCode: isAuthError ? 401 : 500,
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         error: error.message || 'An error occurred',
+        requiresAuth: isAuthError,
       }),
     };
   }

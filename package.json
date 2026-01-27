@@ -4,14 +4,20 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "netlify dev",
+    "dev:clean": "rm -rf .netlify/cache && netlify dev",
+    "dev:vite": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "deploy": "netlify deploy --prod",
+    "test:rh": "./scripts/test-robinhood.sh",
+    "functions": "node scripts/local-functions.cjs"
   },
   "dependencies": {
+    "@netlify/blobs": "^10.5.0",
     "lucide-react": "^0.263.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -31,6 +37,7 @@
     "@typescript-eslint/parser": "^6.11.0",
     "@vitejs/plugin-react": "^4.0.4",
     "autoprefixer": "^10.4.16",
+    "dotenv": "^17.2.3",
     "eslint": "^8.53.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.3",

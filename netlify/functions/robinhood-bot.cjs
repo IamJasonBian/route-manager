@@ -1,13 +1,12 @@
 // Robinhood Trading Bot Netlify Function
 // Handles bot actions and trading decisions
+// Uses Netlify Blobs for token persistence
+
+const tokenStore = require('./lib/tokenStore.cjs');
 
 const ROBINHOOD_API_BASE = 'https://api.robinhood.com';
 
-let authToken = null;
-let tokenExpiry = null;
-
 // In-memory bot action log (resets on cold start)
-// In production, you'd want to persist this to a database
 let botActions = [];
 
 const corsHeaders = {
@@ -16,63 +15,19 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
-async function authenticate() {
-  const username = process.env.RH_USER;
-  const password = process.env.RH_PASS;
-
-  if (!username || !password) {
-    throw new Error('RH_USER and RH_PASS environment variables are required');
+/**
+ * Get authentication token from Blob store.
+ */
+async function getAuthToken() {
+  const token = await tokenStore.getToken();
+  if (!token) {
+    throw new Error('Not authenticated. Connect to Robinhood first.');
   }
-
-  if (authToken && tokenExpiry && Date.now() < tokenExpiry) {
-    return authToken;
-  }
-
-  const response = await fetch(`${ROBINHOOD_API_BASE}/oauth2/token/`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Accept': 'application/json',
-    },
-    body: new URLSearchParams({
-      grant_type: 'password',
-      scope: 'internal',
-      client_id: 'c82SH0WZOsabOXGP2sxqcj34FxkvfnWRZBKlBjFS',
-      username: username,
-      password: password,
-      device_token: generateDeviceToken(),
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error('Authentication failed');
-  }
-
-  const data = await response.json();
-
-  if (data.mfa_required) {
-    throw new Error('MFA required');
-  }
-
-  authToken = data.access_token;
-  tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
-
-  return authToken;
-}
-
-function generateDeviceToken() {
-  const username = process.env.RH_USER || '';
-  let hash = 0;
-  for (let i = 0; i < username.length; i++) {
-    const char = username.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return `${Math.abs(hash).toString(16).padStart(8, '0')}-0000-0000-0000-000000000000`;
+  return token;
 }
 
 async function fetchWithAuth(endpoint, options = {}) {
-  const token = await authenticate();
+  const token = await getAuthToken();
 
   const response = await fetch(`${ROBINHOOD_API_BASE}${endpoint}`, {
     ...options,
@@ -86,8 +41,8 @@ async function fetchWithAuth(endpoint, options = {}) {
 
   if (!response.ok) {
     if (response.status === 401) {
-      authToken = null;
-      tokenExpiry = null;
+      await tokenStore.clearToken();
+      throw new Error('Session expired. Please reconnect to Robinhood.');
     }
     const text = await response.text();
     throw new Error(`API error ${response.status}: ${text}`);
@@ -103,7 +58,6 @@ function logBotAction(action) {
     ...action,
   };
   botActions.unshift(logEntry);
-  // Keep only last 100 actions
   if (botActions.length > 100) {
     botActions = botActions.slice(0, 100);
   }
@@ -141,7 +95,6 @@ async function getAccount() {
   return accounts.results[0];
 }
 
-// Bot analysis function - analyzes portfolio and suggests actions
 async function analyzePortfolio() {
   const account = await getAccount();
   const positions = await fetchWithAuth('/positions/?nonzero=true');
@@ -175,7 +128,6 @@ async function analyzePortfolio() {
       };
       analysis.holdings.push(holding);
 
-      // Simple bot logic for suggestions
       if (gainPercent > 20) {
         analysis.suggestions.push({
           type: 'TAKE_PROFIT',
@@ -196,7 +148,6 @@ async function analyzePortfolio() {
     }
   }
 
-  // Log the analysis
   logBotAction({
     type: 'ANALYSIS',
     status: 'completed',
@@ -207,7 +158,6 @@ async function analyzePortfolio() {
   return analysis;
 }
 
-// Place a market order (simulated in demo mode, real in live mode)
 async function placeOrder(symbol, side, quantity, dryRun = true) {
   const instrument = await getInstrumentBySymbol(symbol);
   const quote = await getQuote(symbol);
@@ -222,7 +172,6 @@ async function placeOrder(symbol, side, quantity, dryRun = true) {
   };
 
   if (dryRun) {
-    // Dry run - just log the action
     const action = logBotAction({
       type: side === 'buy' ? 'BUY_ORDER' : 'SELL_ORDER',
       status: 'simulated',
@@ -241,13 +190,12 @@ async function placeOrder(symbol, side, quantity, dryRun = true) {
     };
   }
 
-  // Real order (use with caution!)
   const orderPayload = {
     account: account.url,
     instrument: instrument.url,
     symbol: symbol,
     type: 'market',
-    time_in_force: 'gfd', // Good for day
+    time_in_force: 'gfd',
     trigger: 'immediate',
     quantity: quantity.toString(),
     side: side,
@@ -277,7 +225,7 @@ async function placeOrder(symbol, side, quantity, dryRun = true) {
       action,
     };
   } catch (e) {
-    const action = logBotAction({
+    logBotAction({
       type: side === 'buy' ? 'BUY_ORDER' : 'SELL_ORDER',
       status: 'failed',
       symbol,
@@ -314,8 +262,10 @@ exports.handler = async (event) => {
     let data;
     switch (action) {
       case 'status':
+        const authStatus = await tokenStore.getAuthStatus();
         data = {
           status: 'running',
+          auth: authStatus,
           actionsCount: botActions.length,
           lastAction: botActions[0] || null,
         };
@@ -342,7 +292,6 @@ exports.handler = async (event) => {
         break;
 
       case 'order':
-        // POST only
         if (event.httpMethod !== 'POST') {
           throw new Error('POST method required for orders');
         }
@@ -359,7 +308,7 @@ exports.handler = async (event) => {
         break;
 
       default:
-        throw new Error(`Unknown action: ${action}`);
+        throw new Error(`Unknown action: ${action}. Available: status, actions, analyze, quote, order`);
     }
 
     return {
@@ -379,14 +328,17 @@ exports.handler = async (event) => {
       message: error.message,
     });
 
+    const isAuthError = error.message.includes('Not authenticated') || error.message.includes('expired');
+
     return {
-      statusCode: 500,
+      statusCode: isAuthError ? 401 : 500,
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         error: error.message || 'An error occurred',
+        requiresAuth: isAuthError,
       }),
     };
   }
