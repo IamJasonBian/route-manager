@@ -1,9 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Bitcoin, LayoutDashboard, GitCompare } from 'lucide-react';
+import { Bitcoin, LayoutDashboard, GitCompare, TrendingUp } from 'lucide-react';
 
 // Import page components
 import DashboardPage from './pages/DashboardPage';
 import ComparePage from './pages/ComparePage';
+import TradePage from './pages/TradePage';
 
 function NavLink({ to, children }: { to: string; children: React.ReactNode }) {
   const location = useLocation();
@@ -48,6 +49,12 @@ function AppContent() {
                   Compare
                 </span>
               </NavLink>
+              <NavLink to="/trade">
+                <span className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4" />
+                  Trade
+                </span>
+              </NavLink>
             </nav>
           </div>
         </div>
@@ -57,6 +64,7 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/compare" element={<ComparePage />} />
+          <Route path="/trade" element={<TradePage />} />
         </Routes>
       </main>
 
