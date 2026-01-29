@@ -24,6 +24,8 @@ exports.handler = async (event) => {
     );
 
     if (!response.ok) {
+      const errorCode = `${response.status} ${response.statusText}`;
+      console.error(`CoinGecko returned ${errorCode}`);
       return {
         statusCode: response.status,
         headers: {
@@ -31,7 +33,7 @@ exports.handler = async (event) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          error: `${response.status} ${response.statusText}`,
+          error: errorCode,
           market_cap: null,
           total_volume: null,
         }),
@@ -39,6 +41,7 @@ exports.handler = async (event) => {
     }
 
     const data = await response.json();
+    console.log('CoinGecko response OK — market_cap:', data.bitcoin?.usd_market_cap, 'volume:', data.bitcoin?.usd_24h_vol);
 
     return {
       statusCode: 200,
