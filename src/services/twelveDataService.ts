@@ -122,6 +122,36 @@ export async function getPortfolioData(
   return results;
 }
 
+// --- CoinGecko supplemental data (market cap + volume) ---
+
+const COINGECKO_API = 'https://api.coingecko.com/api/v3';
+
+export interface CoinGeckoMarketData {
+  market_cap: number | null;
+  total_volume: number | null;
+  error?: string;
+}
+
+export async function getCoinGeckoMarketData(): Promise<CoinGeckoMarketData> {
+  try {
+    const response = await fetch(
+      `${COINGECKO_API}/simple/price?ids=bitcoin&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true`
+    );
+
+    if (!response.ok) {
+      return { market_cap: null, total_volume: null, error: '503 Slowdown' };
+    }
+
+    const data = await response.json();
+    return {
+      market_cap: data.bitcoin?.usd_market_cap ?? null,
+      total_volume: data.bitcoin?.usd_24h_vol ?? null,
+    };
+  } catch {
+    return { market_cap: null, total_volume: null, error: '503 Slowdown' };
+  }
+}
+
 // --- Bitcoin Dashboard functions ---
 
 export interface BitcoinQuote {

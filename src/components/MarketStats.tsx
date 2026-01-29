@@ -1,13 +1,14 @@
-import { DollarSign, BarChart3, TrendingUp, TrendingDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { DollarSign, BarChart3, TrendingUp, TrendingDown, ArrowUp, ArrowDown, Landmark } from 'lucide-react';
 import { formatCurrency, formatLargeNumber, formatPercentage } from '../utils/formatters';
-import { BitcoinQuote } from '../services/twelveDataService';
+import { BitcoinQuote, CoinGeckoMarketData } from '../services/twelveDataService';
 
 interface MarketStatsProps {
   quoteData: BitcoinQuote;
+  geckoData?: CoinGeckoMarketData | null;
   loading?: boolean;
 }
 
-export default function MarketStats({ quoteData, loading }: MarketStatsProps) {
+export default function MarketStats({ quoteData, geckoData, loading }: MarketStatsProps) {
   if (loading) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -22,21 +23,22 @@ export default function MarketStats({ quoteData, loading }: MarketStatsProps) {
   }
 
   const isPositive = quoteData.change >= 0;
+  const geckoError = geckoData?.error;
 
   const stats = [
     {
-      label: 'Open',
-      value: formatCurrency(quoteData.open),
-      icon: DollarSign,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
+      label: 'Market Cap',
+      value: geckoError ? geckoError : geckoData?.market_cap ? formatLargeNumber(geckoData.market_cap) : 'N/A',
+      icon: Landmark,
+      color: geckoError ? 'text-amber-600' : 'text-blue-600',
+      bgColor: geckoError ? 'bg-amber-50' : 'bg-blue-50',
     },
     {
-      label: 'Volume',
-      value: formatLargeNumber(quoteData.volume),
+      label: '24h Volume',
+      value: geckoError ? geckoError : geckoData?.total_volume ? formatLargeNumber(geckoData.total_volume) : formatLargeNumber(quoteData.volume),
       icon: BarChart3,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
+      color: geckoError ? 'text-amber-600' : 'text-purple-600',
+      bgColor: geckoError ? 'bg-amber-50' : 'bg-purple-50',
     },
     {
       label: 'Previous Close',

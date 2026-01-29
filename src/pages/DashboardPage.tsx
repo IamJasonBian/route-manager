@@ -6,10 +6,13 @@ import MarketStats from '../components/MarketStats';
 import {
   getBitcoinQuote,
   BitcoinQuote,
+  getCoinGeckoMarketData,
+  CoinGeckoMarketData,
 } from '../services/twelveDataService';
 
 export default function DashboardPage() {
   const [quoteData, setQuoteData] = useState<BitcoinQuote | null>(null);
+  const [geckoData, setGeckoData] = useState<CoinGeckoMarketData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -21,8 +24,12 @@ export default function DashboardPage() {
     setError(null);
 
     try {
-      const quote = await getBitcoinQuote();
+      const [quote, gecko] = await Promise.all([
+        getBitcoinQuote(),
+        getCoinGeckoMarketData(),
+      ]);
       setQuoteData(quote);
+      setGeckoData(gecko);
       setLastUpdated(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch data');
@@ -104,8 +111,10 @@ export default function DashboardPage() {
             currentPrice={quoteData.close}
             priceChange24h={quoteData.change}
             priceChangePercentage24h={quoteData.percent_change}
-            marketCap={0}
-            volume24h={quoteData.volume}
+            marketCap={geckoData?.market_cap ?? 0}
+            marketCapError={geckoData?.error}
+            volume24h={geckoData?.total_volume ?? quoteData.volume}
+            volumeError={geckoData?.error}
             high24h={quoteData.high}
             low24h={quoteData.low}
           />
@@ -116,7 +125,7 @@ export default function DashboardPage() {
       {quoteData && (
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Market Statistics</h2>
-          <MarketStats quoteData={quoteData} />
+          <MarketStats quoteData={quoteData} geckoData={geckoData} />
         </div>
       )}
 

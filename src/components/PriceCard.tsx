@@ -9,7 +9,9 @@ interface PriceCardProps {
   priceChange24h: number;
   priceChangePercentage24h: number;
   marketCap: number;
+  marketCapError?: string;
   volume24h: number;
+  volumeError?: string;
   high24h: number;
   low24h: number;
   sparkline?: number[];
@@ -23,7 +25,9 @@ export default function PriceCard({
   priceChange24h,
   priceChangePercentage24h,
   marketCap,
+  marketCapError,
   volume24h,
+  volumeError,
   high24h,
   low24h,
   sparkline,
@@ -92,11 +96,15 @@ export default function PriceCard({
       <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
         <div>
           <p className="text-sm text-gray-500">Volume</p>
-          <p className="font-medium text-gray-900">{formatLargeNumber(volume24h)}</p>
+          <p className="font-medium text-gray-900">
+            {volumeError ? <span className="text-amber-500 text-sm">{volumeError}</span> : formatLargeNumber(volume24h)}
+          </p>
         </div>
         <div>
           <p className="text-sm text-gray-500">Market Cap</p>
-          <p className="font-medium text-gray-900">{marketCap ? formatLargeNumber(marketCap) : 'N/A'}</p>
+          <p className="font-medium text-gray-900">
+            {marketCapError ? <span className="text-amber-500 text-sm">{marketCapError}</span> : marketCap ? formatLargeNumber(marketCap) : 'N/A'}
+          </p>
         </div>
         <div>
           <p className="text-sm text-gray-500">Day High</p>
