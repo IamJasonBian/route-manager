@@ -19,6 +19,9 @@ export default function ComparePage() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedRange, setSelectedRange] = useState('1Y');
+  const [enabledAssets, setEnabledAssets] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(PORTFOLIO_ASSETS.map((a) => [a.symbol, true]))
+  );
   const [fees, setFees] = useState<Record<string, number>>({
     'BTC/USD': 0,
     'QQQ': 0,
@@ -55,8 +58,13 @@ export default function ComparePage() {
 
   const chartData = useMemo(() => {
     if (portfolioData.length === 0) return [];
-    return processPortfolioReturns(portfolioData, fees);
-  }, [portfolioData, fees]);
+    const allData = processPortfolioReturns(portfolioData, fees);
+    return allData.filter((asset) => enabledAssets[asset.symbol]);
+  }, [portfolioData, fees, enabledAssets]);
+
+  const toggleAsset = (symbol: string) => {
+    setEnabledAssets((prev) => ({ ...prev, [symbol]: !prev[symbol] }));
+  };
 
   const handleFeeChange = (symbol: string, value: string) => {
     const numValue = parseFloat(value) || 0;
@@ -126,6 +134,30 @@ export default function ComparePage() {
             {range.label}
           </button>
         ))}
+      </div>
+
+      {/* Asset Toggles */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
+        <h2 className="text-sm font-medium text-gray-700 mb-3">Assets</h2>
+        <div className="flex flex-wrap gap-2">
+          {PORTFOLIO_ASSETS.map((asset) => {
+            const isEnabled = enabledAssets[asset.symbol];
+            return (
+              <button
+                key={asset.symbol}
+                onClick={() => toggleAsset(asset.symbol)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border ${
+                  isEnabled
+                    ? 'border-transparent text-white'
+                    : 'border-gray-300 bg-white text-gray-400'
+                }`}
+                style={isEnabled ? { backgroundColor: asset.color } : undefined}
+              >
+                {asset.displayName}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Fee Inputs */}
