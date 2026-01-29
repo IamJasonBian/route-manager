@@ -4,15 +4,12 @@ import PriceCard from '../components/PriceCard';
 import BitcoinPriceChart from '../components/BitcoinPriceChart';
 import MarketStats from '../components/MarketStats';
 import {
-  getCurrentPrice,
-  getBitcoinDetails,
-  BitcoinData,
-  MarketData,
-} from '../services/bitcoinService';
+  getBitcoinQuote,
+  BitcoinQuote,
+} from '../services/twelveDataService';
 
 export default function DashboardPage() {
-  const [bitcoinData, setBitcoinData] = useState<BitcoinData | null>(null);
-  const [marketData, setMarketData] = useState<MarketData | null>(null);
+  const [quoteData, setQuoteData] = useState<BitcoinQuote | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -24,12 +21,8 @@ export default function DashboardPage() {
     setError(null);
 
     try {
-      const [priceData, detailsData] = await Promise.all([
-        getCurrentPrice(),
-        getBitcoinDetails(),
-      ]);
-      setBitcoinData(priceData);
-      setMarketData(detailsData.market_data);
+      const quote = await getBitcoinQuote();
+      setQuoteData(quote);
       setLastUpdated(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch data');
@@ -102,29 +95,28 @@ export default function DashboardPage() {
       </div>
 
       {/* Price Card */}
-      {bitcoinData && (
+      {quoteData && (
         <div className="mb-8">
           <PriceCard
-            name={bitcoinData.name}
-            symbol={bitcoinData.symbol}
-            image={bitcoinData.image}
-            currentPrice={bitcoinData.current_price}
-            priceChange24h={bitcoinData.price_change_24h}
-            priceChangePercentage24h={bitcoinData.price_change_percentage_24h}
-            marketCap={bitcoinData.market_cap}
-            volume24h={bitcoinData.total_volume}
-            high24h={bitcoinData.high_24h}
-            low24h={bitcoinData.low_24h}
-            sparkline={bitcoinData.sparkline_in_7d?.price}
+            name={quoteData.name}
+            symbol={quoteData.symbol}
+            image=""
+            currentPrice={quoteData.close}
+            priceChange24h={quoteData.change}
+            priceChangePercentage24h={quoteData.percent_change}
+            marketCap={0}
+            volume24h={quoteData.volume}
+            high24h={quoteData.high}
+            low24h={quoteData.low}
           />
         </div>
       )}
 
       {/* Market Stats */}
-      {marketData && (
+      {quoteData && (
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Market Statistics</h2>
-          <MarketStats marketData={marketData} />
+          <MarketStats quoteData={quoteData} />
         </div>
       )}
 

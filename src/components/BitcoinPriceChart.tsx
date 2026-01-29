@@ -10,7 +10,8 @@ import {
   Area,
   AreaChart,
 } from 'recharts';
-import { getPriceHistory, PriceData, formatCurrency } from '../services/bitcoinService';
+import { getBitcoinPriceHistory, NormalizedPriceData } from '../services/twelveDataService';
+import { formatCurrency } from '../utils/formatters';
 
 interface BitcoinPriceChartProps {
   days?: number;
@@ -25,7 +26,7 @@ export default function BitcoinPriceChart({
   showGrid = true,
   chartType = 'area',
 }: BitcoinPriceChartProps) {
-  const [priceData, setPriceData] = useState<PriceData[]>([]);
+  const [priceData, setPriceData] = useState<NormalizedPriceData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedRange, setSelectedRange] = useState(days);
@@ -43,12 +44,8 @@ export default function BitcoinPriceChart({
       setLoading(true);
       setError(null);
       try {
-        const data = await getPriceHistory(selectedRange);
-        // Sample data for better performance on large datasets
-        const sampledData = selectedRange > 30
-          ? data.filter((_, i) => i % Math.ceil(data.length / 100) === 0)
-          : data;
-        setPriceData(sampledData);
+        const data = await getBitcoinPriceHistory(selectedRange);
+        setPriceData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch price data');
       } finally {

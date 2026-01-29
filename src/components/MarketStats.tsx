@@ -1,12 +1,13 @@
-import { DollarSign, BarChart3, Coins, TrendingUp, Award, Calendar } from 'lucide-react';
-import { MarketData, formatCurrency, formatLargeNumber, formatPercentage } from '../services/bitcoinService';
+import { DollarSign, BarChart3, TrendingUp, TrendingDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { formatCurrency, formatLargeNumber, formatPercentage } from '../utils/formatters';
+import { BitcoinQuote } from '../services/twelveDataService';
 
 interface MarketStatsProps {
-  marketData: MarketData;
+  quoteData: BitcoinQuote;
   loading?: boolean;
 }
 
-export default function MarketStats({ marketData, loading }: MarketStatsProps) {
+export default function MarketStats({ quoteData, loading }: MarketStatsProps) {
   if (loading) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -20,52 +21,50 @@ export default function MarketStats({ marketData, loading }: MarketStatsProps) {
     );
   }
 
+  const isPositive = quoteData.change >= 0;
+
   const stats = [
     {
-      label: 'Market Cap',
-      value: formatLargeNumber(marketData.market_cap),
+      label: 'Open',
+      value: formatCurrency(quoteData.open),
       icon: DollarSign,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
     },
     {
-      label: '24h Volume',
-      value: formatLargeNumber(marketData.total_volume),
+      label: 'Volume',
+      value: formatLargeNumber(quoteData.volume),
       icon: BarChart3,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50',
     },
     {
-      label: 'Circulating Supply',
-      value: `${(marketData.circulating_supply / 1e6).toFixed(2)}M BTC`,
-      icon: Coins,
+      label: 'Previous Close',
+      value: formatCurrency(quoteData.previous_close),
+      icon: DollarSign,
       color: 'text-orange-600',
       bgColor: 'bg-orange-50',
     },
     {
-      label: '7d Change',
-      value: formatPercentage(marketData.price_change_percentage_7d),
-      icon: TrendingUp,
-      color: marketData.price_change_percentage_7d >= 0 ? 'text-green-600' : 'text-red-600',
-      bgColor: marketData.price_change_percentage_7d >= 0 ? 'bg-green-50' : 'bg-red-50',
+      label: 'Change',
+      value: formatPercentage(quoteData.percent_change),
+      icon: isPositive ? TrendingUp : TrendingDown,
+      color: isPositive ? 'text-green-600' : 'text-red-600',
+      bgColor: isPositive ? 'bg-green-50' : 'bg-red-50',
     },
     {
-      label: 'All-Time High',
-      value: formatCurrency(marketData.ath),
-      icon: Award,
-      color: 'text-amber-600',
-      bgColor: 'bg-amber-50',
+      label: 'Day High',
+      value: formatCurrency(quoteData.high),
+      icon: ArrowUp,
+      color: 'text-green-600',
+      bgColor: 'bg-green-50',
     },
     {
-      label: 'ATH Date',
-      value: new Date(marketData.ath_date).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      }),
-      icon: Calendar,
-      color: 'text-gray-600',
-      bgColor: 'bg-gray-50',
+      label: 'Day Low',
+      value: formatCurrency(quoteData.low),
+      icon: ArrowDown,
+      color: 'text-red-600',
+      bgColor: 'bg-red-50',
     },
   ];
 
