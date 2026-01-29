@@ -96,7 +96,14 @@ export const PORTFOLIO_ASSETS = [
   { symbol: 'BTC/USD', displayName: 'Bitcoin', color: '#F7931A' },
   { symbol: 'QQQ', displayName: 'QQQ (Nasdaq)', color: '#8B5CF6' },
   { symbol: 'SPY', displayName: 'S&P 500', color: '#3B82F6' },
+  { symbol: 'AAPL', displayName: 'Apple', color: '#A2AAAD' },
+  { symbol: 'MSFT', displayName: 'Microsoft', color: '#00A4EF' },
   { symbol: 'AMZN', displayName: 'Amazon', color: '#FF9900' },
+  { symbol: 'GOOGL', displayName: 'Alphabet', color: '#4285F4' },
+  { symbol: 'META', displayName: 'Meta', color: '#0668E1' },
+  { symbol: 'NVDA', displayName: 'Nvidia', color: '#76B900' },
+  { symbol: 'TSLA', displayName: 'Tesla', color: '#E31937' },
+  { symbol: 'GLD', displayName: 'Gold (GLD)', color: '#FFD700' },
 ];
 
 export async function getPortfolioData(

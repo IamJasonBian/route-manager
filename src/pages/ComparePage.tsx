@@ -19,11 +19,21 @@ export default function ComparePage() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedRange, setSelectedRange] = useState('1Y');
+  const [enabledAssets, setEnabledAssets] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(PORTFOLIO_ASSETS.map((a) => [a.symbol, true]))
+  );
   const [fees, setFees] = useState<Record<string, number>>({
     'BTC/USD': 0,
     'QQQ': 0,
     'SPY': 0,
+    'AAPL': 0,
+    'MSFT': 0,
     'AMZN': 0,
+    'GOOGL': 0,
+    'META': 0,
+    'NVDA': 0,
+    'TSLA': 0,
+    'GLD': 0,
   });
 
   const fetchData = async (isRefresh = false) => {
@@ -48,8 +58,13 @@ export default function ComparePage() {
 
   const chartData = useMemo(() => {
     if (portfolioData.length === 0) return [];
-    return processPortfolioReturns(portfolioData, fees);
-  }, [portfolioData, fees]);
+    const allData = processPortfolioReturns(portfolioData, fees);
+    return allData.filter((asset) => enabledAssets[asset.symbol]);
+  }, [portfolioData, fees, enabledAssets]);
+
+  const toggleAsset = (symbol: string) => {
+    setEnabledAssets((prev) => ({ ...prev, [symbol]: !prev[symbol] }));
+  };
 
   const handleFeeChange = (symbol: string, value: string) => {
     const numValue = parseFloat(value) || 0;
@@ -91,7 +106,7 @@ export default function ComparePage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Portfolio Comparison</h1>
           <p className="text-gray-500 mt-1">
-            Compare returns across BTC, QQQ, S&P 500, and Amazon with custom fee adjustments
+            Compare returns across BTC, indices, and MAG7 stocks with custom fee adjustments
           </p>
         </div>
         <button
@@ -121,10 +136,34 @@ export default function ComparePage() {
         ))}
       </div>
 
+      {/* Asset Toggles */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
+        <h2 className="text-sm font-medium text-gray-700 mb-3">Assets</h2>
+        <div className="flex flex-wrap gap-2">
+          {PORTFOLIO_ASSETS.map((asset) => {
+            const isEnabled = enabledAssets[asset.symbol];
+            return (
+              <button
+                key={asset.symbol}
+                onClick={() => toggleAsset(asset.symbol)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border ${
+                  isEnabled
+                    ? 'border-transparent text-white'
+                    : 'border-gray-300 bg-white text-gray-400'
+                }`}
+                style={isEnabled ? { backgroundColor: asset.color } : undefined}
+              >
+                {asset.displayName}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Fee Inputs */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
         <h2 className="text-sm font-medium text-gray-700 mb-3">Yearly Fees (%)</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {PORTFOLIO_ASSETS.map((asset) => (
             <div key={asset.symbol} className="flex items-center gap-3">
               <div
@@ -157,7 +196,7 @@ export default function ComparePage() {
 
       {/* Legend with current returns */}
       {chartData.length > 0 && (
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {chartData.map((asset) => {
             const lastReturn = asset.returns[asset.returns.length - 1]?.returnPercent ?? 0;
             const isPositive = lastReturn >= 0;
