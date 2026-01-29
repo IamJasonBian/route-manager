@@ -122,9 +122,7 @@ export async function getPortfolioData(
   return results;
 }
 
-// --- CoinGecko supplemental data (market cap + volume) ---
-
-const COINGECKO_API = 'https://api.coingecko.com/api/v3';
+// --- CoinGecko supplemental data (market cap + volume) via Netlify proxy ---
 
 export interface CoinGeckoMarketData {
   market_cap: number | null;
@@ -134,21 +132,24 @@ export interface CoinGeckoMarketData {
 
 export async function getCoinGeckoMarketData(): Promise<CoinGeckoMarketData> {
   try {
-    const response = await fetch(
-      `${COINGECKO_API}/simple/price?ids=bitcoin&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true`
-    );
-
-    if (!response.ok) {
-      return { market_cap: null, total_volume: null, error: '503 Slowdown' };
-    }
+    const response = await fetch('/.netlify/functions/coingecko-market');
 
     const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        market_cap: null,
+        total_volume: null,
+        error: data.error || `${response.status} ${response.statusText}`,
+      };
+    }
+
     return {
-      market_cap: data.bitcoin?.usd_market_cap ?? null,
-      total_volume: data.bitcoin?.usd_24h_vol ?? null,
+      market_cap: data.market_cap ?? null,
+      total_volume: data.total_volume ?? null,
     };
   } catch {
-    return { market_cap: null, total_volume: null, error: '503 Slowdown' };
+    return { market_cap: null, total_volume: null, error: '503 Service Unavailable' };
   }
 }
 
