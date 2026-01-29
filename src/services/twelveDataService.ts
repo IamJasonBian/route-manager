@@ -121,3 +121,121 @@ export async function getPortfolioData(
 
   return results;
 }
+
+// --- CoinGecko supplemental data (market cap + volume) via Netlify proxy ---
+
+export interface CoinGeckoMarketData {
+  market_cap: number | null;
+  total_volume: number | null;
+  error?: string;
+}
+
+export async function getCoinGeckoMarketData(): Promise<CoinGeckoMarketData> {
+  try {
+    const response = await fetch('/.netlify/functions/coingecko-market');
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        market_cap: null,
+        total_volume: null,
+        error: data.error || `${response.status} ${response.statusText}`,
+      };
+    }
+
+    return {
+      market_cap: data.market_cap ?? null,
+      total_volume: data.total_volume ?? null,
+    };
+  } catch {
+    return { market_cap: null, total_volume: null, error: '503 Service Unavailable' };
+  }
+}
+
+// --- Bitcoin Dashboard functions ---
+
+export interface BitcoinQuote {
+  symbol: string;
+  name: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  previous_close: number;
+  change: number;
+  percent_change: number;
+  datetime: string;
+}
+
+export async function getBitcoinQuote(): Promise<BitcoinQuote> {
+  const apiKey = getApiKey();
+  const url = new URL(`${TWELVE_DATA_API}/quote`);
+  url.searchParams.set('symbol', 'BTC/USD');
+  url.searchParams.set('apikey', apiKey);
+
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    throw new Error(`Failed to fetch BTC quote: ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (data.status === 'error') {
+    throw new Error(data.message || 'API error fetching BTC quote');
+  }
+
+  return {
+    symbol: data.symbol,
+    name: data.name || 'Bitcoin',
+    open: parseFloat(data.open),
+    high: parseFloat(data.high),
+    low: parseFloat(data.low),
+    close: parseFloat(data.close),
+    volume: parseFloat(data.volume || '0'),
+    previous_close: parseFloat(data.previous_close),
+    change: parseFloat(data.change),
+    percent_change: parseFloat(data.percent_change),
+    datetime: data.datetime,
+  };
+}
+
+// Map days-based ranges to TwelveData config (including intraday for short ranges)
+const BTC_RANGE_CONFIG: Record<number, { outputsize: number; interval: string }> = {
+  1: { outputsize: 96, interval: '15min' },
+  7: { outputsize: 168, interval: '1h' },
+  30: { outputsize: 30, interval: '1day' },
+  90: { outputsize: 90, interval: '1day' },
+  365: { outputsize: 252, interval: '1day' },
+};
+
+export async function getBitcoinPriceHistory(
+  days: number = 30
+): Promise<NormalizedPriceData[]> {
+  const config = BTC_RANGE_CONFIG[days] || BTC_RANGE_CONFIG[30];
+  const apiKey = getApiKey();
+
+  const url = new URL(`${TWELVE_DATA_API}/time_series`);
+  url.searchParams.set('symbol', 'BTC/USD');
+  url.searchParams.set('interval', config.interval);
+  url.searchParams.set('outputsize', config.outputsize.toString());
+  url.searchParams.set('apikey', apiKey);
+
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    throw new Error(`Failed to fetch BTC price history: ${response.status}`);
+  }
+
+  const data: TimeSeriesResponse = await response.json();
+  if (data.status === 'error') {
+    throw new Error(data.message || 'API error fetching BTC history');
+  }
+
+  return data.values
+    .map((item) => ({
+      date: item.datetime,
+      timestamp: new Date(item.datetime).getTime(),
+      price: parseFloat(item.close),
+    }))
+    .reverse();
+}

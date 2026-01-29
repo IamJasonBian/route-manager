@@ -1,5 +1,5 @@
 import { TrendingUp, TrendingDown } from 'lucide-react';
-import { formatCurrency, formatLargeNumber, formatPercentage } from '../services/bitcoinService';
+import { formatCurrency, formatLargeNumber, formatPercentage } from '../utils/formatters';
 
 interface PriceCardProps {
   name: string;
@@ -9,7 +9,9 @@ interface PriceCardProps {
   priceChange24h: number;
   priceChangePercentage24h: number;
   marketCap: number;
+  marketCapError?: string;
   volume24h: number;
+  volumeError?: string;
   high24h: number;
   low24h: number;
   sparkline?: number[];
@@ -23,7 +25,9 @@ export default function PriceCard({
   priceChange24h,
   priceChangePercentage24h,
   marketCap,
+  marketCapError,
   volume24h,
+  volumeError,
   high24h,
   low24h,
   sparkline,
@@ -63,7 +67,13 @@ export default function PriceCard({
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <img src={image} alt={name} className="w-12 h-12 rounded-full" />
+          {image ? (
+            <img src={image} alt={name} className="w-12 h-12 rounded-full" />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center">
+              <span className="text-orange-600 font-bold text-lg">{symbol.charAt(0).toUpperCase()}</span>
+            </div>
+          )}
           <div>
             <h3 className="text-lg font-semibold text-gray-900">{name}</h3>
             <p className="text-sm text-gray-500 uppercase">{symbol}</p>
@@ -85,19 +95,23 @@ export default function PriceCard({
 
       <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
         <div>
+          <p className="text-sm text-gray-500">Volume</p>
+          <p className="font-medium text-gray-900">
+            {volumeError ? <span className="text-amber-500 text-sm">{volumeError}</span> : formatLargeNumber(volume24h)}
+          </p>
+        </div>
+        <div>
           <p className="text-sm text-gray-500">Market Cap</p>
-          <p className="font-medium text-gray-900">{formatLargeNumber(marketCap)}</p>
+          <p className="font-medium text-gray-900">
+            {marketCapError ? <span className="text-amber-500 text-sm">{marketCapError}</span> : marketCap ? formatLargeNumber(marketCap) : 'N/A'}
+          </p>
         </div>
         <div>
-          <p className="text-sm text-gray-500">24h Volume</p>
-          <p className="font-medium text-gray-900">{formatLargeNumber(volume24h)}</p>
-        </div>
-        <div>
-          <p className="text-sm text-gray-500">24h High</p>
+          <p className="text-sm text-gray-500">Day High</p>
           <p className="font-medium text-green-600">{formatCurrency(high24h)}</p>
         </div>
         <div>
-          <p className="text-sm text-gray-500">24h Low</p>
+          <p className="text-sm text-gray-500">Day Low</p>
           <p className="font-medium text-red-600">{formatCurrency(low24h)}</p>
         </div>
       </div>
