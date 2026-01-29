@@ -30,6 +30,7 @@ export default function ComparePage() {
     'META': 0,
     'NVDA': 0,
     'TSLA': 0,
+    'GLD': 0,
   });
 
   const fetchData = async (isRefresh = false) => {

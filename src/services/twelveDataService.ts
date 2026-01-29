@@ -103,6 +103,7 @@ export const PORTFOLIO_ASSETS = [
   { symbol: 'META', displayName: 'Meta', color: '#0668E1' },
   { symbol: 'NVDA', displayName: 'Nvidia', color: '#76B900' },
   { symbol: 'TSLA', displayName: 'Tesla', color: '#E31937' },
+  { symbol: 'GLD', displayName: 'Gold (GLD)', color: '#FFD700' },
 ];
 
 export async function getPortfolioData(
