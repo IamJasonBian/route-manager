@@ -1,9 +1,8 @@
 // CoinDesk News Netlify Function
 // Proxies BTC news requests to CoinDesk data API
 
-const { storeNewsArticles } = require('./lib/newsStore.cjs');
-
 const COINDESK_API = 'https://data-api.coindesk.com/news/v1/article/list';
+const BLOB_STORE = 'news-articles';
 const API_KEY = process.env.COINDESK_API_KEY;
 
 const corsHeaders = {
@@ -73,7 +72,38 @@ exports.handler = async (event) => {
     }));
 
     // Store articles to blob storage (fire-and-forget, don't block response)
-    storeNewsArticles('coindesk', 'BTC', articles).catch(() => {});
+    (async () => {
+      try {
+        const { getStore } = await import('@netlify/blobs');
+        const store = getStore(BLOB_STORE);
+        const indexKey = 'index:coindesk:btc';
+
+        const existingIndex = await store.get(indexKey, { type: 'json' }) || { articleIds: [] };
+        const existingIds = new Set(existingIndex.articleIds);
+
+        for (const article of articles) {
+          if (!article.id) continue;
+          await store.setJSON(`article:coindesk:${article.id}`, {
+            ...article,
+            _source: 'coindesk',
+            _storedAt: new Date().toISOString(),
+          });
+          existingIds.add(article.id);
+        }
+
+        const allIds = Array.from(existingIds).slice(-200);
+        await store.setJSON(indexKey, {
+          articleIds: allIds,
+          lastUpdated: new Date().toISOString(),
+          source: 'coindesk',
+          ticker: 'btc',
+        });
+
+        console.log(`[COINDESK] Stored ${articles.length} articles to blobs`);
+      } catch (err) {
+        console.error('[COINDESK] Blob storage error:', err.message);
+      }
+    })();
 
     return {
       statusCode: 200,

@@ -1,9 +1,8 @@
 // Polygon.io News Netlify Function
 // Proxies market news requests to Polygon.io API
 
-const { storeNewsArticles } = require('./lib/newsStore.cjs');
-
 const POLYGON_API = 'https://api.polygon.io/v2/reference/news';
+const BLOB_STORE = 'news-articles';
 const API_KEY = process.env.POLYGON_API_KEY;
 
 const corsHeaders = {
@@ -72,7 +71,41 @@ exports.handler = async (event) => {
     }));
 
     // Store articles to blob storage (fire-and-forget, don't block response)
-    storeNewsArticles('polygon', ticker || null, articles).catch(() => {});
+    (async () => {
+      try {
+        const { getStore } = await import('@netlify/blobs');
+        const store = getStore(BLOB_STORE);
+        const source = 'polygon';
+        const indexKey = ticker
+          ? `index:${source}:${ticker.toLowerCase()}`
+          : `index:${source}`;
+
+        const existingIndex = await store.get(indexKey, { type: 'json' }) || { articleIds: [] };
+        const existingIds = new Set(existingIndex.articleIds);
+
+        for (const article of articles) {
+          if (!article.id) continue;
+          await store.setJSON(`article:${source}:${article.id}`, {
+            ...article,
+            _source: source,
+            _storedAt: new Date().toISOString(),
+          });
+          existingIds.add(article.id);
+        }
+
+        const allIds = Array.from(existingIds).slice(-200);
+        await store.setJSON(indexKey, {
+          articleIds: allIds,
+          lastUpdated: new Date().toISOString(),
+          source,
+          ticker: ticker || null,
+        });
+
+        console.log(`[POLYGON] Stored ${articles.length} articles to blobs`);
+      } catch (err) {
+        console.error('[POLYGON] Blob storage error:', err.message);
+      }
+    })();
 
     return {
       statusCode: 200,
