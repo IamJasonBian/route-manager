@@ -80,6 +80,15 @@ function AppContent() {
             >
               Twelve Data
             </a>
+            {' '}&{' '}
+            <a
+              href="https://polygon.io/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline"
+            >
+              Polygon.io
+            </a>
           </p>
         </div>
       </footer>
