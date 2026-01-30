@@ -80,7 +80,7 @@ function AppContent() {
             >
               Twelve Data
             </a>
-            {' '}&{' '}
+            {', '}
             <a
               href="https://polygon.io/"
               target="_blank"
@@ -88,6 +88,15 @@ function AppContent() {
               className="text-blue-600 hover:underline"
             >
               Polygon.io
+            </a>
+            {' & '}
+            <a
+              href="https://www.coindesk.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline"
+            >
+              CoinDesk
             </a>
           </p>
         </div>

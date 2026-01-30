@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Newspaper, ExternalLink, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
-import { getMarketNews, NewsArticle } from '../services/newsService';
+import { getMarketNews, getBtcNews, NewsArticle } from '../services/newsService';
 
 const TICKER_FILTERS = [
   { label: 'All', value: '' },
-  { label: 'BTC', value: 'X:BTCUSD' },
+  { label: 'BTC', value: 'BTC' },
   { label: 'SPY', value: 'SPY' },
   { label: 'QQQ', value: 'QQQ' },
   { label: 'AAPL', value: 'AAPL' },
@@ -38,7 +38,9 @@ export default function NewsSummary() {
     setError(null);
 
     try {
-      const data = await getMarketNews(selectedTicker || undefined, 10);
+      const data = selectedTicker === 'BTC'
+        ? await getBtcNews(10)
+        : await getMarketNews(selectedTicker || undefined, 10);
       setArticles(data.results);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch news');
