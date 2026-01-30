@@ -1,55 +1,12 @@
-// News Storage using Netlify Blobs (production) or file system (local dev)
+// News Storage using Netlify Blobs
 // Stores news articles fetched from external APIs for persistence
 
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-
 const STORE_NAME = 'news-articles';
-const LOCAL_NEWS_FILE = path.join(os.homedir(), '.tokens', 'news-blobs.json');
-
-function isNetlifyProduction() {
-  return !!(process.env.DEPLOY_ID && process.env.SITE_ID);
-}
 
 /**
  * Get the Netlify Blobs store for news.
- * Falls back to local file storage when not in Netlify environment.
  */
 async function getStore() {
-  if (!isNetlifyProduction()) {
-    return {
-      async get(key, options) {
-        try {
-          if (!fs.existsSync(LOCAL_NEWS_FILE)) return null;
-          const data = JSON.parse(fs.readFileSync(LOCAL_NEWS_FILE, 'utf8'));
-          const value = data[key];
-          if (!value) return null;
-          return options?.type === 'json' ? value : JSON.stringify(value);
-        } catch (e) {
-          console.error('[NEWS_STORE] Error reading:', e.message);
-          return null;
-        }
-      },
-      async setJSON(key, value) {
-        try {
-          const dir = path.dirname(LOCAL_NEWS_FILE);
-          if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-          }
-          let data = {};
-          if (fs.existsSync(LOCAL_NEWS_FILE)) {
-            data = JSON.parse(fs.readFileSync(LOCAL_NEWS_FILE, 'utf8'));
-          }
-          data[key] = value;
-          fs.writeFileSync(LOCAL_NEWS_FILE, JSON.stringify(data, null, 2));
-        } catch (e) {
-          console.error('[NEWS_STORE] Error writing:', e.message);
-        }
-      },
-    };
-  }
-
   const { getStore } = await import('@netlify/blobs');
   return getStore(STORE_NAME);
 }
