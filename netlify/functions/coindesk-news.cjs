@@ -75,7 +75,11 @@ exports.handler = async (event) => {
     (async () => {
       try {
         const { getStore } = await import('@netlify/blobs');
-        const store = getStore(BLOB_STORE);
+        const store = getStore({
+          name: BLOB_STORE,
+          siteID: process.env.NETLIFY_SITE_ID,
+          token: process.env.NETLIFY_AUTH_TOKEN,
+        });
         const indexKey = 'index:coindesk:btc';
 
         const existingIndex = await store.get(indexKey, { type: 'json' }) || { articleIds: [] };

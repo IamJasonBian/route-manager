@@ -28,7 +28,11 @@ exports.handler = async (event) => {
 
   try {
     const { getStore } = await import('@netlify/blobs');
-    const store = getStore(storeName);
+    const store = getStore({
+      name: storeName,
+      siteID: process.env.NETLIFY_SITE_ID,
+      token: process.env.NETLIFY_AUTH_TOKEN,
+    });
 
     const action = params.action || 'list';
 
