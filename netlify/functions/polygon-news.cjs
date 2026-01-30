@@ -1,6 +1,8 @@
 // Polygon.io News Netlify Function
 // Proxies market news requests to Polygon.io API
 
+const { storeNewsArticles } = require('./lib/newsStore.cjs');
+
 const POLYGON_API = 'https://api.polygon.io/v2/reference/news';
 const API_KEY = process.env.POLYGON_API_KEY;
 
@@ -68,6 +70,9 @@ exports.handler = async (event) => {
         favicon_url: article.publisher.favicon_url,
       } : null,
     }));
+
+    // Store articles to blob storage (fire-and-forget, don't block response)
+    storeNewsArticles('polygon', ticker || null, articles).catch(() => {});
 
     return {
       statusCode: 200,

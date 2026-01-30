@@ -1,6 +1,8 @@
 // CoinDesk News Netlify Function
 // Proxies BTC news requests to CoinDesk data API
 
+const { storeNewsArticles } = require('./lib/newsStore.cjs');
+
 const COINDESK_API = 'https://data-api.coindesk.com/news/v1/article/list';
 const API_KEY = process.env.COINDESK_API_KEY;
 
@@ -69,6 +71,9 @@ exports.handler = async (event) => {
         favicon_url: null,
       },
     }));
+
+    // Store articles to blob storage (fire-and-forget, don't block response)
+    storeNewsArticles('coindesk', 'BTC', articles).catch(() => {});
 
     return {
       statusCode: 200,
