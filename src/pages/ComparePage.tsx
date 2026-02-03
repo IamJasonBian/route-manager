@@ -22,19 +22,9 @@ export default function ComparePage() {
   const [enabledAssets, setEnabledAssets] = useState<Record<string, boolean>>(
     () => Object.fromEntries(PORTFOLIO_ASSETS.map((a) => [a.symbol, true]))
   );
-  const [fees, setFees] = useState<Record<string, number>>({
-    'BTC/USD': 0,
-    'QQQ': 0,
-    'SPY': 0,
-    'AAPL': 0,
-    'MSFT': 0,
-    'AMZN': 0,
-    'GOOGL': 0,
-    'META': 0,
-    'NVDA': 0,
-    'TSLA': 0,
-    'GLD': 0,
-  });
+  const [fees, setFees] = useState<Record<string, number>>(
+    () => Object.fromEntries(PORTFOLIO_ASSETS.map((a) => [a.symbol, 0]))
+  );
 
   const fetchData = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
