@@ -72,28 +72,47 @@ export function processPortfolioReturns(
 
 // Merge multiple return series into a single dataset for Recharts
 // Each data point has: date, timestamp, and a key for each asset's return
+// Joins by DATE to handle assets with different trading calendars (e.g., BTC 24/7 vs stocks M-F)
 export function mergeReturnsForChart(
   portfolioReturns: PortfolioReturnData[]
 ): Array<Record<string, string | number>> {
   if (portfolioReturns.length === 0) return [];
 
-  // Use the first asset's dates as the base timeline
-  const baseAsset = portfolioReturns[0];
+  // Build a map of date -> returns for each asset
+  const returnsByDate = new Map<string, Record<string, number>>();
+  const timestampByDate = new Map<string, number>();
 
-  return baseAsset.returns.map((point, index) => {
-    const dataPoint: Record<string, string | number> = {
-      date: point.date,
-      timestamp: point.timestamp,
-    };
-
-    portfolioReturns.forEach((asset) => {
-      if (asset.returns[index]) {
-        dataPoint[asset.symbol] = Number(asset.returns[index].returnPercent.toFixed(2));
+  portfolioReturns.forEach((asset) => {
+    asset.returns.forEach((point) => {
+      if (!returnsByDate.has(point.date)) {
+        returnsByDate.set(point.date, {});
+        timestampByDate.set(point.date, point.timestamp);
       }
+      returnsByDate.get(point.date)![asset.symbol] = Number(point.returnPercent.toFixed(2));
     });
-
-    return dataPoint;
   });
+
+  // Get all dates sorted chronologically
+  const allDates = Array.from(returnsByDate.keys()).sort(
+    (a, b) => (timestampByDate.get(a) || 0) - (timestampByDate.get(b) || 0)
+  );
+
+  // Only include dates where ALL assets have data (common trading days)
+  const assetSymbols = portfolioReturns.map((a) => a.symbol);
+
+  return allDates
+    .filter((date) => {
+      const returns = returnsByDate.get(date)!;
+      return assetSymbols.every((symbol) => symbol in returns);
+    })
+    .map((date) => {
+      const dataPoint: Record<string, string | number> = {
+        date,
+        timestamp: timestampByDate.get(date) || 0,
+        ...returnsByDate.get(date)!,
+      };
+      return dataPoint;
+    });
 }
 
 // Format percentage for display
