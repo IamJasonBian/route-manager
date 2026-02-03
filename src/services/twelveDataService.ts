@@ -95,8 +95,7 @@ export async function getTimeSeries(
 export const PORTFOLIO_ASSETS = [
   { symbol: 'BTC/USD', displayName: 'Bitcoin', color: '#F7931A' },
   { symbol: 'MSTR', displayName: 'MicroStrategy', color: '#D9232E' },
-  { symbol: 'IBIT', displayName: 'iShares BTC ETF', color: '#FF6B00' },
-  { symbol: 'MSTX', displayName: 'MSTX (2x MSTR)', color: '#C71585' },
+  { symbol: 'GBTC', displayName: 'Grayscale BTC Trust', color: '#6B21A8' },
   { symbol: 'QQQ', displayName: 'QQQ (Nasdaq)', color: '#8B5CF6' },
   { symbol: 'SPY', displayName: 'S&P 500', color: '#3B82F6' },
   { symbol: 'AAPL', displayName: 'Apple', color: '#A2AAAD' },
