@@ -96,6 +96,7 @@ export const PORTFOLIO_ASSETS = [
   { symbol: 'BTC/USD', displayName: 'Bitcoin', color: '#F7931A' },
   { symbol: 'MSTR', displayName: 'MicroStrategy', color: '#D9232E' },
   { symbol: 'GBTC', displayName: 'Grayscale BTC Trust', color: '#6B21A8' },
+  { symbol: 'BTC', displayName: 'Grayscale BTC Mini ETF', color: '#9333EA' },
   { symbol: 'QQQ', displayName: 'QQQ (Nasdaq)', color: '#8B5CF6' },
   { symbol: 'SPY', displayName: 'S&P 500', color: '#3B82F6' },
   { symbol: 'AAPL', displayName: 'Apple', color: '#A2AAAD' },
