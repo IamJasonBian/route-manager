@@ -80,17 +80,21 @@ exports.handler = async (event) => {
           siteID: process.env.NETLIFY_SITE_ID,
           token: process.env.NETLIFY_AUTH_TOKEN,
         });
-        const indexKey = 'index:coindesk:btc';
+
+        // Use date-based path: coindesk/YYYY/MM/DD/
+        const now = new Date();
+        const datePath = `coindesk/${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${String(now.getUTCDate()).padStart(2, '0')}`;
+        const indexKey = `${datePath}/index`;
 
         const existingIndex = await store.get(indexKey, { type: 'json' }) || { articleIds: [] };
         const existingIds = new Set(existingIndex.articleIds);
 
         for (const article of articles) {
           if (!article.id) continue;
-          await store.setJSON(`article:coindesk:${article.id}`, {
+          await store.setJSON(`${datePath}/${article.id}`, {
             ...article,
             _source: 'coindesk',
-            _storedAt: new Date().toISOString(),
+            _storedAt: now.toISOString(),
           });
           existingIds.add(article.id);
         }
@@ -98,12 +102,12 @@ exports.handler = async (event) => {
         const allIds = Array.from(existingIds).slice(-200);
         await store.setJSON(indexKey, {
           articleIds: allIds,
-          lastUpdated: new Date().toISOString(),
+          lastUpdated: now.toISOString(),
           source: 'coindesk',
-          ticker: 'btc',
+          datasetDate: datePath,
         });
 
-        console.log(`[COINDESK] Stored ${articles.length} articles to blobs`);
+        console.log(`[COINDESK] Stored ${articles.length} articles to ${datePath}`);
       } catch (err) {
         console.error('[COINDESK] Blob storage error:', err.message);
       }

@@ -79,20 +79,24 @@ exports.handler = async (event) => {
           siteID: process.env.NETLIFY_SITE_ID,
           token: process.env.NETLIFY_AUTH_TOKEN,
         });
-        const source = 'polygon';
-        const indexKey = ticker
-          ? `index:${source}:${ticker.toLowerCase()}`
-          : `index:${source}`;
+
+        // Use date-based path: polygon/YYYY/MM/DD/ (with optional ticker subfolder)
+        const now = new Date();
+        const dateStr = `${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${String(now.getUTCDate()).padStart(2, '0')}`;
+        const datePath = ticker
+          ? `polygon/${ticker.toLowerCase()}/${dateStr}`
+          : `polygon/${dateStr}`;
+        const indexKey = `${datePath}/index`;
 
         const existingIndex = await store.get(indexKey, { type: 'json' }) || { articleIds: [] };
         const existingIds = new Set(existingIndex.articleIds);
 
         for (const article of articles) {
           if (!article.id) continue;
-          await store.setJSON(`article:${source}:${article.id}`, {
+          await store.setJSON(`${datePath}/${article.id}`, {
             ...article,
-            _source: source,
-            _storedAt: new Date().toISOString(),
+            _source: 'polygon',
+            _storedAt: now.toISOString(),
           });
           existingIds.add(article.id);
         }
@@ -100,12 +104,13 @@ exports.handler = async (event) => {
         const allIds = Array.from(existingIds).slice(-200);
         await store.setJSON(indexKey, {
           articleIds: allIds,
-          lastUpdated: new Date().toISOString(),
-          source,
+          lastUpdated: now.toISOString(),
+          source: 'polygon',
           ticker: ticker || null,
+          datasetDate: datePath,
         });
 
-        console.log(`[POLYGON] Stored ${articles.length} articles to blobs`);
+        console.log(`[POLYGON] Stored ${articles.length} articles to ${datePath}`);
       } catch (err) {
         console.error('[POLYGON] Blob storage error:', err.message);
       }
