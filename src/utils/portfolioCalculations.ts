@@ -15,11 +15,14 @@ export interface PortfolioReturnData {
   returns: ReturnDataPoint[];
 }
 
-// Calculate percentage returns from price data (normalized to starting value = 0%)
-export function calculateReturns(priceData: NormalizedPriceData[]): ReturnDataPoint[] {
+// Calculate percentage returns from price data (normalized to startIndex value = 0%)
+export function calculateReturns(
+  priceData: NormalizedPriceData[],
+  startIndex: number = 0
+): ReturnDataPoint[] {
   if (priceData.length === 0) return [];
 
-  const startPrice = priceData[0].price;
+  const startPrice = priceData[startIndex].price;
 
   return priceData.map((point) => ({
     date: point.date,
@@ -30,7 +33,7 @@ export function calculateReturns(priceData: NormalizedPriceData[]): ReturnDataPo
 }
 
 // Calculate Simple Moving Average over return percentages
-export function calculateSMA(returns: ReturnDataPoint[], window: number = 200): ReturnDataPoint[] {
+export function calculateSMA(returns: ReturnDataPoint[], window: number): ReturnDataPoint[] {
   return returns.map((point, index) => {
     if (index < window - 1) {
       return { ...point, smaReturnPercent: undefined };
@@ -66,22 +69,61 @@ export function applyFees(
   });
 }
 
-// Process portfolio assets into chart-ready data with fees applied and SMA calculated
+// Rebase a return series so that the value at rebaseIndex becomes 0%
+// Uses multiplicative rebasing: newReturn = (1+R)/(1+Rbase) - 1
+function rebaseReturns(returns: ReturnDataPoint[], rebaseIndex: number): ReturnDataPoint[] {
+  const baseReturn = returns[rebaseIndex].returnPercent;
+  const baseFactor = 1 + baseReturn / 100;
+
+  return returns.map((point) => {
+    const rebased = ((1 + point.returnPercent / 100) / baseFactor - 1) * 100;
+    const rebasedSMA = point.smaReturnPercent !== undefined
+      ? ((1 + point.smaReturnPercent / 100) / baseFactor - 1) * 100
+      : undefined;
+
+    return {
+      ...point,
+      returnPercent: rebased,
+      smaReturnPercent: rebasedSMA,
+    };
+  });
+}
+
+// Process portfolio assets into chart-ready data with fees applied and SMA calculated.
+// When smaWindow > 0, extra warm-up data is expected in asset.data.
+// Returns are calculated from the start of all data, SMA is computed on the full series,
+// then the warm-up is trimmed and returns are rebased so the visible range starts at 0%.
 export function processPortfolioReturns(
   assets: PortfolioAsset[],
-  fees: Record<string, number>
+  fees: Record<string, number>,
+  smaWindow: number = 0
 ): PortfolioReturnData[] {
   return assets.map((asset) => {
     const rawReturns = calculateReturns(asset.data);
     const feePercent = fees[asset.symbol] || 0;
     const adjustedReturns = applyFees(rawReturns, feePercent);
-    const withSMA = calculateSMA(adjustedReturns);
+
+    if (smaWindow <= 0) {
+      return {
+        symbol: asset.symbol,
+        displayName: asset.displayName,
+        color: asset.color,
+        returns: adjustedReturns,
+      };
+    }
+
+    const withSMA = calculateSMA(adjustedReturns, smaWindow);
+
+    // Trim warm-up points and rebase so visible range starts at 0%
+    const warmupSize = Math.min(smaWindow, withSMA.length - 1);
+    const rebased = rebaseReturns(withSMA, warmupSize);
+    const visible = rebased.slice(warmupSize);
 
     return {
       symbol: asset.symbol,
       displayName: asset.displayName,
       color: asset.color,
-      returns: withSMA,
+      returns: visible,
     };
   });
 }

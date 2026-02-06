@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { PortfolioChart } from '../components/PortfolioChart';
-import { getPortfolioData, PORTFOLIO_ASSETS, PortfolioAsset } from '../services/twelveDataService';
+import { getPortfolioData, getRangeConfig, PORTFOLIO_ASSETS, PortfolioAsset } from '../services/twelveDataService';
 import { processPortfolioReturns } from '../utils/portfolioCalculations';
 
 const TIME_RANGES = [
@@ -50,9 +50,10 @@ export default function ComparePage() {
 
   const chartData = useMemo(() => {
     if (portfolioData.length === 0) return [];
-    const allData = processPortfolioReturns(portfolioData, fees);
+    const { smaWindow } = getRangeConfig(selectedRange);
+    const allData = processPortfolioReturns(portfolioData, fees, smaWindow);
     return allData.filter((asset) => enabledAssets[asset.symbol]);
-  }, [portfolioData, fees, enabledAssets]);
+  }, [portfolioData, fees, enabledAssets, selectedRange]);
 
   const toggleAsset = (symbol: string) => {
     setEnabledAssets((prev) => ({ ...prev, [symbol]: !prev[symbol] }));
