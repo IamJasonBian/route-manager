@@ -1,5 +1,6 @@
 // CoinDesk News Netlify Function
-// Proxies BTC news requests to CoinDesk data API
+// Proxies BTC/crypto news requests to CoinDesk data API
+// Supports filtering for specific keywords like "microstrategy", "strategy"
 
 const COINDESK_API = 'https://data-api.coindesk.com/news/v1/article/list';
 const BLOB_STORE = 'news-articles';
@@ -9,6 +10,20 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
+};
+
+// Check if article matches any of the filter keywords
+const matchesFilter = (article, keywords) => {
+  if (!keywords || keywords.length === 0) return true;
+
+  const searchText = [
+    article.TITLE || article.title || '',
+    article.SUBTITLE || article.subtitle || '',
+    article.BODY || article.body || '',
+    article.KEYWORDS || '',
+  ].join(' ').toLowerCase();
+
+  return keywords.some(keyword => searchText.includes(keyword.toLowerCase()));
 };
 
 exports.handler = async (event) => {
@@ -30,12 +45,23 @@ exports.handler = async (event) => {
 
   try {
     const params = event.queryStringParameters || {};
-    const limit = params.limit || '10';
+    const requestedLimit = parseInt(params.limit || '10', 10);
+    const filter = params.filter || ''; // comma-separated keywords like "microstrategy,strategy,mstr"
+    const categories = params.categories || 'BTC'; // default to BTC, can be overridden
+
+    // Parse filter keywords
+    const filterKeywords = filter ? filter.split(',').map(k => k.trim()).filter(Boolean) : [];
+
+    // If filtering, fetch more articles to ensure we get enough matches
+    const fetchLimit = filterKeywords.length > 0 ? Math.max(50, requestedLimit * 5) : requestedLimit;
 
     const url = new URL(COINDESK_API);
     url.searchParams.set('lang', 'EN');
-    url.searchParams.set('limit', limit);
-    url.searchParams.set('categories', 'BTC');
+    url.searchParams.set('limit', String(fetchLimit));
+    // Only set categories if not "ALL"
+    if (categories.toUpperCase() !== 'ALL') {
+      url.searchParams.set('categories', categories);
+    }
     url.searchParams.set('api_key', API_KEY);
 
     const response = await fetch(url.toString());
@@ -53,23 +79,38 @@ exports.handler = async (event) => {
     const data = await response.json();
     const items = data.Data || data.data || data.results || [];
 
-    const articles = items.map((article) => ({
-      id: String(article.ID || article.id || ''),
-      title: article.TITLE || article.title || '',
-      author: article.AUTHOR || article.author || '',
-      published_utc: article.PUBLISHED_ON
-        ? new Date(article.PUBLISHED_ON * 1000).toISOString()
-        : article.published_on || article.published_utc || '',
-      article_url: article.URL || article.url || '',
-      image_url: article.IMAGE_URL || article.image_url || null,
-      description: article.SUBTITLE || article.subtitle || article.BODY?.slice(0, 200) || '',
-      tickers: ['BTC'],
-      publisher: {
-        name: article.SOURCE_DATA?.NAME || article.source_info?.name || 'CoinDesk',
-        logo_url: null,
-        favicon_url: null,
-      },
-    }));
+    // Filter articles if keywords provided
+    const filteredItems = filterKeywords.length > 0
+      ? items.filter(article => matchesFilter(article, filterKeywords))
+      : items;
+
+    // Limit to requested count
+    const limitedItems = filteredItems.slice(0, requestedLimit);
+
+    const articles = limitedItems.map((article) => {
+      // Extract categories from article
+      const articleCategories = (article.CATEGORY_DATA || []).map(c => c.CATEGORY || c.NAME);
+
+      return {
+        id: String(article.ID || article.id || ''),
+        title: article.TITLE || article.title || '',
+        author: article.AUTHORS || article.AUTHOR || article.author || '',
+        published_utc: article.PUBLISHED_ON
+          ? new Date(article.PUBLISHED_ON * 1000).toISOString()
+          : article.published_on || article.published_utc || '',
+        article_url: article.URL || article.url || '',
+        image_url: article.IMAGE_URL || article.image_url || null,
+        description: article.SUBTITLE || article.subtitle || article.BODY?.slice(0, 200) || '',
+        categories: articleCategories,
+        keywords: article.KEYWORDS || '',
+        tickers: articleCategories.includes('BTC') ? ['BTC'] : [],
+        publisher: {
+          name: article.SOURCE_DATA?.NAME || article.source_info?.name || 'CoinDesk',
+          logo_url: null,
+          favicon_url: null,
+        },
+      };
+    });
 
     // Store articles to blob storage (fire-and-forget, don't block response)
     (async () => {
@@ -116,7 +157,12 @@ exports.handler = async (event) => {
     return {
       statusCode: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ results: articles, count: articles.length }),
+      body: JSON.stringify({
+        results: articles,
+        count: articles.length,
+        filter: filterKeywords.length > 0 ? filterKeywords : null,
+        total_fetched: items.length,
+      }),
     };
   } catch (error) {
     console.error('CoinDesk news API error:', error);
