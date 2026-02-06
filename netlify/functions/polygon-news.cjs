@@ -2,6 +2,7 @@
 // Proxies market news requests to Polygon.io API
 
 const POLYGON_API = 'https://api.polygon.io/v2/reference/news';
+const BLOB_STORE = 'news-articles';
 const API_KEY = process.env.POLYGON_API_KEY;
 
 const corsHeaders = {
@@ -68,6 +69,52 @@ exports.handler = async (event) => {
         favicon_url: article.publisher.favicon_url,
       } : null,
     }));
+
+    // Store articles to blob storage (fire-and-forget, don't block response)
+    (async () => {
+      try {
+        const { getStore } = await import('@netlify/blobs');
+        const store = getStore({
+          name: BLOB_STORE,
+          siteID: process.env.NETLIFY_SITE_ID,
+          token: process.env.NETLIFY_AUTH_TOKEN,
+        });
+
+        // Use date-based path: polygon/YYYY/MM/DD/ (with optional ticker subfolder)
+        const now = new Date();
+        const dateStr = `${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${String(now.getUTCDate()).padStart(2, '0')}`;
+        const datePath = ticker
+          ? `polygon/${ticker.toLowerCase()}/${dateStr}`
+          : `polygon/${dateStr}`;
+        const indexKey = `${datePath}/index`;
+
+        const existingIndex = await store.get(indexKey, { type: 'json' }) || { articleIds: [] };
+        const existingIds = new Set(existingIndex.articleIds);
+
+        for (const article of articles) {
+          if (!article.id) continue;
+          await store.setJSON(`${datePath}/${article.id}`, {
+            ...article,
+            _source: 'polygon',
+            _storedAt: now.toISOString(),
+          });
+          existingIds.add(article.id);
+        }
+
+        const allIds = Array.from(existingIds).slice(-200);
+        await store.setJSON(indexKey, {
+          articleIds: allIds,
+          lastUpdated: now.toISOString(),
+          source: 'polygon',
+          ticker: ticker || null,
+          datasetDate: datePath,
+        });
+
+        console.log(`[POLYGON] Stored ${articles.length} articles to ${datePath}`);
+      } catch (err) {
+        console.error('[POLYGON] Blob storage error:', err.message);
+      }
+    })();
 
     return {
       statusCode: 200,
