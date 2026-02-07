@@ -3,6 +3,7 @@ import { RefreshCw, Bitcoin } from 'lucide-react';
 import PriceCard from '../components/PriceCard';
 import BitcoinPriceChart from '../components/BitcoinPriceChart';
 import MarketStats from '../components/MarketStats';
+import GrayscaleBtcProjection from '../components/GrayscaleBtcProjection';
 import NewsSummary from '../components/NewsSummary';
 import {
   getBitcoinQuote,
@@ -121,6 +122,12 @@ export default function DashboardPage() {
           />
         </div>
       )}
+
+      {/* Grayscale BTC Mini Trust ETF Projection */}
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Grayscale BTC ETF Projection</h2>
+        <GrayscaleBtcProjection />
+      </div>
 
       {/* Market Stats */}
       {quoteData && (

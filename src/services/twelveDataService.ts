@@ -203,6 +203,98 @@ export async function getBitcoinQuote(): Promise<BitcoinQuote> {
   };
 }
 
+// --- Grayscale BTC Mini Trust ETF projection ---
+
+export interface EtfQuote {
+  symbol: string;
+  name: string;
+  close: number;
+  previous_close: number;
+  change: number;
+  percent_change: number;
+  datetime: string;
+}
+
+export interface GrayscaleProjection {
+  etfLastClose: number;
+  etfDatetime: string;
+  btcAtEtfClose: number;
+  btcCurrent: number;
+  btcChangePercent: number;
+  projectedEtfPrice: number;
+  projectedChange: number;
+  projectedChangePercent: number;
+  marketOpen: boolean;
+}
+
+export async function getEtfQuote(symbol: string): Promise<EtfQuote> {
+  const apiKey = getApiKey();
+  const url = new URL(`${TWELVE_DATA_API}/quote`);
+  url.searchParams.set('symbol', symbol);
+  url.searchParams.set('apikey', apiKey);
+
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    throw new Error(`Failed to fetch ${symbol} quote: ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (data.status === 'error') {
+    throw new Error(data.message || `API error fetching ${symbol} quote`);
+  }
+
+  return {
+    symbol: data.symbol,
+    name: data.name || symbol,
+    close: parseFloat(data.close),
+    previous_close: parseFloat(data.previous_close),
+    change: parseFloat(data.change),
+    percent_change: parseFloat(data.percent_change),
+    datetime: data.datetime,
+  };
+}
+
+function isUsMarketOpen(): boolean {
+  const now = new Date();
+  const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const day = et.getDay();
+  const hours = et.getHours();
+  const minutes = et.getMinutes();
+  const timeInMinutes = hours * 60 + minutes;
+  // Market open: Mon-Fri, 9:30 AM - 4:00 PM ET
+  return day >= 1 && day <= 5 && timeInMinutes >= 570 && timeInMinutes < 960;
+}
+
+export async function getGrayscaleProjection(): Promise<GrayscaleProjection> {
+  const [etfQuote, btcQuote] = await Promise.all([
+    getEtfQuote('BTC'),
+    getBitcoinQuote(),
+  ]);
+
+  const marketOpen = isUsMarketOpen();
+
+  // Derive the ETF-to-BTC ratio from previous close values.
+  // ratio = etfPrevClose / btcPrevClose (stable BTC-per-share factor).
+  // Project: projectedEtf = ratio * btcCurrentPrice
+  const ratio = etfQuote.previous_close / btcQuote.previous_close;
+  const projectedEtfPrice = ratio * btcQuote.close;
+  const projectedChange = projectedEtfPrice - etfQuote.close;
+  const projectedChangePercent = (projectedChange / etfQuote.close) * 100;
+  const btcChangePercent = ((btcQuote.close - btcQuote.previous_close) / btcQuote.previous_close) * 100;
+
+  return {
+    etfLastClose: etfQuote.close,
+    etfDatetime: etfQuote.datetime,
+    btcAtEtfClose: btcQuote.previous_close,
+    btcCurrent: btcQuote.close,
+    btcChangePercent,
+    projectedEtfPrice,
+    projectedChange,
+    projectedChangePercent,
+    marketOpen,
+  };
+}
+
 // Map days-based ranges to TwelveData config (including intraday for short ranges)
 const BTC_RANGE_CONFIG: Record<number, { outputsize: number; interval: string }> = {
   1: { outputsize: 96, interval: '15min' },
