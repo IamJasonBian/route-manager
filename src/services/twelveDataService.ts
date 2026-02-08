@@ -203,6 +203,41 @@ export async function getBitcoinQuote(): Promise<BitcoinQuote> {
   };
 }
 
+// --- Grayscale BTC Mini Trust ETF (ticker: BTC) projection ---
+
+export interface EtfQuote {
+  symbol: string;
+  name: string;
+  close: number;
+  previous_close: number;
+  datetime: string;
+}
+
+export async function getGrayscaleBtcEtfQuote(): Promise<EtfQuote> {
+  const apiKey = getApiKey();
+  const url = new URL(`${TWELVE_DATA_API}/quote`);
+  url.searchParams.set('symbol', 'BTC');
+  url.searchParams.set('apikey', apiKey);
+
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    throw new Error(`Failed to fetch BTC ETF quote: ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (data.status === 'error') {
+    throw new Error(data.message || 'API error fetching BTC ETF quote');
+  }
+
+  return {
+    symbol: data.symbol,
+    name: data.name || 'Grayscale Bitcoin Mini Trust ETF',
+    close: parseFloat(data.close),
+    previous_close: parseFloat(data.previous_close),
+    datetime: data.datetime,
+  };
+}
+
 // Map days-based ranges to TwelveData config (including intraday for short ranges)
 const BTC_RANGE_CONFIG: Record<number, { outputsize: number; interval: string }> = {
   1: { outputsize: 96, interval: '15min' },

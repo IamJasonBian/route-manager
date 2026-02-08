@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { RefreshCw, Bitcoin } from 'lucide-react';
 import PriceCard from '../components/PriceCard';
+import GrayscaleBtcProjection from '../components/GrayscaleBtcProjection';
 import BitcoinPriceChart from '../components/BitcoinPriceChart';
 import MarketStats from '../components/MarketStats';
 import NewsSummary from '../components/NewsSummary';
@@ -119,6 +120,13 @@ export default function DashboardPage() {
             high24h={quoteData.high}
             low24h={quoteData.low}
           />
+        </div>
+      )}
+
+      {/* Grayscale BTC ETF Projection */}
+      {quoteData && (
+        <div className="mb-8">
+          <GrayscaleBtcProjection btcPrice={quoteData.close} />
         </div>
       )}
 
