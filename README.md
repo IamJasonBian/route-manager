@@ -109,11 +109,23 @@ Deployments are managed via GitHub Actions:
 - **Gamma**: Automatically deploys on push/PR to main
 - **Prod**: Manual deployment only (blocked by default)
 
-To deploy to prod:
+##### Deploy via GitHub UI
 1. Go to Actions → "Deploy to Netlify"
 2. Click "Run workflow"
-3. Check "Deploy to PROD (requires manual approval)"
+3. Select your branch
 4. Click "Run workflow"
+
+##### Deploy via CLI
+```bash
+# Deploy current branch to prod
+gh workflow run "Deploy to Netlify" --ref <branch-name>
+
+# Check deployment status
+gh run list --workflow="Deploy to Netlify" --limit 1
+
+# Watch deployment progress
+gh run watch <run-id>
+```
 
 **Required GitHub Secrets:**
 
