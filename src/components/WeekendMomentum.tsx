@@ -35,6 +35,17 @@ function MetricCard({
   );
 }
 
+function DriftCell({ value }: { value: number | null }) {
+  if (value === null) return <td className="px-4 py-2.5 text-right text-gray-400">—</td>;
+  const color = value >= 0 ? 'text-green-600' : 'text-red-600';
+  const sign = value >= 0 ? '+' : '';
+  return (
+    <td className={`px-4 py-2.5 text-right font-medium ${color}`}>
+      {sign}{value.toFixed(2)}%
+    </td>
+  );
+}
+
 function MetricsGrid({ metrics, label }: { metrics: WeekendMetrics; label: string }) {
   return (
     <div>
@@ -44,16 +55,26 @@ function MetricsGrid({ metrics, label }: { metrics: WeekendMetrics; label: strin
           ({metrics.totalWeekends} weekends)
         </span>
       </h3>
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard
           label="Mon opened below Fri close"
           value={metrics.monBelowFriPct}
           isNegative={metrics.monBelowFriPct > 50}
         />
         <MetricCard
-          label="Avg Fri→Sun drift"
-          value={metrics.avgFriSunDrift}
-          isNegative={metrics.avgFriSunDrift < 0}
+          label="Avg Fri→Sat drift"
+          value={metrics.avgFriToSatDrift}
+          isNegative={metrics.avgFriToSatDrift < 0}
+        />
+        <MetricCard
+          label="Avg Sat→Sun drift"
+          value={metrics.avgSatToSunDrift}
+          isNegative={metrics.avgSatToSunDrift < 0}
+        />
+        <MetricCard
+          label="Avg Sun→Mon drift"
+          value={metrics.avgSunToMonDrift}
+          isNegative={metrics.avgSunToMonDrift < 0}
         />
         <MetricCard
           label="Avg weekend drawdown"
@@ -75,7 +96,7 @@ function MetricsGrid({ metrics, label }: { metrics: WeekendMetrics; label: strin
   );
 }
 
-function WeekendTable({ weekends }: { weekends: WeekendData[] }) {
+function WeekendTable({ weekends, title }: { weekends: WeekendData[]; title: string }) {
   const [page, setPage] = useState(0);
   const perPage = 20;
   const totalPages = Math.ceil(weekends.length / perPage);
@@ -86,7 +107,7 @@ function WeekendTable({ weekends }: { weekends: WeekendData[] }) {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-3">Weekend History</h3>
+      <h3 className="text-lg font-semibold text-gray-900 mb-3">{title}</h3>
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -94,10 +115,11 @@ function WeekendTable({ weekends }: { weekends: WeekendData[] }) {
               <tr className="bg-gray-50 border-b border-gray-200">
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Friday</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">Fri Close</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">Sun Close</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">Mon Open</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">Mon Close</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">Fri→Sun</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-600">Fri→Sat</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-600">Sat→Sun</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-600">Sun→Mon</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">Drawdown</th>
                 <th className="text-center px-4 py-3 font-medium text-gray-600">Mon&lt;Fri</th>
                 <th className="text-center px-4 py-3 font-medium text-gray-600">Recovery</th>
@@ -111,21 +133,14 @@ function WeekendTable({ weekends }: { weekends: WeekendData[] }) {
                     ${w.fridayClose.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                   </td>
                   <td className="px-4 py-2.5 text-right text-gray-700">
-                    {w.sundayClose !== null
-                      ? `$${w.sundayClose.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
-                      : '—'}
-                  </td>
-                  <td className="px-4 py-2.5 text-right text-gray-700">
                     ${w.mondayOpen.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                   </td>
                   <td className="px-4 py-2.5 text-right text-gray-700">
                     ${w.mondayClose.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                   </td>
-                  <td className={`px-4 py-2.5 text-right font-medium ${
-                    w.friToSunDrift !== null && w.friToSunDrift >= 0 ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {w.friToSunDrift !== null ? `${w.friToSunDrift >= 0 ? '+' : ''}${w.friToSunDrift.toFixed(2)}%` : '—'}
-                  </td>
+                  <DriftCell value={w.friToSatDrift} />
+                  <DriftCell value={w.satToSunDrift} />
+                  <DriftCell value={w.sunToMonDrift} />
                   <td className="px-4 py-2.5 text-right font-medium text-red-600">
                     {w.weekendDrawdown.toFixed(2)}%
                   </td>
@@ -204,7 +219,7 @@ export default function WeekendMomentum() {
         <div className="text-center">
           <Calendar className="w-12 h-12 text-orange-500 animate-pulse mx-auto mb-3" />
           <p className="text-gray-600">Loading weekend momentum data...</p>
-          <p className="text-sm text-gray-400 mt-1">Fetching BTC + GBTC history</p>
+          <p className="text-sm text-gray-400 mt-1">Fetching BTC + Grayscale Mini Trust history</p>
         </div>
       </div>
     );
@@ -229,24 +244,61 @@ export default function WeekendMomentum() {
 
   if (!data) return null;
 
+  const last3MonthsMetrics =
+    data.btcMiniTrust.last3Months.length > 0
+      ? (() => {
+          const w = data.btcMiniTrust.last3Months;
+          const n = w.length;
+          const friSat = w.filter((x) => x.friToSatDrift !== null).map((x) => x.friToSatDrift!);
+          const satSun = w.filter((x) => x.satToSunDrift !== null).map((x) => x.satToSunDrift!);
+          const sunMon = w.map((x) => x.sunToMonDrift);
+          const dd = w.map((x) => x.weekendDrawdown);
+          const avg = (a: number[]) => (a.length > 0 ? a.reduce((s, v) => s + v, 0) / a.length : 0);
+          return {
+            totalWeekends: n,
+            monBelowFriPct: (w.filter((x) => x.monBelowFri).length / n) * 100,
+            avgFriToSatDrift: avg(friSat),
+            avgSatToSunDrift: avg(satSun),
+            avgSunToMonDrift: avg(sunMon),
+            avgWeekendDrawdown: avg(dd),
+            worstWeekendDrawdown: Math.min(...dd),
+            mondayRecoveryPositivePct: (w.filter((x) => x.mondayRecoveryPositive).length / n) * 100,
+          };
+        })()
+      : null;
+
   return (
     <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Weekend Momentum</h2>
         <p className="text-gray-500">
-          BTC weekend price behavior analysis — how Bitcoin performs from Friday close through
-          Monday open/close.
+          BTC weekend price behavior analysis — how Bitcoin drifts from Friday close through
+          Saturday, Sunday, and into Monday.
         </p>
       </div>
 
       <MetricsGrid metrics={data.allHistory.metrics} label="All BTC History" />
 
       <MetricsGrid
-        metrics={data.gbtcEra.metrics}
-        label={`GBTC Era (since ${data.gbtcEra.startDate})`}
+        metrics={data.btcMiniTrust.metrics}
+        label={`Since BTC Mini Trust Inception (${data.btcMiniTrust.startDate})`}
       />
 
-      <WeekendTable weekends={data.allHistory.weekends} />
+      {last3MonthsMetrics && (
+        <MetricsGrid
+          metrics={last3MonthsMetrics}
+          label="BTC Mini Trust — Last 3 Months"
+        />
+      )}
+
+      {data.btcMiniTrust.last3Months.length > 0 && (
+        <WeekendTable
+          weekends={data.btcMiniTrust.last3Months}
+          title="BTC Mini Trust — Last 3 Months Weekend History"
+        />
+      )}
+
+      <WeekendTable weekends={data.allHistory.weekends} title="All BTC Weekend History" />
     </div>
   );
 }

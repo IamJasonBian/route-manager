@@ -14,13 +14,16 @@ interface DailyBar {
 export interface WeekendData {
   fridayDate: string;
   fridayClose: number;
+  saturdayClose: number | null;
   saturdayLow: number | null;
   sundayClose: number | null;
   sundayLow: number | null;
   mondayOpen: number;
   mondayClose: number;
   monBelowFri: boolean;
-  friToSunDrift: number | null;
+  friToSatDrift: number | null;
+  satToSunDrift: number | null;
+  sunToMonDrift: number;
   weekendDrawdown: number;
   mondayRecoveryPositive: boolean;
 }
@@ -28,7 +31,9 @@ export interface WeekendData {
 export interface WeekendMetrics {
   totalWeekends: number;
   monBelowFriPct: number;
-  avgFriSunDrift: number;
+  avgFriToSatDrift: number;
+  avgSatToSunDrift: number;
+  avgSunToMonDrift: number;
   avgWeekendDrawdown: number;
   worstWeekendDrawdown: number;
   mondayRecoveryPositivePct: number;
@@ -77,7 +82,6 @@ async function fetchDailyBars(symbol: string, outputsize: number): Promise<Daily
 }
 
 function buildWeekendData(bars: DailyBar[]): WeekendData[] {
-  // Index bars by date for quick lookup
   const byDate = new Map<string, DailyBar>();
   for (const bar of bars) {
     byDate.set(bar.datetime, bar);
@@ -92,7 +96,6 @@ function buildWeekendData(bars: DailyBar[]): WeekendData[] {
     const friday = bar;
     const fridayDate = new Date(friday.datetime + 'T00:00:00');
 
-    // Find Saturday (day+1), Sunday (day+2), Monday (day+3)
     const satDate = new Date(fridayDate);
     satDate.setDate(satDate.getDate() + 1);
     const sunDate = new Date(fridayDate);
@@ -105,16 +108,25 @@ function buildWeekendData(bars: DailyBar[]): WeekendData[] {
     const sunday = byDate.get(fmt(sunDate));
     const monday = byDate.get(fmt(monDate));
 
-    if (!monday) continue; // Need at least Monday data
+    if (!monday) continue;
 
+    const satClose = saturday ? saturday.close : null;
     const satLow = saturday ? saturday.low : null;
     const sunClose = sunday ? sunday.close : null;
     const sunLow = sunday ? sunday.low : null;
 
-    // Fri→Sun drift: % change from Friday close to Sunday close
-    const friToSunDrift = sunClose !== null
-      ? ((sunClose - friday.close) / friday.close) * 100
+    // Three separate drifts
+    const friToSatDrift = satClose !== null
+      ? ((satClose - friday.close) / friday.close) * 100
       : null;
+
+    const satToSunDrift = satClose !== null && sunClose !== null
+      ? ((sunClose - satClose) / satClose) * 100
+      : null;
+
+    // Sun→Mon: use Sunday close if available, otherwise Saturday close, otherwise Friday close
+    const preMonday = sunClose ?? satClose ?? friday.close;
+    const sunToMonDrift = ((monday.open - preMonday) / preMonday) * 100;
 
     // Weekend drawdown: worst low during Sat/Sun relative to Friday close
     const lows: number[] = [];
@@ -123,19 +135,21 @@ function buildWeekendData(bars: DailyBar[]): WeekendData[] {
     const weekendMin = lows.length > 0 ? Math.min(...lows) : monday.open;
     const weekendDrawdown = ((weekendMin - friday.close) / friday.close) * 100;
 
-    // Monday recovery positive: Monday close > Friday close
     const mondayRecoveryPositive = monday.close > friday.close;
 
     weekends.push({
       fridayDate: friday.datetime,
       fridayClose: friday.close,
+      saturdayClose: satClose,
       saturdayLow: satLow,
       sundayClose: sunClose,
       sundayLow: sunLow,
       mondayOpen: monday.open,
       mondayClose: monday.close,
       monBelowFri: monday.open < friday.close,
-      friToSunDrift,
+      friToSatDrift,
+      satToSunDrift,
+      sunToMonDrift,
       weekendDrawdown,
       mondayRecoveryPositive,
     });
@@ -144,12 +158,18 @@ function buildWeekendData(bars: DailyBar[]): WeekendData[] {
   return weekends;
 }
 
+function avg(nums: number[]): number {
+  return nums.length > 0 ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
+}
+
 function computeMetrics(weekends: WeekendData[]): WeekendMetrics {
   if (weekends.length === 0) {
     return {
       totalWeekends: 0,
       monBelowFriPct: 0,
-      avgFriSunDrift: 0,
+      avgFriToSatDrift: 0,
+      avgSatToSunDrift: 0,
+      avgSunToMonDrift: 0,
       avgWeekendDrawdown: 0,
       worstWeekendDrawdown: 0,
       mondayRecoveryPositivePct: 0,
@@ -157,22 +177,21 @@ function computeMetrics(weekends: WeekendData[]): WeekendMetrics {
   }
 
   const monBelowCount = weekends.filter((w) => w.monBelowFri).length;
-
-  const drifts = weekends.filter((w) => w.friToSunDrift !== null).map((w) => w.friToSunDrift!);
-  const avgDrift = drifts.length > 0 ? drifts.reduce((a, b) => a + b, 0) / drifts.length : 0;
-
-  const drawdowns = weekends.map((w) => w.weekendDrawdown);
-  const avgDrawdown = drawdowns.reduce((a, b) => a + b, 0) / drawdowns.length;
-  const worstDrawdown = Math.min(...drawdowns);
-
   const recoveryCount = weekends.filter((w) => w.mondayRecoveryPositive).length;
+
+  const friSatDrifts = weekends.filter((w) => w.friToSatDrift !== null).map((w) => w.friToSatDrift!);
+  const satSunDrifts = weekends.filter((w) => w.satToSunDrift !== null).map((w) => w.satToSunDrift!);
+  const sunMonDrifts = weekends.map((w) => w.sunToMonDrift);
+  const drawdowns = weekends.map((w) => w.weekendDrawdown);
 
   return {
     totalWeekends: weekends.length,
     monBelowFriPct: (monBelowCount / weekends.length) * 100,
-    avgFriSunDrift: avgDrift,
-    avgWeekendDrawdown: avgDrawdown,
-    worstWeekendDrawdown: worstDrawdown,
+    avgFriToSatDrift: avg(friSatDrifts),
+    avgSatToSunDrift: avg(satSunDrifts),
+    avgSunToMonDrift: avg(sunMonDrifts),
+    avgWeekendDrawdown: avg(drawdowns),
+    worstWeekendDrawdown: Math.min(...drawdowns),
     mondayRecoveryPositivePct: (recoveryCount / weekends.length) * 100,
   };
 }
@@ -182,32 +201,44 @@ export interface WeekendMomentumResult {
     metrics: WeekendMetrics;
     weekends: WeekendData[];
   };
-  gbtcEra: {
+  btcMiniTrust: {
     metrics: WeekendMetrics;
     weekends: WeekendData[];
+    last3Months: WeekendData[];
     startDate: string;
   };
 }
 
 export async function fetchWeekendMomentumData(): Promise<WeekendMomentumResult> {
-  // Fetch BTC/USD daily data (max history) and GBTC data to find its start date
-  const [btcBars, gbtcBars] = await Promise.all([
+  // Fetch BTC/USD daily data (max history) and BTC Mini Trust to find its inception
+  const [btcBars, miniTrustBars] = await Promise.all([
     fetchDailyBars('BTC/USD', 5000),
-    fetchDailyBars('GBTC', 5000),
+    fetchDailyBars('BTC', 5000),
   ]);
 
   const allWeekends = buildWeekendData(btcBars);
   const allMetrics = computeMetrics(allWeekends);
 
-  // GBTC-era: filter weekends to only those on/after GBTC's earliest data point
-  const gbtcStartDate = gbtcBars.length > 0 ? gbtcBars[0].datetime : '';
-  const gbtcWeekends = gbtcStartDate
-    ? allWeekends.filter((w) => w.fridayDate >= gbtcStartDate)
+  // BTC Mini Trust era: filter to weekends on/after its earliest data point
+  const miniTrustStartDate = miniTrustBars.length > 0 ? miniTrustBars[0].datetime : '';
+  const miniTrustWeekends = miniTrustStartDate
+    ? allWeekends.filter((w) => w.fridayDate >= miniTrustStartDate)
     : [];
-  const gbtcMetrics = computeMetrics(gbtcWeekends);
+  const miniTrustMetrics = computeMetrics(miniTrustWeekends);
+
+  // Last 3 months: ~13 weekends
+  const threeMonthsAgo = new Date();
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+  const cutoff = threeMonthsAgo.toISOString().slice(0, 10);
+  const last3Months = miniTrustWeekends.filter((w) => w.fridayDate >= cutoff);
 
   return {
     allHistory: { metrics: allMetrics, weekends: allWeekends },
-    gbtcEra: { metrics: gbtcMetrics, weekends: gbtcWeekends, startDate: gbtcStartDate },
+    btcMiniTrust: {
+      metrics: miniTrustMetrics,
+      weekends: miniTrustWeekends,
+      last3Months,
+      startDate: miniTrustStartDate,
+    },
   };
 }
