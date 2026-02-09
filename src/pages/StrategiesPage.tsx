@@ -1,0 +1,43 @@
+import { useState } from 'react';
+import WeekendMomentum from '../components/WeekendMomentum';
+
+const TABS = [
+  { id: 'weekend-momentum', label: 'Weekend Momentum' },
+] as const;
+
+type TabId = (typeof TABS)[number]['id'];
+
+export default function StrategiesPage() {
+  const [activeTab, setActiveTab] = useState<TabId>('weekend-momentum');
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Strategies</h1>
+        <p className="text-gray-500 mt-1">Quantitative strategy analysis and backtesting</p>
+      </div>
+
+      {/* Sub-tabs */}
+      <div className="border-b border-gray-200 mb-8">
+        <nav className="flex gap-6">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === tab.id
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Tab content */}
+      {activeTab === 'weekend-momentum' && <WeekendMomentum />}
+    </div>
+  );
+}
