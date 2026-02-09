@@ -203,6 +203,73 @@ export async function getBitcoinQuote(): Promise<BitcoinQuote> {
   };
 }
 
+// --- ETF Quote functions ---
+
+export interface EtfQuote {
+  symbol: string;
+  name: string;
+  close: number;
+  previous_close: number;
+  change: number;
+  percent_change: number;
+  datetime: string;
+  is_market_open: boolean;
+}
+
+export async function getEtfQuote(symbol: string = 'BTC'): Promise<EtfQuote> {
+  const apiKey = getApiKey();
+  const url = new URL(`${TWELVE_DATA_API}/quote`);
+  url.searchParams.set('symbol', symbol);
+  url.searchParams.set('apikey', apiKey);
+
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    throw new Error(`Failed to fetch ${symbol} quote: ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (data.status === 'error') {
+    throw new Error(data.message || `API error fetching ${symbol} quote`);
+  }
+
+  return {
+    symbol: data.symbol,
+    name: data.name || 'Grayscale Bitcoin Mini Trust ETF',
+    close: parseFloat(data.close),
+    previous_close: parseFloat(data.previous_close),
+    change: parseFloat(data.change),
+    percent_change: parseFloat(data.percent_change),
+    datetime: data.datetime,
+    is_market_open: data.is_market_open,
+  };
+}
+
+export async function getBtcPriceAtTime(datetime: string): Promise<number> {
+  const apiKey = getApiKey();
+  const url = new URL(`${TWELVE_DATA_API}/time_series`);
+  url.searchParams.set('symbol', 'BTC/USD');
+  url.searchParams.set('interval', '1h');
+  url.searchParams.set('outputsize', '1');
+  url.searchParams.set('end_date', datetime);
+  url.searchParams.set('apikey', apiKey);
+
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    throw new Error(`Failed to fetch BTC price at ${datetime}: ${response.status}`);
+  }
+
+  const data: TimeSeriesResponse = await response.json();
+  if (data.status === 'error') {
+    throw new Error(data.message || 'API error fetching BTC historical price');
+  }
+
+  if (!data.values || data.values.length === 0) {
+    throw new Error('No BTC price data available for the specified time');
+  }
+
+  return parseFloat(data.values[0].close);
+}
+
 // Map days-based ranges to TwelveData config (including intraday for short ranges)
 const BTC_RANGE_CONFIG: Record<number, { outputsize: number; interval: string }> = {
   1: { outputsize: 96, interval: '15min' },
