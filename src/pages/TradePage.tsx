@@ -14,6 +14,9 @@ import {
   Unlink,
   Loader2,
   Shield,
+  ArrowUpRight,
+  ArrowDownRight,
+  Receipt,
 } from 'lucide-react';
 import {
   PieChart,
@@ -32,10 +35,14 @@ import {
   checkVerification,
   submitMFA,
   disconnectRobinhood,
+  getOrderPnL,
   Portfolio,
   BotAction,
   BotAnalysis,
   AuthStatus,
+  OrderPnL,
+  SymbolPnL,
+  FilledOrder,
   formatCurrency,
   formatPercent,
   getGainColor,
@@ -570,8 +577,183 @@ function AnalysisSuggestions({ analysis }: { analysis: BotAnalysis | null }) {
   );
 }
 
+function RealizedPnLSummary({ pnl }: { pnl: OrderPnL }) {
+  const totalTrades = pnl.symbols.reduce((sum, s) => sum + s.buyCount + s.sellCount, 0);
+  const pnlPercent = pnl.totalBuyVolume > 0
+    ? (pnl.totalRealizedPnL / pnl.totalBuyVolume) * 100
+    : 0;
+
+  return (
+    <div className="mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
+            {pnl.totalRealizedPnL >= 0 ? (
+              <TrendingUp className="w-4 h-4 text-green-500" />
+            ) : (
+              <TrendingDown className="w-4 h-4 text-red-500" />
+            )}
+            Realized P&L
+          </div>
+          <div className={`text-2xl font-bold ${getGainColor(pnl.totalRealizedPnL)}`}>
+            {formatCurrency(pnl.totalRealizedPnL)} ({formatPercent(pnlPercent)})
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
+            <ArrowUpRight className="w-4 h-4 text-green-500" />
+            Buy Volume
+          </div>
+          <div className="text-2xl font-bold text-gray-900">
+            {formatCurrency(pnl.totalBuyVolume)}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
+            <ArrowDownRight className="w-4 h-4 text-red-500" />
+            Sell Volume
+          </div>
+          <div className="text-2xl font-bold text-gray-900">
+            {formatCurrency(pnl.totalSellVolume)}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
+            <Receipt className="w-4 h-4" />
+            Filled Trades
+          </div>
+          <div className="text-2xl font-bold text-gray-900">
+            {totalTrades}
+          </div>
+        </div>
+      </div>
+      <p className="text-xs text-gray-400 mt-2">Based on filled orders since January 2024. Positions held before this date may show incomplete cost basis.</p>
+    </div>
+  );
+}
+
+function PnLBySymbolTable({ symbols }: { symbols: SymbolPnL[] }) {
+  if (symbols.length === 0) return null;
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-2">
+        <Receipt className="w-5 h-5 text-blue-500" />
+        <h3 className="text-lg font-semibold text-gray-900">Realized P&L by Symbol</h3>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Symbol</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Buys</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Sells</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Buy</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Sell</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Realized P&L</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Remaining</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {symbols.map((sym, index) => {
+              const pnlPercent = sym.totalBought > 0
+                ? (sym.realizedPnL / sym.totalBought) * 100
+                : 0;
+              return (
+                <tr key={sym.symbol} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-gray-900">{sym.symbol}</div>
+                    <div className="text-sm text-gray-500 truncate max-w-[150px]">{sym.name}</div>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="text-gray-900">{sym.buyCount}</div>
+                    <div className="text-sm text-gray-500">{formatCurrency(sym.totalBought)}</div>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="text-gray-900">{sym.sellCount}</div>
+                    <div className="text-sm text-gray-500">{formatCurrency(sym.totalSold)}</div>
+                  </td>
+                  <td className="px-4 py-3 text-right text-gray-900">{formatCurrency(sym.avgBuyPrice)}</td>
+                  <td className="px-4 py-3 text-right text-gray-900">
+                    {sym.sellCount > 0 ? formatCurrency(sym.avgSellPrice) : '—'}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className={`font-medium ${getGainColor(sym.realizedPnL)}`}>
+                      {formatCurrency(sym.realizedPnL)}
+                    </div>
+                    {sym.sellCount > 0 && (
+                      <div className={`text-sm ${getGainColor(pnlPercent)}`}>
+                        {formatPercent(pnlPercent)}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right text-gray-900">
+                    {sym.remainingShares > 0
+                      ? `${sym.remainingShares.toFixed(4)} shares`
+                      : '—'}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function OrderHistoryList({ orders }: { orders: FilledOrder[] }) {
+  if (orders.length === 0) return null;
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200">
+      <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-2">
+        <Activity className="w-5 h-5 text-blue-500" />
+        <h3 className="text-lg font-semibold text-gray-900">Filled Orders</h3>
+      </div>
+      <div className="max-h-[400px] overflow-y-auto">
+        <div className="divide-y divide-gray-100">
+          {orders.map((order) => (
+            <div key={order.id} className="px-4 py-3 hover:bg-gray-50">
+              <div className="flex items-start gap-3">
+                {order.side === 'buy' ? (
+                  <ArrowUpRight className="w-4 h-4 text-green-500 mt-0.5" />
+                ) : (
+                  <ArrowDownRight className="w-4 h-4 text-red-500 mt-0.5" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-0.5 text-xs font-medium rounded ${
+                      order.side === 'buy'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {order.side.toUpperCase()}
+                    </span>
+                    <span className="font-medium text-gray-900">{order.symbol}</span>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {order.quantity.toFixed(4)} shares @ {formatCurrency(order.price)} = {formatCurrency(order.total)}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {new Date(order.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function TradePage() {
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
+  const [orderPnL, setOrderPnL] = useState<OrderPnL | null>(null);
   const [botActions, setBotActions] = useState<BotAction[]>([]);
   const [analysis, setAnalysis] = useState<BotAnalysis | null>(null);
   const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
@@ -606,12 +788,14 @@ export default function TradePage() {
         return;
       }
 
-      const [portfolioData, actionsData] = await Promise.all([
+      const [portfolioData, actionsData, pnlData] = await Promise.all([
         getPortfolio(),
         getBotActions(50),
+        getOrderPnL(),
       ]);
       setPortfolio(portfolioData);
       setBotActions(actionsData.actions);
+      setOrderPnL(pnlData);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch data';
       // Don't show auth errors as errors, just show auth panel
@@ -759,6 +943,26 @@ export default function TradePage() {
               <BotActionsLog actions={botActions} />
             </div>
           </div>
+
+          {orderPnL && (
+            <>
+              <div className="mt-8 mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Order P&L</h2>
+                <p className="text-gray-500 mt-1">Realized profit & loss from filled orders</p>
+              </div>
+
+              <RealizedPnLSummary pnl={orderPnL} />
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                  <PnLBySymbolTable symbols={orderPnL.symbols} />
+                </div>
+                <div>
+                  <OrderHistoryList orders={orderPnL.orders} />
+                </div>
+              </div>
+            </>
+          )}
         </>
       )}
     </div>

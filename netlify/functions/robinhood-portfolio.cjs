@@ -6,6 +6,9 @@ const tokenStore = require('./lib/tokenStore.cjs');
 
 const ROBINHOOD_API_BASE = 'https://api.robinhood.com';
 
+// In-memory instrument cache to avoid redundant API calls
+const instrumentCache = {};
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type',
@@ -146,6 +149,124 @@ async function getRecentOrders() {
   return enrichedOrders.filter(o => o !== null);
 }
 
+async function getInstrument(instrumentUrl) {
+  const key = instrumentUrl.replace(ROBINHOOD_API_BASE, '');
+  if (instrumentCache[key]) return instrumentCache[key];
+  const instrument = await fetchWithAuth(key);
+  instrumentCache[key] = instrument;
+  return instrument;
+}
+
+async function getAllFilledOrders() {
+  let url = '/orders/?updated_at[gte]=2024-01-01';
+  const allOrders = [];
+
+  while (url) {
+    const data = await fetchWithAuth(url);
+    const filled = (data.results || []).filter(o => o.state === 'filled');
+    allOrders.push(...filled);
+    url = data.next ? data.next.replace(ROBINHOOD_API_BASE, '') : null;
+  }
+
+  return allOrders;
+}
+
+async function calculateOrderPnL() {
+  const filledOrders = await getAllFilledOrders();
+
+  // Enrich with instrument data
+  const enriched = (await Promise.all(
+    filledOrders.map(async (order) => {
+      try {
+        const instrument = await getInstrument(order.instrument);
+        return {
+          id: order.id,
+          symbol: instrument.symbol,
+          name: instrument.simple_name || instrument.name,
+          side: order.side,
+          quantity: parseFloat(order.quantity),
+          price: parseFloat(order.average_price || order.price || 0),
+          total: parseFloat(order.quantity) * parseFloat(order.average_price || order.price || 0),
+          createdAt: order.created_at,
+        };
+      } catch (e) {
+        return null;
+      }
+    })
+  )).filter(o => o !== null);
+
+  // Sort chronologically (oldest first) for cost basis calculation
+  enriched.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+  // Group by symbol and calculate P&L using weighted average cost basis
+  const symbolMap = {};
+  for (const order of enriched) {
+    if (!symbolMap[order.symbol]) {
+      symbolMap[order.symbol] = {
+        symbol: order.symbol,
+        name: order.name,
+        realizedPnL: 0,
+        totalBought: 0,
+        totalSold: 0,
+        buyCount: 0,
+        sellCount: 0,
+        totalBuyShares: 0,
+        totalSellShares: 0,
+        sharesHeld: 0,
+        costBasis: 0,
+      };
+    }
+    const s = symbolMap[order.symbol];
+    const total = order.quantity * order.price;
+
+    if (order.side === 'buy') {
+      s.sharesHeld += order.quantity;
+      s.costBasis += total;
+      s.totalBought += total;
+      s.totalBuyShares += order.quantity;
+      s.buyCount++;
+    } else if (order.side === 'sell') {
+      const avgCost = s.sharesHeld > 0 ? s.costBasis / s.sharesHeld : 0;
+      const realizedGain = (order.price - avgCost) * order.quantity;
+      s.realizedPnL += realizedGain;
+      s.costBasis -= avgCost * order.quantity;
+      s.sharesHeld -= order.quantity;
+      s.totalSold += total;
+      s.totalSellShares += order.quantity;
+      s.sellCount++;
+    }
+  }
+
+  const symbols = Object.values(symbolMap).map(s => ({
+    symbol: s.symbol,
+    name: s.name,
+    realizedPnL: Math.round(s.realizedPnL * 100) / 100,
+    totalBought: Math.round(s.totalBought * 100) / 100,
+    totalSold: Math.round(s.totalSold * 100) / 100,
+    buyCount: s.buyCount,
+    sellCount: s.sellCount,
+    avgBuyPrice: s.totalBuyShares > 0
+      ? Math.round((s.totalBought / s.totalBuyShares) * 100) / 100
+      : 0,
+    avgSellPrice: s.totalSellShares > 0
+      ? Math.round((s.totalSold / s.totalSellShares) * 100) / 100
+      : 0,
+    remainingShares: Math.round(s.sharesHeld * 10000) / 10000,
+    remainingCostBasis: Math.round(s.costBasis * 100) / 100,
+  }));
+
+  // Sort by absolute realized P&L (biggest movers first)
+  symbols.sort((a, b) => Math.abs(b.realizedPnL) - Math.abs(a.realizedPnL));
+
+  return {
+    totalRealizedPnL: Math.round(symbols.reduce((sum, s) => sum + s.realizedPnL, 0) * 100) / 100,
+    totalBuyVolume: Math.round(symbols.reduce((sum, s) => sum + s.totalBought, 0) * 100) / 100,
+    totalSellVolume: Math.round(symbols.reduce((sum, s) => sum + s.totalSold, 0) * 100) / 100,
+    symbols,
+    orders: enriched.reverse(), // most recent first for display
+  };
+}
+
 exports.handler = async (event) => {
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
@@ -173,8 +294,12 @@ exports.handler = async (event) => {
         data = await getRecentOrders();
         break;
 
+      case 'pnl':
+        data = await calculateOrderPnL();
+        break;
+
       default:
-        throw new Error(`Unknown action: ${action}. Available: status, portfolio, orders`);
+        throw new Error(`Unknown action: ${action}. Available: status, portfolio, orders, pnl`);
     }
 
     return {

@@ -63,6 +63,39 @@ export interface Order {
   updatedAt: string;
 }
 
+export interface SymbolPnL {
+  symbol: string;
+  name: string;
+  realizedPnL: number;
+  totalBought: number;
+  totalSold: number;
+  buyCount: number;
+  sellCount: number;
+  avgBuyPrice: number;
+  avgSellPrice: number;
+  remainingShares: number;
+  remainingCostBasis: number;
+}
+
+export interface FilledOrder {
+  id: string;
+  symbol: string;
+  name: string;
+  side: 'buy' | 'sell';
+  quantity: number;
+  price: number;
+  total: number;
+  createdAt: string;
+}
+
+export interface OrderPnL {
+  totalRealizedPnL: number;
+  totalBuyVolume: number;
+  totalSellVolume: number;
+  symbols: SymbolPnL[];
+  orders: FilledOrder[];
+}
+
 export interface BotAction {
   id: string;
   timestamp: string;
@@ -134,6 +167,10 @@ export async function getPortfolio(): Promise<Portfolio> {
 
 export async function getOrders(): Promise<Order[]> {
   return fetchApi<Order[]>('/robinhood-portfolio?action=orders');
+}
+
+export async function getOrderPnL(): Promise<OrderPnL> {
+  return fetchApi<OrderPnL>('/robinhood-portfolio?action=pnl');
 }
 
 // Bot functions
