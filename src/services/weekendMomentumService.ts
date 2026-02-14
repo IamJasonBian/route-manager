@@ -63,6 +63,40 @@ function getDayOfWeek(dateStr: string): number {
   return d.getDay(); // 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat
 }
 
+async function fetchHourlyBars(symbol: string, outputsize: number): Promise<HourlyBar[]> {
+  const apiKey = getApiKey();
+  const url = new URL(`${TWELVE_DATA_API}/time_series`);
+  url.searchParams.set('symbol', symbol);
+  url.searchParams.set('interval', '1h');
+  url.searchParams.set('outputsize', outputsize.toString());
+  url.searchParams.set('apikey', apiKey);
+
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    throw new Error(`Failed to fetch ${symbol} hourly: ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (data.status === 'error') {
+    throw new Error(data.message || `API error for ${symbol} hourly`);
+  }
+
+  const bars = data.values
+    .map((v: { datetime: string; open: string; high: string; low: string; close: string }) => ({
+      datetime: v.datetime,
+      open: parseFloat(v.open),
+      high: parseFloat(v.high),
+      low: parseFloat(v.low),
+      close: parseFloat(v.close),
+    }))
+    .reverse(); // oldest first
+
+  return bars.map((bar: DailyBar, i: number) => ({
+    ...bar,
+    change: i === 0 ? 0 : ((bar.close - bars[i - 1].close) / bars[i - 1].close) * 100,
+  }));
+}
+
 async function fetchDailyBars(symbol: string, outputsize: number): Promise<DailyBar[]> {
   const apiKey = getApiKey();
   const url = new URL(`${TWELVE_DATA_API}/time_series`);
@@ -236,6 +270,15 @@ function computeMetrics(weekends: WeekendData[]): WeekendMetrics {
   };
 }
 
+export interface HourlyBar {
+  datetime: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  change: number;
+}
+
 export interface WeekendMomentumResult {
   allHistory: {
     metrics: WeekendMetrics;
@@ -247,13 +290,15 @@ export interface WeekendMomentumResult {
     last3Months: WeekendData[];
     startDate: string;
   };
+  hourlyHistory: HourlyBar[];
 }
 
 export async function fetchWeekendMomentumData(): Promise<WeekendMomentumResult> {
-  // Fetch BTC/USD daily data (max history) and BTC Mini Trust to find its inception
-  const [btcBars, miniTrustBars] = await Promise.all([
+  // Fetch BTC/USD daily data (max history), BTC Mini Trust, and BTC hourly (last 7 days = 168h)
+  const [btcBars, miniTrustBars, hourlyBars] = await Promise.all([
     fetchDailyBars('BTC/USD', 5000),
     fetchDailyBars('BTC', 5000),
+    fetchHourlyBars('BTC/USD', 168),
   ]);
 
   const allWeekends = buildWeekendData(btcBars);
@@ -280,5 +325,6 @@ export async function fetchWeekendMomentumData(): Promise<WeekendMomentumResult>
       last3Months,
       startDate: miniTrustStartDate,
     },
+    hourlyHistory: hourlyBars,
   };
 }

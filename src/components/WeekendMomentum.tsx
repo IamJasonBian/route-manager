@@ -5,6 +5,7 @@ import {
   WeekendMomentumResult,
   WeekendMetrics,
   WeekendData,
+  HourlyBar,
 } from '../services/weekendMomentumService';
 
 function MetricCard({
@@ -232,6 +233,95 @@ function WeekendTable({ weekends, title }: { weekends: WeekendData[]; title: str
   );
 }
 
+function getDayLabel(datetime: string): string {
+  const d = new Date(datetime.replace(' ', 'T'));
+  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
+}
+
+function HourlyTable({ bars }: { bars: HourlyBar[] }) {
+  const [page, setPage] = useState(0);
+  const perPage = 48;
+  const sorted = [...bars].reverse(); // most recent first
+  const totalPages = Math.ceil(sorted.length / perPage);
+  const slice = sorted.slice(page * perPage, (page + 1) * perPage);
+
+  return (
+    <div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-3">BTC Hourly Price History (Last 7 Days)</h3>
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Datetime</th>
+                <th className="text-center px-4 py-3 font-medium text-gray-600">Day</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-600">Open</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-600">High</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-600">Low</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-600">Close</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-600">Change</th>
+              </tr>
+            </thead>
+            <tbody>
+              {slice.map((bar) => {
+                const day = getDayLabel(bar.datetime);
+                const isWeekend = day === 'Sat' || day === 'Sun';
+                return (
+                  <tr
+                    key={bar.datetime}
+                    className={`border-b border-gray-100 hover:bg-gray-50 ${isWeekend ? 'bg-orange-50/40' : ''}`}
+                  >
+                    <td className="px-4 py-2.5 font-medium text-gray-900">{bar.datetime}</td>
+                    <td className={`px-4 py-2.5 text-center text-xs font-semibold ${isWeekend ? 'text-orange-600' : 'text-gray-500'}`}>
+                      {day}
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-gray-700">
+                      ${bar.open.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-gray-700">
+                      ${bar.high.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-gray-700">
+                      ${bar.low.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-gray-700">
+                      ${bar.close.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    </td>
+                    <td className={`px-4 py-2.5 text-right font-medium ${bar.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {bar.change >= 0 ? '+' : ''}{bar.change.toFixed(2)}%
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50">
+            <p className="text-sm text-gray-500">Page {page + 1} of {totalPages}</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0}
+                className="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100 disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={page >= totalPages - 1}
+                className="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function WeekendMomentum() {
   const [data, setData] = useState<WeekendMomentumResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -340,7 +430,7 @@ export default function WeekendMomentum() {
         />
       )}
 
-      <WeekendTable weekends={data.allHistory.weekends} title="All BTC Weekend History" />
+      <HourlyTable bars={data.hourlyHistory} />
     </div>
   );
 }
