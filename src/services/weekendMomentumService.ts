@@ -13,13 +13,20 @@ interface DailyBar {
 
 export interface WeekendData {
   fridayDate: string;
+  fridayOpen: number;
+  fridayHigh: number;
+  fridayLow: number;
   fridayClose: number;
+  friOpenToCloseDrift: number;
   saturdayClose: number | null;
   saturdayLow: number | null;
   sundayClose: number | null;
   sundayLow: number | null;
   mondayOpen: number;
+  mondayHigh: number;
+  mondayLow: number;
   mondayClose: number;
+  monOpenToCloseDrift: number;
   monBelowFri: boolean;
   friToSatDrift: number | null;
   satToSunDrift: number | null;
@@ -31,9 +38,13 @@ export interface WeekendData {
 export interface WeekendMetrics {
   totalWeekends: number;
   monBelowFriPct: number;
+  avgFriOpenToCloseDrift: number;
+  friClosedAboveOpenPct: number;
   avgFriToSatDrift: number;
   avgSatToSunDrift: number;
   avgSunToMonDrift: number;
+  avgMonOpenToCloseDrift: number;
+  monClosedAboveOpenPct: number;
   avgWeekendDrawdown: number;
   worstWeekendDrawdown: number;
   mondayRecoveryPositivePct: number;
@@ -115,7 +126,13 @@ function buildWeekendData(bars: DailyBar[]): WeekendData[] {
     const sunClose = sunday ? sunday.close : null;
     const sunLow = sunday ? sunday.low : null;
 
-    // Three separate drifts
+    // Friday afternoon: open→close drift
+    const friOpenToCloseDrift = ((friday.close - friday.open) / friday.open) * 100;
+
+    // Monday morning: open→close drift
+    const monOpenToCloseDrift = ((monday.close - monday.open) / monday.open) * 100;
+
+    // Three separate weekend drifts
     const friToSatDrift = satClose !== null
       ? ((satClose - friday.close) / friday.close) * 100
       : null;
@@ -139,13 +156,20 @@ function buildWeekendData(bars: DailyBar[]): WeekendData[] {
 
     weekends.push({
       fridayDate: friday.datetime,
+      fridayOpen: friday.open,
+      fridayHigh: friday.high,
+      fridayLow: friday.low,
       fridayClose: friday.close,
+      friOpenToCloseDrift,
       saturdayClose: satClose,
       saturdayLow: satLow,
       sundayClose: sunClose,
       sundayLow: sunLow,
       mondayOpen: monday.open,
+      mondayHigh: monday.high,
+      mondayLow: monday.low,
       mondayClose: monday.close,
+      monOpenToCloseDrift,
       monBelowFri: monday.open < friday.close,
       friToSatDrift,
       satToSunDrift,
@@ -167,32 +191,48 @@ function computeMetrics(weekends: WeekendData[]): WeekendMetrics {
     return {
       totalWeekends: 0,
       monBelowFriPct: 0,
+      avgFriOpenToCloseDrift: 0,
+      friClosedAboveOpenPct: 0,
       avgFriToSatDrift: 0,
       avgSatToSunDrift: 0,
       avgSunToMonDrift: 0,
+      avgMonOpenToCloseDrift: 0,
+      monClosedAboveOpenPct: 0,
       avgWeekendDrawdown: 0,
       worstWeekendDrawdown: 0,
       mondayRecoveryPositivePct: 0,
     };
   }
 
+  const n = weekends.length;
   const monBelowCount = weekends.filter((w) => w.monBelowFri).length;
   const recoveryCount = weekends.filter((w) => w.mondayRecoveryPositive).length;
+
+  const friOcDrifts = weekends.map((w) => w.friOpenToCloseDrift);
+  const friClosedAbove = weekends.filter((w) => w.friOpenToCloseDrift > 0).length;
 
   const friSatDrifts = weekends.filter((w) => w.friToSatDrift !== null).map((w) => w.friToSatDrift!);
   const satSunDrifts = weekends.filter((w) => w.satToSunDrift !== null).map((w) => w.satToSunDrift!);
   const sunMonDrifts = weekends.map((w) => w.sunToMonDrift);
+
+  const monOcDrifts = weekends.map((w) => w.monOpenToCloseDrift);
+  const monClosedAbove = weekends.filter((w) => w.monOpenToCloseDrift > 0).length;
+
   const drawdowns = weekends.map((w) => w.weekendDrawdown);
 
   return {
-    totalWeekends: weekends.length,
-    monBelowFriPct: (monBelowCount / weekends.length) * 100,
+    totalWeekends: n,
+    monBelowFriPct: (monBelowCount / n) * 100,
+    avgFriOpenToCloseDrift: avg(friOcDrifts),
+    friClosedAboveOpenPct: (friClosedAbove / n) * 100,
     avgFriToSatDrift: avg(friSatDrifts),
     avgSatToSunDrift: avg(satSunDrifts),
     avgSunToMonDrift: avg(sunMonDrifts),
+    avgMonOpenToCloseDrift: avg(monOcDrifts),
+    monClosedAboveOpenPct: (monClosedAbove / n) * 100,
     avgWeekendDrawdown: avg(drawdowns),
     worstWeekendDrawdown: Math.min(...drawdowns),
-    mondayRecoveryPositivePct: (recoveryCount / weekends.length) * 100,
+    mondayRecoveryPositivePct: (recoveryCount / n) * 100,
   };
 }
 

@@ -46,6 +46,14 @@ function DriftCell({ value }: { value: number | null }) {
   );
 }
 
+function PriceCell({ value }: { value: number }) {
+  return (
+    <td className="px-4 py-2.5 text-right text-gray-700">
+      ${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+    </td>
+  );
+}
+
 function MetricsGrid({ metrics, label }: { metrics: WeekendMetrics; label: string }) {
   return (
     <div>
@@ -55,7 +63,25 @@ function MetricsGrid({ metrics, label }: { metrics: WeekendMetrics; label: strin
           ({metrics.totalWeekends} weekends)
         </span>
       </h3>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+      {/* Friday Afternoon */}
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Friday Afternoon</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+        <MetricCard
+          label="Avg Fri open→close"
+          value={metrics.avgFriOpenToCloseDrift}
+          isNegative={metrics.avgFriOpenToCloseDrift < 0}
+        />
+        <MetricCard
+          label="Fri closed above open"
+          value={metrics.friClosedAboveOpenPct}
+          isNegative={metrics.friClosedAboveOpenPct < 50}
+        />
+      </div>
+
+      {/* Weekend Drift */}
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Weekend Drift</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
         <MetricCard
           label="Mon opened below Fri close"
           value={metrics.monBelowFriPct}
@@ -86,6 +112,21 @@ function MetricsGrid({ metrics, label }: { metrics: WeekendMetrics; label: strin
           value={metrics.worstWeekendDrawdown}
           isNegative={true}
         />
+      </div>
+
+      {/* Monday Morning */}
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Monday Morning</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <MetricCard
+          label="Avg Mon open→close"
+          value={metrics.avgMonOpenToCloseDrift}
+          isNegative={metrics.avgMonOpenToCloseDrift < 0}
+        />
+        <MetricCard
+          label="Mon closed above open"
+          value={metrics.monClosedAboveOpenPct}
+          isNegative={metrics.monClosedAboveOpenPct < 50}
+        />
         <MetricCard
           label="Monday recovery positive"
           value={metrics.mondayRecoveryPositivePct}
@@ -114,12 +155,15 @@ function WeekendTable({ weekends, title }: { weekends: WeekendData[]; title: str
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Friday</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-600">Fri Open</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">Fri Close</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">Mon Open</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">Mon Close</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-600">Fri O→C</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">Fri→Sat</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">Sat→Sun</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">Sun→Mon</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-600">Mon Open</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-600">Mon Close</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-600">Mon O→C</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">Drawdown</th>
                 <th className="text-center px-4 py-3 font-medium text-gray-600">Mon&lt;Fri</th>
                 <th className="text-center px-4 py-3 font-medium text-gray-600">Recovery</th>
@@ -129,18 +173,15 @@ function WeekendTable({ weekends, title }: { weekends: WeekendData[]; title: str
               {slice.map((w) => (
                 <tr key={w.fridayDate} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="px-4 py-2.5 font-medium text-gray-900">{w.fridayDate}</td>
-                  <td className="px-4 py-2.5 text-right text-gray-700">
-                    ${w.fridayClose.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                  </td>
-                  <td className="px-4 py-2.5 text-right text-gray-700">
-                    ${w.mondayOpen.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                  </td>
-                  <td className="px-4 py-2.5 text-right text-gray-700">
-                    ${w.mondayClose.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                  </td>
+                  <PriceCell value={w.fridayOpen} />
+                  <PriceCell value={w.fridayClose} />
+                  <DriftCell value={w.friOpenToCloseDrift} />
                   <DriftCell value={w.friToSatDrift} />
                   <DriftCell value={w.satToSunDrift} />
                   <DriftCell value={w.sunToMonDrift} />
+                  <PriceCell value={w.mondayOpen} />
+                  <PriceCell value={w.mondayClose} />
+                  <DriftCell value={w.monOpenToCloseDrift} />
                   <td className="px-4 py-2.5 text-right font-medium text-red-600">
                     {w.weekendDrawdown.toFixed(2)}%
                   </td>
@@ -244,36 +285,37 @@ export default function WeekendMomentum() {
 
   if (!data) return null;
 
-  const last3MonthsMetrics =
-    data.btcMiniTrust.last3Months.length > 0
-      ? (() => {
-          const w = data.btcMiniTrust.last3Months;
-          const n = w.length;
-          const friSat = w.filter((x) => x.friToSatDrift !== null).map((x) => x.friToSatDrift!);
-          const satSun = w.filter((x) => x.satToSunDrift !== null).map((x) => x.satToSunDrift!);
-          const sunMon = w.map((x) => x.sunToMonDrift);
-          const dd = w.map((x) => x.weekendDrawdown);
-          const avg = (a: number[]) => (a.length > 0 ? a.reduce((s, v) => s + v, 0) / a.length : 0);
-          return {
-            totalWeekends: n,
-            monBelowFriPct: (w.filter((x) => x.monBelowFri).length / n) * 100,
-            avgFriToSatDrift: avg(friSat),
-            avgSatToSunDrift: avg(satSun),
-            avgSunToMonDrift: avg(sunMon),
-            avgWeekendDrawdown: avg(dd),
-            worstWeekendDrawdown: Math.min(...dd),
-            mondayRecoveryPositivePct: (w.filter((x) => x.mondayRecoveryPositive).length / n) * 100,
-          };
-        })()
-      : null;
+  const computeFromWeekends = (weekends: WeekendData[]): WeekendMetrics | null => {
+    if (weekends.length === 0) return null;
+    const n = weekends.length;
+    const avgArr = (a: number[]) => (a.length > 0 ? a.reduce((s, v) => s + v, 0) / a.length : 0);
+    const friSat = weekends.filter((x) => x.friToSatDrift !== null).map((x) => x.friToSatDrift!);
+    const satSun = weekends.filter((x) => x.satToSunDrift !== null).map((x) => x.satToSunDrift!);
+    const dd = weekends.map((x) => x.weekendDrawdown);
+    return {
+      totalWeekends: n,
+      monBelowFriPct: (weekends.filter((x) => x.monBelowFri).length / n) * 100,
+      avgFriOpenToCloseDrift: avgArr(weekends.map((x) => x.friOpenToCloseDrift)),
+      friClosedAboveOpenPct: (weekends.filter((x) => x.friOpenToCloseDrift > 0).length / n) * 100,
+      avgFriToSatDrift: avgArr(friSat),
+      avgSatToSunDrift: avgArr(satSun),
+      avgSunToMonDrift: avgArr(weekends.map((x) => x.sunToMonDrift)),
+      avgMonOpenToCloseDrift: avgArr(weekends.map((x) => x.monOpenToCloseDrift)),
+      monClosedAboveOpenPct: (weekends.filter((x) => x.monOpenToCloseDrift > 0).length / n) * 100,
+      avgWeekendDrawdown: avgArr(dd),
+      worstWeekendDrawdown: Math.min(...dd),
+      mondayRecoveryPositivePct: (weekends.filter((x) => x.mondayRecoveryPositive).length / n) * 100,
+    };
+  };
+
+  const last3MonthsMetrics = computeFromWeekends(data.btcMiniTrust.last3Months);
 
   return (
     <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Weekend Momentum</h2>
         <p className="text-gray-500">
-          BTC weekend price behavior analysis — how Bitcoin drifts from Friday close through
-          Saturday, Sunday, and into Monday.
+          BTC weekend price behavior — Friday afternoon close, weekend drift, and Monday morning recovery.
         </p>
       </div>
 
