@@ -36,6 +36,7 @@ import {
   submitMFA,
   disconnectRobinhood,
   getOrderPnL,
+  getOrderBookSnapshot,
   Portfolio,
   BotAction,
   BotAnalysis,
@@ -43,6 +44,7 @@ import {
   OrderPnL,
   SymbolPnL,
   FilledOrder,
+  OrderBookSnapshot,
   formatCurrency,
   formatPercent,
   getGainColor,
@@ -577,6 +579,213 @@ function AnalysisSuggestions({ analysis }: { analysis: BotAnalysis | null }) {
   );
 }
 
+function OrderBookSnapshotView({ snapshot }: { snapshot: OrderBookSnapshot }) {
+  const { portfolio, order_book, state, timestamp } = snapshot;
+  const totalPnL = portfolio.positions.reduce((sum, p) => sum + p.profit_loss, 0);
+  const totalCost = portfolio.positions.reduce((sum, p) => sum + p.avg_buy_price * p.quantity, 0);
+  const pnlPercent = totalCost > 0 ? (totalPnL / totalCost) * 100 : 0;
+
+  // Sort positions by absolute P&L
+  const sortedPositions = [...portfolio.positions].sort(
+    (a, b) => Math.abs(b.profit_loss) - Math.abs(a.profit_loss)
+  );
+
+  // BTC signal info
+  const btcState = state.symbols['BTC'];
+
+  return (
+    <div className="mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Order Book Snapshot</h2>
+          <p className="text-xs text-gray-400">
+            Last updated: {new Date(timestamp).toLocaleString()}
+          </p>
+        </div>
+        {btcState && (
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-1 text-xs font-medium rounded bg-indigo-100 text-indigo-800">
+              BTC Signal: {btcState.last_signal.signal}
+            </span>
+            <span className="text-xs text-gray-500">
+              ${btcState.metrics.current_price.toFixed(2)}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
+            <DollarSign className="w-4 h-4" />
+            Equity
+          </div>
+          <div className="text-2xl font-bold text-gray-900">
+            {formatCurrency(portfolio.equity)}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
+            <BarChart3 className="w-4 h-4" />
+            Market Value
+          </div>
+          <div className="text-2xl font-bold text-gray-900">
+            {formatCurrency(portfolio.market_value)}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
+            <Activity className="w-4 h-4" />
+            Buying Power
+          </div>
+          <div className="text-2xl font-bold text-gray-900">
+            {formatCurrency(portfolio.cash.buying_power)}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
+            {totalPnL >= 0 ? (
+              <TrendingUp className="w-4 h-4 text-green-500" />
+            ) : (
+              <TrendingDown className="w-4 h-4 text-red-500" />
+            )}
+            Total P&L
+          </div>
+          <div className={`text-2xl font-bold ${getGainColor(totalPnL)}`}>
+            {formatCurrency(totalPnL)} ({formatPercent(pnlPercent)})
+          </div>
+        </div>
+      </div>
+
+      {/* BTC metrics bar */}
+      {btcState && (
+        <div className="bg-white rounded-xl border border-gray-200 p-3 mb-4">
+          <div className="flex items-center gap-6 text-sm">
+            <span className="text-gray-500">BTC Intraday</span>
+            <span>
+              <span className="text-gray-400">Low </span>
+              <span className="font-medium">${btcState.metrics.intraday_low.toFixed(2)}</span>
+            </span>
+            <span>
+              <span className="text-gray-400">High </span>
+              <span className="font-medium">${btcState.metrics.intraday_high.toFixed(2)}</span>
+            </span>
+            <span>
+              <span className="text-gray-400">Vol </span>
+              <span className="font-medium">{btcState.metrics.intraday_volatility.toFixed(1)}%</span>
+            </span>
+            <span>
+              <span className="text-gray-400">30d Range </span>
+              <span className="font-medium">${btcState.metrics['30d_low'].toFixed(2)} – ${btcState.metrics['30d_high'].toFixed(2)}</span>
+            </span>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Positions table */}
+        <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-blue-500" />
+            <h3 className="text-lg font-semibold text-gray-900">Positions</h3>
+            <span className="text-sm text-gray-400 ml-auto">{portfolio.positions.length} holdings</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Symbol</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Cost</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">P&L</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {sortedPositions.map((pos, index) => (
+                  <tr key={pos.symbol} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="px-4 py-3 font-medium text-gray-900">{pos.symbol}</td>
+                    <td className="px-4 py-3 text-right text-gray-900">{pos.quantity.toFixed(4)}</td>
+                    <td className="px-4 py-3 text-right text-gray-900">{formatCurrency(pos.current_price)}</td>
+                    <td className="px-4 py-3 text-right text-gray-500">{formatCurrency(pos.avg_buy_price)}</td>
+                    <td className="px-4 py-3 text-right font-medium text-gray-900">{formatCurrency(pos.equity)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <div className={`font-medium ${getGainColor(pos.profit_loss)}`}>
+                        {formatCurrency(pos.profit_loss)}
+                      </div>
+                      <div className={`text-sm ${getGainColor(pos.profit_loss_pct)}`}>
+                        {formatPercent(pos.profit_loss_pct)}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Open orders */}
+        <div className="bg-white rounded-xl border border-gray-200">
+          <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-2">
+            <Receipt className="w-5 h-5 text-orange-500" />
+            <h3 className="text-lg font-semibold text-gray-900">Open Orders</h3>
+            <span className="text-sm text-gray-400 ml-auto">{order_book.length}</span>
+          </div>
+          <div className="max-h-[400px] overflow-y-auto">
+            {order_book.length === 0 ? (
+              <div className="p-6 text-center text-gray-500">
+                <Receipt className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                <p className="text-sm">No open orders</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {order_book.map((order) => (
+                  <div key={order.order_id} className="px-4 py-3 hover:bg-gray-50">
+                    <div className="flex items-start gap-3">
+                      {order.side === 'BUY' ? (
+                        <ArrowUpRight className="w-4 h-4 text-green-500 mt-0.5" />
+                      ) : (
+                        <ArrowDownRight className="w-4 h-4 text-red-500 mt-0.5" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 text-xs font-medium rounded ${
+                            order.side === 'BUY'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {order.side}
+                          </span>
+                          <span className="font-medium text-gray-900">{order.symbol}</span>
+                          <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">
+                            {order.state}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {order.quantity} @ {formatCurrency(order.limit_price)}
+                          {order.stop_price ? ` (stop: ${formatCurrency(order.stop_price)})` : ''}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {order.order_type} / {order.trigger} — {new Date(order.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RealizedPnLSummary({ pnl }: { pnl: OrderPnL }) {
   const totalTrades = pnl.symbols.reduce((sum, s) => sum + s.buyCount + s.sellCount, 0);
   const pnlPercent = pnl.totalBuyVolume > 0
@@ -754,6 +963,7 @@ function OrderHistoryList({ orders }: { orders: FilledOrder[] }) {
 export default function TradePage() {
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [orderPnL, setOrderPnL] = useState<OrderPnL | null>(null);
+  const [snapshot, setSnapshot] = useState<OrderBookSnapshot | null>(null);
   const [botActions, setBotActions] = useState<BotAction[]>([]);
   const [analysis, setAnalysis] = useState<BotAnalysis | null>(null);
   const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
@@ -779,7 +989,12 @@ export default function TradePage() {
     setError(null);
 
     try {
-      // Check auth first
+      // Fetch snapshot independently (doesn't require RH auth)
+      getOrderBookSnapshot()
+        .then(setSnapshot)
+        .catch((err) => console.error('Failed to fetch order book snapshot:', err));
+
+      // Check auth first for RH-dependent data
       const isAuthenticated = await fetchAuthStatus();
 
       if (!isAuthenticated) {
@@ -859,6 +1074,8 @@ export default function TradePage() {
 
         <AuthPanel authStatus={authStatus} onAuthChange={fetchData} />
 
+        {snapshot && <OrderBookSnapshotView snapshot={snapshot} />}
+
         <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
           <Shield className="w-16 h-16 mx-auto mb-4 text-gray-300" />
           <p className="text-lg font-medium text-gray-600 mb-2">Connect to Robinhood</p>
@@ -919,6 +1136,8 @@ export default function TradePage() {
       </div>
 
       <AuthPanel authStatus={authStatus} onAuthChange={fetchData} />
+
+      {snapshot && <OrderBookSnapshotView snapshot={snapshot} />}
 
       {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
