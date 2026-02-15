@@ -121,31 +121,34 @@ export interface SnapshotOrder {
   updated_at: string;
 }
 
+export interface SymbolMarketData {
+  metrics: {
+    intraday_volatility: number;
+    intraday_high: number;
+    intraday_low: number;
+    current_price: number;
+    '30d_high': number;
+    '30d_low': number;
+  };
+  orders: {
+    active_buy: unknown;
+    active_sell: unknown;
+    order_history: unknown[];
+  };
+  last_signal: {
+    signal: string;
+    timestamp: string;
+  };
+  last_updated: string;
+}
+
+export interface MarketData {
+  timestamp: string;
+  symbols: Record<string, SymbolMarketData>;
+}
+
 export interface OrderBookSnapshot {
   timestamp: string;
-  state: {
-    symbols: Record<string, {
-      metrics: {
-        intraday_volatility: number;
-        intraday_high: number;
-        intraday_low: number;
-        current_price: number;
-        '30d_high': number;
-        '30d_low': number;
-      };
-      orders: {
-        active_buy: unknown;
-        active_sell: unknown;
-        order_history: unknown[];
-      };
-      last_signal: {
-        signal: string;
-        timestamp: string;
-      };
-      last_updated: string;
-    }>;
-    last_updated: string;
-  };
   order_book: SnapshotOrder[];
   portfolio: {
     cash: {
@@ -159,6 +162,7 @@ export interface OrderBookSnapshot {
     positions: SnapshotPosition[];
     open_orders: SnapshotOrder[];
   };
+  market_data: MarketData | null;
 }
 
 export interface BotAction {

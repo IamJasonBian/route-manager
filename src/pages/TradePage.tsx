@@ -580,7 +580,7 @@ function AnalysisSuggestions({ analysis }: { analysis: BotAnalysis | null }) {
 }
 
 function OrderBookSnapshotView({ snapshot }: { snapshot: OrderBookSnapshot }) {
-  const { portfolio, order_book, state, timestamp } = snapshot;
+  const { portfolio, order_book, market_data, timestamp } = snapshot;
   const totalPnL = portfolio.positions.reduce((sum, p) => sum + p.profit_loss, 0);
   const totalCost = portfolio.positions.reduce((sum, p) => sum + p.avg_buy_price * p.quantity, 0);
   const pnlPercent = totalCost > 0 ? (totalPnL / totalCost) * 100 : 0;
@@ -590,10 +590,11 @@ function OrderBookSnapshotView({ snapshot }: { snapshot: OrderBookSnapshot }) {
     (a, b) => Math.abs(b.profit_loss) - Math.abs(a.profit_loss)
   );
 
-  // BTC signal info
-  const btcState = state.symbols['BTC'];
+  // BTC market data (may come from a previous snapshot if latest had NO_DATA)
+  const btcState = market_data?.symbols['BTC'];
   const btcMetrics = btcState?.metrics;
   const hasBtcMetrics = btcMetrics && btcMetrics.current_price != null;
+  const marketDataStale = market_data && market_data.timestamp !== timestamp;
 
   return (
     <div className="mb-6">
@@ -692,6 +693,11 @@ function OrderBookSnapshotView({ snapshot }: { snapshot: OrderBookSnapshot }) {
               <span>
                 <span className="text-gray-400">30d Range </span>
                 <span className="font-medium">${btcMetrics['30d_low'].toFixed(2)} – ${btcMetrics['30d_high'].toFixed(2)}</span>
+              </span>
+            )}
+            {marketDataStale && market_data && (
+              <span className="text-gray-400 ml-auto text-xs">
+                as of {new Date(market_data.timestamp).toLocaleTimeString()}
               </span>
             )}
           </div>
