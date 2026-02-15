@@ -63,6 +63,104 @@ export interface Order {
   updatedAt: string;
 }
 
+export interface SymbolPnL {
+  symbol: string;
+  name: string;
+  realizedPnL: number;
+  totalBought: number;
+  totalSold: number;
+  buyCount: number;
+  sellCount: number;
+  avgBuyPrice: number;
+  avgSellPrice: number;
+  remainingShares: number;
+  remainingCostBasis: number;
+}
+
+export interface FilledOrder {
+  id: string;
+  symbol: string;
+  name: string;
+  side: 'buy' | 'sell';
+  quantity: number;
+  price: number;
+  total: number;
+  createdAt: string;
+}
+
+export interface OrderPnL {
+  totalRealizedPnL: number;
+  totalBuyVolume: number;
+  totalSellVolume: number;
+  symbols: SymbolPnL[];
+  orders: FilledOrder[];
+}
+
+// Order Book Snapshot types (from 5thstreetcapital blob store)
+export interface SnapshotPosition {
+  symbol: string;
+  quantity: number;
+  avg_buy_price: number;
+  current_price: number;
+  equity: number;
+  profit_loss: number;
+  profit_loss_pct: number;
+}
+
+export interface SnapshotOrder {
+  order_id: string;
+  symbol: string;
+  side: string;
+  order_type: string;
+  trigger: string;
+  state: string;
+  quantity: number;
+  limit_price: number;
+  stop_price: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrderBookSnapshot {
+  timestamp: string;
+  state: {
+    symbols: Record<string, {
+      metrics: {
+        intraday_volatility: number;
+        intraday_high: number;
+        intraday_low: number;
+        current_price: number;
+        '30d_high': number;
+        '30d_low': number;
+      };
+      orders: {
+        active_buy: unknown;
+        active_sell: unknown;
+        order_history: unknown[];
+      };
+      last_signal: {
+        signal: string;
+        timestamp: string;
+      };
+      last_updated: string;
+    }>;
+    last_updated: string;
+  };
+  order_book: SnapshotOrder[];
+  portfolio: {
+    cash: {
+      cash: number;
+      cash_available_for_withdrawal: number;
+      buying_power: number;
+      tradeable_cash: number;
+    };
+    equity: number;
+    market_value: number;
+    positions: SnapshotPosition[];
+    open_orders: SnapshotOrder[];
+  };
+}
+
 export interface BotAction {
   id: string;
   timestamp: string;
@@ -134,6 +232,15 @@ export async function getPortfolio(): Promise<Portfolio> {
 
 export async function getOrders(): Promise<Order[]> {
   return fetchApi<Order[]>('/robinhood-portfolio?action=orders');
+}
+
+export async function getOrderPnL(): Promise<OrderPnL> {
+  return fetchApi<OrderPnL>('/robinhood-portfolio?action=pnl');
+}
+
+// Order Book Snapshot
+export async function getOrderBookSnapshot(): Promise<OrderBookSnapshot> {
+  return fetchApi<OrderBookSnapshot>('/order-book-snapshot');
 }
 
 // Bot functions
