@@ -592,6 +592,8 @@ function OrderBookSnapshotView({ snapshot }: { snapshot: OrderBookSnapshot }) {
 
   // BTC signal info
   const btcState = state.symbols['BTC'];
+  const btcMetrics = btcState?.metrics;
+  const hasBtcMetrics = btcMetrics && btcMetrics.current_price != null;
 
   return (
     <div className="mb-6">
@@ -607,9 +609,11 @@ function OrderBookSnapshotView({ snapshot }: { snapshot: OrderBookSnapshot }) {
             <span className="px-2 py-1 text-xs font-medium rounded bg-indigo-100 text-indigo-800">
               BTC Signal: {btcState.last_signal.signal}
             </span>
-            <span className="text-xs text-gray-500">
-              ${btcState.metrics.current_price.toFixed(2)}
-            </span>
+            {hasBtcMetrics && (
+              <span className="text-xs text-gray-500">
+                ${btcMetrics.current_price.toFixed(2)}
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -662,26 +666,34 @@ function OrderBookSnapshotView({ snapshot }: { snapshot: OrderBookSnapshot }) {
       </div>
 
       {/* BTC metrics bar */}
-      {btcState && (
+      {hasBtcMetrics && (
         <div className="bg-white rounded-xl border border-gray-200 p-3 mb-4">
           <div className="flex items-center gap-6 text-sm">
             <span className="text-gray-500">BTC Intraday</span>
-            <span>
-              <span className="text-gray-400">Low </span>
-              <span className="font-medium">${btcState.metrics.intraday_low.toFixed(2)}</span>
-            </span>
-            <span>
-              <span className="text-gray-400">High </span>
-              <span className="font-medium">${btcState.metrics.intraday_high.toFixed(2)}</span>
-            </span>
-            <span>
-              <span className="text-gray-400">Vol </span>
-              <span className="font-medium">{btcState.metrics.intraday_volatility.toFixed(1)}%</span>
-            </span>
-            <span>
-              <span className="text-gray-400">30d Range </span>
-              <span className="font-medium">${btcState.metrics['30d_low'].toFixed(2)} – ${btcState.metrics['30d_high'].toFixed(2)}</span>
-            </span>
+            {btcMetrics.intraday_low != null && (
+              <span>
+                <span className="text-gray-400">Low </span>
+                <span className="font-medium">${btcMetrics.intraday_low.toFixed(2)}</span>
+              </span>
+            )}
+            {btcMetrics.intraday_high != null && (
+              <span>
+                <span className="text-gray-400">High </span>
+                <span className="font-medium">${btcMetrics.intraday_high.toFixed(2)}</span>
+              </span>
+            )}
+            {btcMetrics.intraday_volatility != null && (
+              <span>
+                <span className="text-gray-400">Vol </span>
+                <span className="font-medium">{btcMetrics.intraday_volatility.toFixed(1)}%</span>
+              </span>
+            )}
+            {btcMetrics['30d_low'] != null && btcMetrics['30d_high'] != null && (
+              <span>
+                <span className="text-gray-400">30d Range </span>
+                <span className="font-medium">${btcMetrics['30d_low'].toFixed(2)} – ${btcMetrics['30d_high'].toFixed(2)}</span>
+              </span>
+            )}
           </div>
         </div>
       )}
