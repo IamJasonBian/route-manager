@@ -37,6 +37,7 @@ import {
   disconnectRobinhood,
   getOrderPnL,
   getOrderBookSnapshot,
+  sendSlackAlert,
   Portfolio,
   BotAction,
   BotAnalysis,
@@ -1010,7 +1011,12 @@ export default function TradePage() {
       // Fetch snapshot independently (doesn't require RH auth)
       getOrderBookSnapshot()
         .then(setSnapshot)
-        .catch((err) => console.error('Failed to fetch order book snapshot:', err));
+        .catch((err) => {
+          console.error('Failed to fetch order book snapshot:', err);
+          if (err instanceof TypeError) {
+            sendSlackAlert('TypeError in order book snapshot', err.message);
+          }
+        });
 
       // Check auth first for RH-dependent data
       const isAuthenticated = await fetchAuthStatus();

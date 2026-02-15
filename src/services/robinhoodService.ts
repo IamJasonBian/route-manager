@@ -247,6 +247,14 @@ export async function getOrderBookSnapshot(): Promise<OrderBookSnapshot> {
   return fetchApi<OrderBookSnapshot>('/order-book-snapshot');
 }
 
+export function sendSlackAlert(message: string, error?: string) {
+  fetch(`${API_BASE}/alert-slack`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, error, source: 'Trade Page' }),
+  }).catch(() => {}); // fire-and-forget
+}
+
 // Bot functions
 export async function getBotStatus(): Promise<BotStatus> {
   return fetchApi<BotStatus>('/robinhood-bot?action=status');
