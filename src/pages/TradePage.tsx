@@ -37,6 +37,7 @@ import {
   disconnectRobinhood,
   getOrderPnL,
   getOrderBookSnapshot,
+  sendSlackAlert,
   Portfolio,
   BotAction,
   BotAnalysis,
@@ -580,7 +581,9 @@ function AnalysisSuggestions({ analysis }: { analysis: BotAnalysis | null }) {
 }
 
 function OrderBookSnapshotView({ snapshot }: { snapshot: OrderBookSnapshot }) {
-  const { portfolio, order_book, state, timestamp } = snapshot;
+  const { portfolio, order_book, market_data, timestamp } = snapshot;
+  // Open orders may be in portfolio.open_orders or top-level order_book
+  const openOrders = portfolio.open_orders.length > 0 ? portfolio.open_orders : order_book;
   const totalPnL = portfolio.positions.reduce((sum, p) => sum + p.profit_loss, 0);
   const totalCost = portfolio.positions.reduce((sum, p) => sum + p.avg_buy_price * p.quantity, 0);
   const pnlPercent = totalCost > 0 ? (totalPnL / totalCost) * 100 : 0;
@@ -590,8 +593,11 @@ function OrderBookSnapshotView({ snapshot }: { snapshot: OrderBookSnapshot }) {
     (a, b) => Math.abs(b.profit_loss) - Math.abs(a.profit_loss)
   );
 
-  // BTC signal info
-  const btcState = state.symbols['BTC'];
+  // BTC market data (may come from a previous snapshot if latest had NO_DATA)
+  const btcState = market_data?.symbols['BTC'];
+  const btcMetrics = btcState?.metrics;
+  const hasBtcMetrics = btcMetrics && btcMetrics.current_price != null;
+  const marketDataStale = market_data && market_data.timestamp !== timestamp;
 
   return (
     <div className="mb-6">
@@ -607,9 +613,11 @@ function OrderBookSnapshotView({ snapshot }: { snapshot: OrderBookSnapshot }) {
             <span className="px-2 py-1 text-xs font-medium rounded bg-indigo-100 text-indigo-800">
               BTC Signal: {btcState.last_signal.signal}
             </span>
-            <span className="text-xs text-gray-500">
-              ${btcState.metrics.current_price.toFixed(2)}
-            </span>
+            {hasBtcMetrics && (
+              <span className="text-xs text-gray-500">
+                ${btcMetrics.current_price.toFixed(2)}
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -662,26 +670,39 @@ function OrderBookSnapshotView({ snapshot }: { snapshot: OrderBookSnapshot }) {
       </div>
 
       {/* BTC metrics bar */}
-      {btcState && (
+      {hasBtcMetrics && (
         <div className="bg-white rounded-xl border border-gray-200 p-3 mb-4">
           <div className="flex items-center gap-6 text-sm">
             <span className="text-gray-500">BTC Intraday</span>
-            <span>
-              <span className="text-gray-400">Low </span>
-              <span className="font-medium">${btcState.metrics.intraday_low.toFixed(2)}</span>
-            </span>
-            <span>
-              <span className="text-gray-400">High </span>
-              <span className="font-medium">${btcState.metrics.intraday_high.toFixed(2)}</span>
-            </span>
-            <span>
-              <span className="text-gray-400">Vol </span>
-              <span className="font-medium">{btcState.metrics.intraday_volatility.toFixed(1)}%</span>
-            </span>
-            <span>
-              <span className="text-gray-400">30d Range </span>
-              <span className="font-medium">${btcState.metrics['30d_low'].toFixed(2)} – ${btcState.metrics['30d_high'].toFixed(2)}</span>
-            </span>
+            {btcMetrics.intraday_low != null && (
+              <span>
+                <span className="text-gray-400">Low </span>
+                <span className="font-medium">${btcMetrics.intraday_low.toFixed(2)}</span>
+              </span>
+            )}
+            {btcMetrics.intraday_high != null && (
+              <span>
+                <span className="text-gray-400">High </span>
+                <span className="font-medium">${btcMetrics.intraday_high.toFixed(2)}</span>
+              </span>
+            )}
+            {btcMetrics.intraday_volatility != null && (
+              <span>
+                <span className="text-gray-400">Vol </span>
+                <span className="font-medium">{btcMetrics.intraday_volatility.toFixed(1)}%</span>
+              </span>
+            )}
+            {btcMetrics['30d_low'] != null && btcMetrics['30d_high'] != null && (
+              <span>
+                <span className="text-gray-400">30d Range </span>
+                <span className="font-medium">${btcMetrics['30d_low'].toFixed(2)} – ${btcMetrics['30d_high'].toFixed(2)}</span>
+              </span>
+            )}
+            {marketDataStale && market_data && (
+              <span className="text-gray-400 ml-auto text-xs">
+                as of {new Date(market_data.timestamp).toLocaleTimeString()}
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -734,17 +755,17 @@ function OrderBookSnapshotView({ snapshot }: { snapshot: OrderBookSnapshot }) {
           <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-2">
             <Receipt className="w-5 h-5 text-orange-500" />
             <h3 className="text-lg font-semibold text-gray-900">Open Orders</h3>
-            <span className="text-sm text-gray-400 ml-auto">{order_book.length}</span>
+            <span className="text-sm text-gray-400 ml-auto">{openOrders.length}</span>
           </div>
           <div className="max-h-[400px] overflow-y-auto">
-            {order_book.length === 0 ? (
+            {openOrders.length === 0 ? (
               <div className="p-6 text-center text-gray-500">
                 <Receipt className="w-10 h-10 mx-auto mb-2 text-gray-300" />
                 <p className="text-sm">No open orders</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
-                {order_book.map((order) => (
+                {openOrders.map((order) => (
                   <div key={order.order_id} className="px-4 py-3 hover:bg-gray-50">
                     <div className="flex items-start gap-3">
                       {order.side === 'BUY' ? (
@@ -992,7 +1013,12 @@ export default function TradePage() {
       // Fetch snapshot independently (doesn't require RH auth)
       getOrderBookSnapshot()
         .then(setSnapshot)
-        .catch((err) => console.error('Failed to fetch order book snapshot:', err));
+        .catch((err) => {
+          console.error('Failed to fetch order book snapshot:', err);
+          if (err instanceof TypeError) {
+            sendSlackAlert('TypeError in order book snapshot', err.message);
+          }
+        });
 
       // Check auth first for RH-dependent data
       const isAuthenticated = await fetchAuthStatus();
