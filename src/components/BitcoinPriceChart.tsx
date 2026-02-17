@@ -37,6 +37,8 @@ export default function BitcoinPriceChart({
     { label: '30D', value: 30 },
     { label: '90D', value: 90 },
     { label: '1Y', value: 365 },
+    { label: '3Y', value: 1095 },
+    { label: '5Y', value: 1825 },
   ];
 
   useEffect(() => {

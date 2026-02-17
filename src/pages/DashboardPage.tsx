@@ -145,14 +145,14 @@ export default function DashboardPage() {
         <BitcoinPriceChart days={30} height={400} />
       </div>
 
-      {/* News Summary */}
-      <div className="mb-8">
-        <NewsSummary />
-      </div>
-
       {/* Market Indicators */}
       <div className="mb-8">
         <MarketIndicators />
+      </div>
+
+      {/* News Summary */}
+      <div className="mb-8">
+        <NewsSummary />
       </div>
     </div>
   );
