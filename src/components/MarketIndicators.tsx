@@ -16,12 +16,14 @@ import {
   getMarketIndicators,
   MarketIndicatorData,
 } from '../services/marketIndicatorService';
-import { formatCurrency, formatLargeNumber } from '../utils/formatters';
+import { formatLargeNumber } from '../utils/formatters';
 
 const RANGES = [
   { label: '30D', days: 30 },
   { label: '90D', days: 90 },
   { label: '1Y', days: 365 },
+  { label: '3Y', days: 1095 },
+  { label: '5Y', days: 1825 },
 ];
 
 function zscoreLabel(z: number): string {
@@ -71,7 +73,7 @@ export default function MarketIndicators() {
   const [data, setData] = useState<MarketIndicatorData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedRange, setSelectedRange] = useState(365);
+  const [selectedRange, setSelectedRange] = useState(1825);
   const [expanded, setExpanded] = useState(false);
   const [fetched, setFetched] = useState(false);
 
@@ -247,72 +249,6 @@ export default function MarketIndicators() {
 
               {/* Charts */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 pb-6">
-                {/* Price vs 200-Week MA */}
-                <div className="border border-gray-100 rounded-lg p-4">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-3">
-                    Price vs 200-Week MA
-                  </h4>
-                  {data.ma.series.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <LineChart data={filterByRange(data.ma.series, selectedRange)}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                        <XAxis
-                          dataKey="timestamp"
-                          tickFormatter={(ts) => formatAxis(ts, selectedRange)}
-                          tick={{ fontSize: 11, fill: '#9ca3af' }}
-                          axisLine={{ stroke: '#e5e7eb' }}
-                        />
-                        <YAxis
-                          tickFormatter={(v) =>
-                            v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v.toFixed(0)}`
-                          }
-                          tick={{ fontSize: 11, fill: '#9ca3af' }}
-                          axisLine={{ stroke: '#e5e7eb' }}
-                          width={55}
-                        />
-                        <Tooltip
-                          labelFormatter={(ts) =>
-                            new Date(ts as number).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })
-                          }
-                          formatter={(value: number, name: string) => [
-                            formatCurrency(value),
-                            name === 'price' ? 'BTC Price' : '200W MA',
-                          ]}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="price"
-                          stroke="#F7931A"
-                          strokeWidth={1.5}
-                          dot={false}
-                          name="price"
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="ma"
-                          stroke="#3B82F6"
-                          strokeWidth={1.5}
-                          dot={false}
-                          name="ma"
-                          strokeDasharray="5 3"
-                          connectNulls={false}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div
-                      className="flex items-center justify-center text-sm text-gray-400"
-                      style={{ height: chartHeight }}
-                    >
-                      No data available
-                    </div>
-                  )}
-                </div>
-
                 {/* IV Z-Score */}
                 <div className="border border-gray-100 rounded-lg p-4">
                   <h4 className="text-sm font-semibold text-gray-700 mb-3">
