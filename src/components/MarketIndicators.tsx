@@ -27,7 +27,6 @@ const RANGES = [
   { label: '90D', days: 90 },
   { label: '1Y', days: 365 },
   { label: '3Y', days: 1095 },
-  { label: '5Y', days: 1825 },
 ];
 
 function zscoreLabel(z: number): string {
@@ -77,7 +76,7 @@ export default function MarketIndicators() {
   const [data, setData] = useState<MarketIndicatorData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedRange, setSelectedRange] = useState(1825);
+  const [selectedRange, setSelectedRange] = useState(1095);
   const [expanded, setExpanded] = useState(false);
   const [fetched, setFetched] = useState(false);
 
