@@ -63,11 +63,13 @@ const COLORS = [
   '#F97316', // orange
 ];
 
-type PnLPeriod = '30D' | '90D' | '1Y' | '5Y';
+type PnLPeriod = '1W' | '1M' | '3M' | '6M' | '1Y' | '5Y';
 
 const PNL_PERIODS: { label: string; value: PnLPeriod }[] = [
-  { label: '30D', value: '30D' },
-  { label: '90D', value: '90D' },
+  { label: '1W', value: '1W' },
+  { label: '1M', value: '1M' },
+  { label: '3M', value: '3M' },
+  { label: '6M', value: '6M' },
   { label: '1Y', value: '1Y' },
   { label: '5Y', value: '5Y' },
 ];
@@ -75,8 +77,10 @@ const PNL_PERIODS: { label: string; value: PnLPeriod }[] = [
 function getPeriodCutoff(period: PnLPeriod): Date {
   const now = new Date();
   switch (period) {
-    case '30D': return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    case '90D': return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    case '1W': return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    case '1M': return new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+    case '3M': return new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+    case '6M': return new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
     case '1Y': return new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
     case '5Y': return new Date(now.getFullYear() - 5, now.getMonth(), now.getDate());
   }
@@ -84,8 +88,10 @@ function getPeriodCutoff(period: PnLPeriod): Date {
 
 function getPeriodLabel(period: PnLPeriod): string {
   switch (period) {
-    case '30D': return 'last 30 days';
-    case '90D': return 'last 90 days';
+    case '1W': return 'last week';
+    case '1M': return 'last month';
+    case '3M': return 'last 3 months';
+    case '6M': return 'last 6 months';
     case '1Y': return 'last year';
     case '5Y': return 'last 5 years';
   }
@@ -158,62 +164,6 @@ function filterAndRecalcPnL(pnl: OrderPnL, period: PnLPeriod): OrderPnL {
     symbols,
     orders: filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
   };
-}
-
-function calculateSharpeRatio(pnl: OrderPnL, period: PnLPeriod): number | null {
-  const cutoff = getPeriodCutoff(period);
-  const sells = pnl.orders.filter(o => o.side === 'sell' && new Date(o.createdAt) >= cutoff);
-  if (sells.length < 2) return null;
-
-  // Group sell P&L by day
-  const dailyPnL: Record<string, number> = {};
-  // Build per-symbol cost basis from ALL buys in the period (chronological)
-  const buys = pnl.orders
-    .filter(o => o.side === 'buy' && new Date(o.createdAt) >= cutoff)
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
-  const costBasis: Record<string, { shares: number; cost: number }> = {};
-
-  // Process buys first to build cost basis
-  for (const buy of buys) {
-    if (!costBasis[buy.symbol]) costBasis[buy.symbol] = { shares: 0, cost: 0 };
-    costBasis[buy.symbol].shares += buy.quantity;
-    costBasis[buy.symbol].cost += buy.quantity * buy.price;
-  }
-
-  // Reset for chronological processing
-  const allOrders = [...pnl.orders]
-    .filter(o => new Date(o.createdAt) >= cutoff)
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
-  const tracker: Record<string, { shares: number; cost: number }> = {};
-
-  for (const order of allOrders) {
-    const day = order.createdAt.slice(0, 10);
-    if (!tracker[order.symbol]) tracker[order.symbol] = { shares: 0, cost: 0 };
-    const t = tracker[order.symbol];
-
-    if (order.side === 'buy') {
-      t.shares += order.quantity;
-      t.cost += order.quantity * order.price;
-    } else {
-      const avgCost = t.shares > 0 ? t.cost / t.shares : 0;
-      const realized = (order.price - avgCost) * order.quantity;
-      dailyPnL[day] = (dailyPnL[day] || 0) + realized;
-      t.cost -= avgCost * order.quantity;
-      t.shares -= order.quantity;
-    }
-  }
-
-  const values = Object.values(dailyPnL);
-  if (values.length < 2) return null;
-
-  const mean = values.reduce((a, b) => a + b, 0) / values.length;
-  const variance = values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / (values.length - 1);
-  const std = Math.sqrt(variance);
-
-  if (std === 0) return null;
-  return (mean / std) * Math.sqrt(252);
 }
 
 // Auth Panel Component
@@ -961,20 +911,15 @@ function OrderBookSnapshotView({ snapshot }: { snapshot: OrderBookSnapshot }) {
   );
 }
 
-function RealizedPnLSummary({ pnl, sharpeRatio, periodLabel, openOrders }: { pnl: OrderPnL; sharpeRatio: number | null; periodLabel: string; openOrders: SnapshotOrder[] }) {
+function RealizedPnLSummary({ pnl, periodLabel, openOrders }: { pnl: OrderPnL; periodLabel: string; openOrders: SnapshotOrder[] }) {
   const totalTrades = pnl.symbols.reduce((sum, s) => sum + s.buyCount + s.sellCount, 0);
   const pnlPercent = pnl.totalBuyVolume > 0
     ? (pnl.totalRealizedPnL / pnl.totalBuyVolume) * 100
     : 0;
 
-  const sharpeColor = sharpeRatio === null ? 'text-gray-400'
-    : sharpeRatio >= 1 ? 'text-green-600'
-    : sharpeRatio >= 0 ? 'text-yellow-600'
-    : 'text-red-600';
-
   return (
     <div className="mb-6">
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
             {pnl.totalRealizedPnL >= 0 ? (
@@ -1017,19 +962,6 @@ function RealizedPnLSummary({ pnl, sharpeRatio, periodLabel, openOrders }: { pnl
           <div className="text-2xl font-bold text-gray-900">
             {totalTrades}
           </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
-            <BarChart3 className="w-4 h-4 text-blue-500" />
-            Sharpe Ratio
-          </div>
-          <div className={`text-2xl font-bold ${sharpeColor}`}>
-            {sharpeRatio !== null ? sharpeRatio.toFixed(2) : '—'}
-          </div>
-          {sharpeRatio === null && (
-            <div className="text-xs text-gray-400 mt-1">Needs 2+ sell days</div>
-          )}
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-4">
@@ -1184,10 +1116,6 @@ export default function TradePage() {
     return filterAndRecalcPnL(orderPnL, pnlPeriod);
   }, [orderPnL, pnlPeriod]);
 
-  const sharpeRatio = useMemo(() => {
-    if (!orderPnL) return null;
-    return calculateSharpeRatio(orderPnL, pnlPeriod);
-  }, [orderPnL, pnlPeriod]);
 
   const fetchAuthStatus = useCallback(async () => {
     try {
@@ -1421,7 +1349,6 @@ export default function TradePage() {
 
               <RealizedPnLSummary
                 pnl={filteredPnL}
-                sharpeRatio={sharpeRatio}
                 periodLabel={getPeriodLabel(pnlPeriod)}
                 openOrders={snapshot ? (snapshot.portfolio.open_orders.length > 0 ? snapshot.portfolio.open_orders : snapshot.order_book) : []}
               />
