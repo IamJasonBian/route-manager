@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import {
   AreaChart,
   Area,
+  BarChart,
+  Bar,
   LineChart,
   Line,
   XAxis,
@@ -10,6 +12,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  Cell,
 } from 'recharts';
 import { Activity, ChevronDown, ChevronUp } from 'lucide-react';
 import {
@@ -320,14 +323,14 @@ export default function MarketIndicators() {
                   )}
                 </div>
 
-                {/* ETF Cumulative Flows */}
+                {/* ETF Inflows / Outflows */}
                 <div className="border border-gray-100 rounded-lg p-4">
                   <h4 className="text-sm font-semibold text-gray-700 mb-3">
-                    BTC ETF Cumulative Net Flows (est.)
+                    BTC ETF Daily Flows
                   </h4>
                   {data.flows.dailyFlows.length > 0 ? (
                     <ResponsiveContainer width="100%" height={chartHeight}>
-                      <AreaChart data={filterByRange(data.flows.dailyFlows, selectedRange)}>
+                      <BarChart data={filterByRange(data.flows.dailyFlows, selectedRange)}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                         <XAxis
                           dataKey="timestamp"
@@ -351,24 +354,20 @@ export default function MarketIndicators() {
                           }
                           formatter={(value: number) => [
                             `${value >= 0 ? '+' : '-'}${formatLargeNumber(Math.abs(value))}`,
-                            'Cumulative Flow',
+                            value >= 0 ? 'Inflow' : 'Outflow',
                           ]}
                         />
-                        <ReferenceLine y={0} stroke="#000" strokeWidth={0.5} />
-                        <defs>
-                          <linearGradient id="flowGradientPos" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <Area
-                          type="monotone"
-                          dataKey="cumulative"
-                          stroke="#4682B4"
-                          fill="url(#flowGradientPos)"
-                          strokeWidth={1.5}
-                        />
-                      </AreaChart>
+                        <ReferenceLine y={0} stroke="#9ca3af" strokeWidth={0.5} />
+                        <Bar dataKey="flow">
+                          {filterByRange(data.flows.dailyFlows, selectedRange).map((entry, index) => (
+                            <Cell
+                              key={index}
+                              fill={entry.flow >= 0 ? '#22c55e' : '#ef4444'}
+                              fillOpacity={0.8}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
                     </ResponsiveContainer>
                   ) : (
                     <div
