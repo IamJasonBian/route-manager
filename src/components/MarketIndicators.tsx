@@ -414,14 +414,18 @@ export default function MarketIndicators() {
                   )}
                 </div>
 
-                {/* Historical Volatility */}
+              </div>
+
+              {/* Historical Volatility Charts */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 pb-6">
+                {/* 1Y Rolling Vol */}
                 <div className="border border-gray-100 rounded-lg p-4">
                   <h4 className="text-sm font-semibold text-gray-700 mb-3">
-                    Historical Volatility (30d rolling, annualised)
+                    Historical Vol 1Y Rolling (annualised)
                   </h4>
-                  {data.vol.rollingSeries.length > 0 ? (
+                  {data.vol.rolling1YSeries.length > 0 ? (
                     <ResponsiveContainer width="100%" height={chartHeight}>
-                      <AreaChart data={filterByRange(data.vol.rollingSeries, selectedRange)}>
+                      <AreaChart data={filterByRange(data.vol.rolling1YSeries, selectedRange)}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                         <XAxis
                           dataKey="timestamp"
@@ -448,25 +452,65 @@ export default function MarketIndicators() {
                         <ReferenceLine y={50} stroke="#9ca3af" strokeDasharray="3 3" strokeWidth={0.7} />
                         <ReferenceLine y={80} stroke="#ef4444" strokeDasharray="3 3" strokeWidth={0.7} />
                         <defs>
-                          <linearGradient id="volGradient" x1="0" y1="0" x2="0" y2="1">
+                          <linearGradient id="volGradient1y" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#F97316" stopOpacity={0.3} />
                             <stop offset="95%" stopColor="#F97316" stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <Area
-                          type="monotone"
-                          dataKey="vol"
-                          stroke="#EA580C"
-                          fill="url(#volGradient)"
-                          strokeWidth={1.5}
-                        />
+                        <Area type="monotone" dataKey="vol" stroke="#EA580C" fill="url(#volGradient1y)" strokeWidth={1.5} />
                       </AreaChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div
-                      className="flex items-center justify-center text-sm text-gray-400"
-                      style={{ height: chartHeight }}
-                    >
+                    <div className="flex items-center justify-center text-sm text-gray-400" style={{ height: chartHeight }}>
+                      Insufficient data
+                    </div>
+                  )}
+                </div>
+
+                {/* Full History Vol */}
+                <div className="border border-gray-100 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                    Historical Vol Full History (annualised)
+                  </h4>
+                  {data.vol.rolling1YSeries.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={chartHeight}>
+                      <AreaChart data={data.vol.rolling1YSeries}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <XAxis
+                          dataKey="timestamp"
+                          tickFormatter={(ts) => formatAxis(ts, 1825)}
+                          tick={{ fontSize: 11, fill: '#9ca3af' }}
+                          axisLine={{ stroke: '#e5e7eb' }}
+                        />
+                        <YAxis
+                          tickFormatter={(v) => `${v.toFixed(0)}%`}
+                          tick={{ fontSize: 11, fill: '#9ca3af' }}
+                          axisLine={{ stroke: '#e5e7eb' }}
+                          width={45}
+                        />
+                        <Tooltip
+                          labelFormatter={(ts) =>
+                            new Date(ts as number).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })
+                          }
+                          formatter={(value: number) => [`${value.toFixed(1)}%`, 'Vol']}
+                        />
+                        <ReferenceLine y={50} stroke="#9ca3af" strokeDasharray="3 3" strokeWidth={0.7} />
+                        <ReferenceLine y={80} stroke="#ef4444" strokeDasharray="3 3" strokeWidth={0.7} />
+                        <defs>
+                          <linearGradient id="volGradientFull" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#F97316" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#F97316" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <Area type="monotone" dataKey="vol" stroke="#EA580C" fill="url(#volGradientFull)" strokeWidth={1.5} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center text-sm text-gray-400" style={{ height: chartHeight }}>
                       Insufficient data
                     </div>
                   )}

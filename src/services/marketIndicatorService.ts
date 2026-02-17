@@ -56,6 +56,7 @@ export interface VolWindow {
 export interface HistVolResult {
   windows: VolWindow[];
   rollingSeries: { timestamp: number; vol: number }[];
+  rolling1YSeries: { timestamp: number; vol: number }[];
 }
 
 export interface MarketIndicatorData {
@@ -350,7 +351,14 @@ function calcHistoricalVol(dailyData: OHLCVData[]): HistVolResult {
     rollingSeries.push({ timestamp: dailyData[i].timestamp, vol: vol * 100 });
   }
 
-  return { windows, rollingSeries };
+  // Rolling 1Y (365d) vol series
+  const rolling1YSeries: { timestamp: number; vol: number }[] = [];
+  for (let i = 365; i < n; i++) {
+    const vol = yangZhangVol(dailyData.slice(i - 365, i));
+    rolling1YSeries.push({ timestamp: dailyData[i].timestamp, vol: vol * 100 });
+  }
+
+  return { windows, rollingSeries, rolling1YSeries };
 }
 
 // ── Main API ─────────────────────────────────────────────────────────────
