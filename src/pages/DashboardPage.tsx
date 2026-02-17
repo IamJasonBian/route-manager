@@ -5,6 +5,7 @@ import BtcEtfProjection from '../components/BtcEtfProjection';
 import BitcoinPriceChart from '../components/BitcoinPriceChart';
 import MarketStats from '../components/MarketStats';
 import NewsSummary from '../components/NewsSummary';
+import MarketIndicators from '../components/MarketIndicators';
 import {
   getBitcoinQuote,
   BitcoinQuote,
@@ -147,6 +148,11 @@ export default function DashboardPage() {
       {/* News Summary */}
       <div className="mb-8">
         <NewsSummary />
+      </div>
+
+      {/* Market Indicators */}
+      <div className="mb-8">
+        <MarketIndicators />
       </div>
     </div>
   );
