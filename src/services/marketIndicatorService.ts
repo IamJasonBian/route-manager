@@ -358,10 +358,10 @@ function calcHistoricalVol(dailyData: OHLCVData[]): HistVolResult {
 export async function getMarketIndicators(): Promise<MarketIndicatorData> {
   // Fetch all data in parallel with graceful error handling
   const results = await Promise.allSettled([
-    fetchOHLCV('BTC/USD', 1300, '1day'),
+    fetchOHLCV('BTC/USD', 1900, '1day'),
     fetchOHLCV('BTC/USD', 270, '1week'),
     fetchDeribitDVOL(1825),
-    ...BTC_ETFS.map((s) => fetchOHLCV(s, 500, '1day')),
+    ...BTC_ETFS.map((s) => fetchOHLCV(s, 1900, '1day')),
   ]);
 
   const btcDaily = results[0].status === 'fulfilled' ? results[0].value : [];
