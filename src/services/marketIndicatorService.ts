@@ -2,7 +2,7 @@
 // Fetches and calculates IV z-score, ETF flows, 200-week MA, historical vol
 
 const TWELVE_DATA_API = 'https://api.twelvedata.com';
-const BTC_ETFS = ['IBIT', 'FBTC', 'GBTC'];
+const BTC_ETFS = ['BTC'];
 
 // ── Types ────────────────────────────────────────────────────────────────
 
