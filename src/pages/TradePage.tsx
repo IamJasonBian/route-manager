@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   RefreshCw,
   TrendingUp,
@@ -61,6 +61,159 @@ const COLORS = [
   '#06B6D4', // cyan
   '#F97316', // orange
 ];
+
+type PnLPeriod = '30D' | '90D' | '1Y' | '5Y';
+
+const PNL_PERIODS: { label: string; value: PnLPeriod }[] = [
+  { label: '30D', value: '30D' },
+  { label: '90D', value: '90D' },
+  { label: '1Y', value: '1Y' },
+  { label: '5Y', value: '5Y' },
+];
+
+function getPeriodCutoff(period: PnLPeriod): Date {
+  const now = new Date();
+  switch (period) {
+    case '30D': return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    case '90D': return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    case '1Y': return new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+    case '5Y': return new Date(now.getFullYear() - 5, now.getMonth(), now.getDate());
+  }
+}
+
+function getPeriodLabel(period: PnLPeriod): string {
+  switch (period) {
+    case '30D': return 'last 30 days';
+    case '90D': return 'last 90 days';
+    case '1Y': return 'last year';
+    case '5Y': return 'last 5 years';
+  }
+}
+
+function filterAndRecalcPnL(pnl: OrderPnL, period: PnLPeriod): OrderPnL {
+  const cutoff = getPeriodCutoff(period);
+  const filtered = pnl.orders.filter(o => new Date(o.createdAt) >= cutoff);
+
+  // Recalculate per-symbol metrics from filtered orders
+  const symbolMap: Record<string, {
+    symbol: string; name: string; realizedPnL: number;
+    totalBought: number; totalSold: number; buyCount: number; sellCount: number;
+    totalBuyShares: number; totalSellShares: number; sharesHeld: number; costBasis: number;
+  }> = {};
+
+  // Sort chronologically for cost basis tracking
+  const sorted = [...filtered].sort((a, b) =>
+    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
+
+  for (const order of sorted) {
+    if (!symbolMap[order.symbol]) {
+      symbolMap[order.symbol] = {
+        symbol: order.symbol, name: order.name, realizedPnL: 0,
+        totalBought: 0, totalSold: 0, buyCount: 0, sellCount: 0,
+        totalBuyShares: 0, totalSellShares: 0, sharesHeld: 0, costBasis: 0,
+      };
+    }
+    const s = symbolMap[order.symbol];
+    const total = order.quantity * order.price;
+
+    if (order.side === 'buy') {
+      s.sharesHeld += order.quantity;
+      s.costBasis += total;
+      s.totalBought += total;
+      s.totalBuyShares += order.quantity;
+      s.buyCount++;
+    } else {
+      const avgCost = s.sharesHeld > 0 ? s.costBasis / s.sharesHeld : 0;
+      s.realizedPnL += (order.price - avgCost) * order.quantity;
+      s.costBasis -= avgCost * order.quantity;
+      s.sharesHeld -= order.quantity;
+      s.totalSold += total;
+      s.totalSellShares += order.quantity;
+      s.sellCount++;
+    }
+  }
+
+  const symbols: SymbolPnL[] = Object.values(symbolMap)
+    .map(s => ({
+      symbol: s.symbol,
+      name: s.name,
+      realizedPnL: Math.round(s.realizedPnL * 100) / 100,
+      totalBought: Math.round(s.totalBought * 100) / 100,
+      totalSold: Math.round(s.totalSold * 100) / 100,
+      buyCount: s.buyCount,
+      sellCount: s.sellCount,
+      avgBuyPrice: s.totalBuyShares > 0 ? Math.round((s.totalBought / s.totalBuyShares) * 100) / 100 : 0,
+      avgSellPrice: s.totalSellShares > 0 ? Math.round((s.totalSold / s.totalSellShares) * 100) / 100 : 0,
+      remainingShares: Math.round(s.sharesHeld * 10000) / 10000,
+      remainingCostBasis: Math.round(s.costBasis * 100) / 100,
+    }))
+    .sort((a, b) => Math.abs(b.realizedPnL) - Math.abs(a.realizedPnL));
+
+  return {
+    totalRealizedPnL: Math.round(symbols.reduce((sum, s) => sum + s.realizedPnL, 0) * 100) / 100,
+    totalBuyVolume: Math.round(symbols.reduce((sum, s) => sum + s.totalBought, 0) * 100) / 100,
+    totalSellVolume: Math.round(symbols.reduce((sum, s) => sum + s.totalSold, 0) * 100) / 100,
+    symbols,
+    orders: filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+  };
+}
+
+function calculateSharpeRatio(pnl: OrderPnL, period: PnLPeriod): number | null {
+  const cutoff = getPeriodCutoff(period);
+  const sells = pnl.orders.filter(o => o.side === 'sell' && new Date(o.createdAt) >= cutoff);
+  if (sells.length < 2) return null;
+
+  // Group sell P&L by day
+  const dailyPnL: Record<string, number> = {};
+  // Build per-symbol cost basis from ALL buys in the period (chronological)
+  const buys = pnl.orders
+    .filter(o => o.side === 'buy' && new Date(o.createdAt) >= cutoff)
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+  const costBasis: Record<string, { shares: number; cost: number }> = {};
+
+  // Process buys first to build cost basis
+  for (const buy of buys) {
+    if (!costBasis[buy.symbol]) costBasis[buy.symbol] = { shares: 0, cost: 0 };
+    costBasis[buy.symbol].shares += buy.quantity;
+    costBasis[buy.symbol].cost += buy.quantity * buy.price;
+  }
+
+  // Reset for chronological processing
+  const allOrders = [...pnl.orders]
+    .filter(o => new Date(o.createdAt) >= cutoff)
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+  const tracker: Record<string, { shares: number; cost: number }> = {};
+
+  for (const order of allOrders) {
+    const day = order.createdAt.slice(0, 10);
+    if (!tracker[order.symbol]) tracker[order.symbol] = { shares: 0, cost: 0 };
+    const t = tracker[order.symbol];
+
+    if (order.side === 'buy') {
+      t.shares += order.quantity;
+      t.cost += order.quantity * order.price;
+    } else {
+      const avgCost = t.shares > 0 ? t.cost / t.shares : 0;
+      const realized = (order.price - avgCost) * order.quantity;
+      dailyPnL[day] = (dailyPnL[day] || 0) + realized;
+      t.cost -= avgCost * order.quantity;
+      t.shares -= order.quantity;
+    }
+  }
+
+  const values = Object.values(dailyPnL);
+  if (values.length < 2) return null;
+
+  const mean = values.reduce((a, b) => a + b, 0) / values.length;
+  const variance = values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / (values.length - 1);
+  const std = Math.sqrt(variance);
+
+  if (std === 0) return null;
+  return (mean / std) * Math.sqrt(252);
+}
 
 // Auth Panel Component
 function AuthPanel({
@@ -807,15 +960,20 @@ function OrderBookSnapshotView({ snapshot }: { snapshot: OrderBookSnapshot }) {
   );
 }
 
-function RealizedPnLSummary({ pnl }: { pnl: OrderPnL }) {
+function RealizedPnLSummary({ pnl, sharpeRatio, periodLabel }: { pnl: OrderPnL; sharpeRatio: number | null; periodLabel: string }) {
   const totalTrades = pnl.symbols.reduce((sum, s) => sum + s.buyCount + s.sellCount, 0);
   const pnlPercent = pnl.totalBuyVolume > 0
     ? (pnl.totalRealizedPnL / pnl.totalBuyVolume) * 100
     : 0;
 
+  const sharpeColor = sharpeRatio === null ? 'text-gray-400'
+    : sharpeRatio >= 1 ? 'text-green-600'
+    : sharpeRatio >= 0 ? 'text-yellow-600'
+    : 'text-red-600';
+
   return (
     <div className="mb-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
             {pnl.totalRealizedPnL >= 0 ? (
@@ -859,8 +1017,18 @@ function RealizedPnLSummary({ pnl }: { pnl: OrderPnL }) {
             {totalTrades}
           </div>
         </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
+            <BarChart3 className="w-4 h-4 text-blue-500" />
+            Sharpe Ratio
+          </div>
+          <div className={`text-2xl font-bold ${sharpeColor}`}>
+            {sharpeRatio !== null ? sharpeRatio.toFixed(2) : '—'}
+          </div>
+        </div>
       </div>
-      <p className="text-xs text-gray-400 mt-2">Based on filled orders since January 2024. Positions held before this date may show incomplete cost basis.</p>
+      <p className="text-xs text-gray-400 mt-2">Based on filled orders from the {periodLabel}. Positions held before this window may show incomplete cost basis.</p>
     </div>
   );
 }
@@ -992,6 +1160,17 @@ export default function TradePage() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [pnlPeriod, setPnlPeriod] = useState<PnLPeriod>('1Y');
+
+  const filteredPnL = useMemo(() => {
+    if (!orderPnL) return null;
+    return filterAndRecalcPnL(orderPnL, pnlPeriod);
+  }, [orderPnL, pnlPeriod]);
+
+  const sharpeRatio = useMemo(() => {
+    if (!orderPnL) return null;
+    return calculateSharpeRatio(orderPnL, pnlPeriod);
+  }, [orderPnL, pnlPeriod]);
 
   const fetchAuthStatus = useCallback(async () => {
     try {
@@ -1189,21 +1368,38 @@ export default function TradePage() {
             </div>
           </div>
 
-          {orderPnL && (
+          {filteredPnL && (
             <>
-              <div className="mt-8 mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Order P&L</h2>
-                <p className="text-gray-500 mt-1">Realized profit & loss from filled orders</p>
+              <div className="mt-8 mb-6 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Order P&L</h2>
+                  <p className="text-gray-500 mt-1">Realized profit & loss from filled orders</p>
+                </div>
+                <div className="flex bg-gray-100 rounded-lg p-1">
+                  {PNL_PERIODS.map(({ label, value }) => (
+                    <button
+                      key={value}
+                      onClick={() => setPnlPeriod(value)}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                        pnlPeriod === value
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <RealizedPnLSummary pnl={orderPnL} />
+              <RealizedPnLSummary pnl={filteredPnL} sharpeRatio={sharpeRatio} periodLabel={getPeriodLabel(pnlPeriod)} />
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
-                  <PnLBySymbolTable symbols={orderPnL.symbols} />
+                  <PnLBySymbolTable symbols={filteredPnL.symbols} />
                 </div>
                 <div>
-                  <OrderHistoryList orders={orderPnL.orders} />
+                  <OrderHistoryList orders={filteredPnL.orders} />
                 </div>
               </div>
             </>
