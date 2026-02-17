@@ -22,7 +22,6 @@ import {
 import { formatLargeNumber } from '../utils/formatters';
 
 const RANGES = [
-  { label: '24H', days: 1 },
   { label: '7D', days: 7 },
   { label: '30D', days: 30 },
   { label: '90D', days: 90 },

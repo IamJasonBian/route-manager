@@ -285,6 +285,7 @@ const BTC_RANGE_CONFIG: Record<number, { outputsize: number; interval: string }>
   30: { outputsize: 30, interval: '1day' },
   90: { outputsize: 90, interval: '1day' },
   365: { outputsize: 252, interval: '1day' },
+  1095: { outputsize: 780, interval: '1day' },
 };
 
 export async function getBitcoinPriceHistory(
