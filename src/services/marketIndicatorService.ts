@@ -332,6 +332,7 @@ function calcHistoricalVol(dailyData: OHLCVData[]): HistVolResult {
     { label: '30d', period: 30 },
     { label: '60d', period: 60 },
     { label: '90d', period: 90 },
+    { label: '1Y', period: 365 },
   ]) {
     if (n < period + 2) continue;
     const vol = yangZhangVol(dailyData.slice(-period));

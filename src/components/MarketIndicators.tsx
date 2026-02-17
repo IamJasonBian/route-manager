@@ -242,6 +242,8 @@ export default function MarketIndicators() {
                         Regime: {data.vol.windows[0].regime}
                         {data.vol.windows.length > 1 &&
                           ` \u00b7 60d: ${(data.vol.windows[1].vol * 100).toFixed(1)}%`}
+                        {data.vol.windows.length > 3 &&
+                          ` \u00b7 1Y: ${(data.vol.windows[3].vol * 100).toFixed(1)}%`}
                       </p>
                     </>
                   ) : (
