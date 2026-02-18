@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Bitcoin, LayoutDashboard, GitCompare, TrendingUp, FlaskConical, Moon, Sun, Menu, X } from 'lucide-react';
+import { Bitcoin, LayoutDashboard, GitCompare, TrendingUp, FlaskConical, Moon, Sun, Menu, X, Settings } from 'lucide-react';
 import { ThemeProvider, useTheme, FontMode } from './contexts/ThemeContext';
 
 // Import page components
@@ -9,6 +9,7 @@ import DashboardPage from './pages/DashboardPage';
 import ComparePage from './pages/ComparePage';
 import TradePage from './pages/TradePage';
 import StrategiesPage from './pages/StrategiesPage';
+import ConfigurePage from './pages/ConfigurePage';
 
 const FONT_LABELS: Record<FontMode, string> = {
   clean: 'Aa',
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { to: '/compare', icon: GitCompare, label: 'Compare' },
   { to: '/trade', icon: TrendingUp, label: 'Trade' },
   { to: '/strategies', icon: FlaskConical, label: 'Strategies' },
+  { to: '/configure', icon: Settings, label: 'Configure' },
 ];
 
 function NavLink({ to, children }: { to: string; children: React.ReactNode }) {
@@ -47,8 +49,8 @@ function AppShell() {
   const location = useLocation();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black">
-      <header className="bg-white dark:bg-zinc-950 border-b border-gray-200 dark:border-zinc-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-black flex flex-col">
+      <header className="sticky top-0 z-50 bg-white dark:bg-zinc-950 border-b border-gray-200 dark:border-zinc-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center group">
@@ -57,30 +59,34 @@ function AppShell() {
             </Link>
 
             {/* Desktop nav */}
-            <nav className="hidden md:flex items-center space-x-8">
-              {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
-                <NavLink key={to} to={to}>
-                  <span className="flex items-center gap-2">
-                    <Icon className="w-4 h-4" />
-                    {label}
-                  </span>
-                </NavLink>
-              ))}
-              <button
-                onClick={cycleFont}
-                className="px-2 py-1 rounded text-xs font-medium text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-zinc-900 transition-colors"
-                aria-label="Cycle font"
-                title={`Font: ${font}`}
-              >
-                {FONT_LABELS[font]}
-              </button>
-              <button
-                onClick={toggle}
-                className="p-1.5 rounded text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-zinc-900 transition-colors"
-                aria-label="Toggle dark mode"
-              >
-                {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </button>
+            <nav className="hidden md:flex items-center flex-1 ml-8">
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={cycleFont}
+                  className="px-2 py-1 rounded text-xs font-medium text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-zinc-900 transition-colors"
+                  aria-label="Cycle font"
+                  title={`Font: ${font}`}
+                >
+                  {FONT_LABELS[font]}
+                </button>
+                <button
+                  onClick={toggle}
+                  className="p-1.5 rounded text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-zinc-900 transition-colors"
+                  aria-label="Toggle dark mode"
+                >
+                  {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                </button>
+              </div>
+              <div className="flex items-center space-x-8 ml-auto">
+                {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
+                  <NavLink key={to} to={to}>
+                    <span className="flex items-center gap-2">
+                      <Icon className="w-4 h-4" />
+                      {label}
+                    </span>
+                  </NavLink>
+                ))}
+              </div>
             </nav>
 
             {/* Mobile: controls + hamburger */}
@@ -135,11 +141,12 @@ function AppShell() {
         )}
       </header>
 
-      <main>
+      <main className="flex-1">
         <Routes>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/compare" element={<ComparePage />} />
           <Route path="/trade" element={<TradePage />} />
+          <Route path="/configure" element={<ConfigurePage />} />
           <Route path="/strategies" element={<StrategiesPage />} />
         </Routes>
       </main>

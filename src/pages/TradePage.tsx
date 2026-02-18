@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import {
   RefreshCw,
   TrendingUp,
@@ -10,13 +11,10 @@ import {
   XCircle,
   Bot,
   BarChart3,
-  Link,
-  Unlink,
-  Loader2,
-  Shield,
   ArrowUpRight,
   ArrowDownRight,
   Receipt,
+  User,
 } from 'lucide-react';
 import {
   PieChart,
@@ -29,12 +27,7 @@ import {
 import {
   getPortfolio,
   getBotActions,
-  analyzePortfolio,
   getAuthStatus,
-  connectRobinhood,
-  checkVerification,
-  submitMFA,
-  disconnectRobinhood,
   getOrderPnL,
   getOrderBookSnapshot,
   sendSlackAlert,
@@ -51,6 +44,10 @@ import {
   formatPercent,
   getGainColor,
 } from '../services/robinhoodService';
+
+const USERS = [
+  { id: 'jasonzipb', label: 'jasonzipb' },
+];
 
 const COLORS = [
   '#3B82F6',
@@ -163,232 +160,6 @@ function filterAndRecalcPnL(pnl: OrderPnL, period: PnLPeriod): OrderPnL {
     orders: filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
   };
 }
-
-function AuthPanel({
-  authStatus,
-  onAuthChange,
-}: {
-  authStatus: AuthStatus | null;
-  onAuthChange: () => void;
-}) {
-  const [connecting, setConnecting] = useState(false);
-  const [verifying, setVerifying] = useState(false);
-  const [mfaCode, setMfaCode] = useState('');
-  const [authState, setAuthState] = useState<'idle' | 'device' | 'mfa'>('idle');
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleConnect = async () => {
-    setConnecting(true);
-    setError(null);
-    setMessage(null);
-
-    try {
-      const result = await connectRobinhood();
-
-      if (result.authenticated) {
-        setMessage(result.message);
-        setAuthState('idle');
-        onAuthChange();
-      } else if (result.requiresVerification) {
-        setAuthState('device');
-        setMessage(result.message || 'Approve in Robinhood app');
-      } else if (result.requiresMFA) {
-        setAuthState('mfa');
-        setMessage(result.message || 'Enter MFA code');
-      } else {
-        setError(result.error || 'Connection failed');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Connection failed');
-    } finally {
-      setConnecting(false);
-    }
-  };
-
-  const handleVerify = async () => {
-    setVerifying(true);
-    setError(null);
-
-    try {
-      const result = await checkVerification();
-
-      if (result.authenticated) {
-        setMessage(result.message || 'Connected!');
-        setAuthState('idle');
-        onAuthChange();
-      } else if (result.status === 'pending') {
-        setMessage(`Waiting for approval... (${result.elapsedSeconds}s)`);
-      } else {
-        setError(result.message || 'Verification failed');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Verification failed');
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-  const handleMFA = async () => {
-    if (!mfaCode.trim()) return;
-
-    setConnecting(true);
-    setError(null);
-
-    try {
-      const result = await submitMFA(mfaCode.trim());
-
-      if (result.authenticated) {
-        setMessage(result.message || 'Connected!');
-        setAuthState('idle');
-        setMfaCode('');
-        onAuthChange();
-      } else {
-        setError(result.error || 'MFA failed');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'MFA failed');
-    } finally {
-      setConnecting(false);
-    }
-  };
-
-  const handleDisconnect = async () => {
-    setConnecting(true);
-    try {
-      await disconnectRobinhood();
-      setAuthState('idle');
-      setMessage(null);
-      onAuthChange();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Disconnect failed');
-    } finally {
-      setConnecting(false);
-    }
-  };
-
-  const isConnected = authStatus?.authenticated;
-
-  return (
-    <div className="bg-white dark:bg-zinc-950 rounded-lg border border-gray-200 dark:border-zinc-800 p-4 mb-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-lg ${isConnected ? 'bg-green-100 dark:bg-green-950' : 'bg-gray-100 dark:bg-zinc-900'}`}>
-            <Shield className={`w-5 h-5 ${isConnected ? 'text-green-600' : 'text-gray-400 dark:text-gray-500'}`} />
-          </div>
-          <div>
-            <h3 className="font-medium text-gray-900 dark:text-white">Robinhood Connection</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {isConnected
-                ? `Connected • Expires in ${Math.floor((authStatus?.expiresIn || 0) / 3600)}h`
-                : 'Not connected'}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {authState === 'idle' && (
-            <>
-              {isConnected ? (
-                <button
-                  onClick={handleDisconnect}
-                  disabled={connecting}
-                  className="flex items-center gap-2 px-4 py-2 text-red-600 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-50"
-                >
-                  <Unlink className="w-4 h-4" />
-                  Disconnect
-                </button>
-              ) : (
-                <button
-                  onClick={handleConnect}
-                  disabled={connecting}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 text-sm"
-                >
-                  {connecting ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Link className="w-4 h-4" />
-                  )}
-                  Connect
-                </button>
-              )}
-            </>
-          )}
-
-          {authState === 'device' && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-yellow-600">Approve in Robinhood app</span>
-              <button
-                onClick={handleVerify}
-                disabled={verifying}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-700 dark:bg-gray-600 text-white rounded hover:bg-gray-600 dark:hover:bg-gray-500 disabled:opacity-50 text-sm"
-              >
-                {verifying ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4" />
-                )}
-                Check
-              </button>
-              <button
-                onClick={() => setAuthState('idle')}
-                className="px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-              >
-                Cancel
-              </button>
-            </div>
-          )}
-
-          {authState === 'mfa' && (
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={mfaCode}
-                onChange={(e) => setMfaCode(e.target.value)}
-                placeholder="MFA Code"
-                className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-center bg-white dark:bg-zinc-900 text-gray-900 dark:text-white"
-                maxLength={6}
-              />
-              <button
-                onClick={handleMFA}
-                disabled={connecting || !mfaCode.trim()}
-                className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-50 dark:hover:bg-zinc-900 disabled:opacity-50 text-sm"
-              >
-                {connecting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <CheckCircle className="w-4 h-4" />
-                )}
-                Submit
-              </button>
-              <button
-                onClick={() => {
-                  setAuthState('idle');
-                  setMfaCode('');
-                }}
-                className="px-3 py-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-              >
-                Cancel
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {message && (
-        <div className="mt-3 p-2 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded text-sm text-green-700 dark:text-green-400">
-          {message}
-        </div>
-      )}
-      {error && (
-        <div className="mt-3 p-2 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded text-sm text-red-700 dark:text-red-400">
-          {error}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function PortfolioSummary({ portfolio }: { portfolio: Portfolio }) {
   const dayGainPercent = portfolio.portfolioValue > 0
     ? (portfolio.totalGain / (portfolio.portfolioValue - portfolio.totalGain)) * 100
@@ -696,7 +467,7 @@ function OrderBookSnapshotView({ snapshot }: { snapshot: OrderBookSnapshot }) {
 
   return (
     <div className="mb-6">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Order Book Snapshot</h2>
           <p className="text-xs text-gray-400 dark:text-gray-500">
@@ -765,7 +536,7 @@ function OrderBookSnapshotView({ snapshot }: { snapshot: OrderBookSnapshot }) {
 
       {hasBtcMetrics && (
         <div className="bg-white dark:bg-zinc-950 rounded-lg border border-gray-200 dark:border-zinc-800 p-3 mb-4">
-          <div className="flex items-center gap-6 text-sm">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
             <span className="text-gray-500 dark:text-gray-400">BTC Intraday</span>
             {btcMetrics.intraday_low != null && (
               <span>
@@ -1090,13 +861,13 @@ export default function TradePage() {
   const [orderPnL, setOrderPnL] = useState<OrderPnL | null>(null);
   const [snapshot, setSnapshot] = useState<OrderBookSnapshot | null>(null);
   const [botActions, setBotActions] = useState<BotAction[]>([]);
-  const [analysis, setAnalysis] = useState<BotAnalysis | null>(null);
+  const [analysis] = useState<BotAnalysis | null>(null);
   const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
   const [pnlPeriod, setPnlPeriod] = useState<PnLPeriod>('1Y');
+  const [selectedUser, setSelectedUser] = useState(USERS[0].id);
 
   const filteredPnL = useMemo(() => {
     if (!orderPnL) return null;
@@ -1156,19 +927,6 @@ export default function TradePage() {
     }
   };
 
-  const runAnalysis = async () => {
-    setAnalyzing(true);
-    try {
-      const analysisData = await analyzePortfolio();
-      setAnalysis(analysisData);
-      const actionsData = await getBotActions(50);
-      setBotActions(actionsData.actions);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Analysis failed');
-    } finally {
-      setAnalyzing(false);
-    }
-  };
 
   useEffect(() => {
     fetchData();
@@ -1191,38 +949,9 @@ export default function TradePage() {
     );
   }
 
-  if (!authStatus?.authenticated && !loading) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Trade</h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">
-              Connect to Robinhood to view your portfolio
-            </p>
-          </div>
-        </div>
-
-        <AuthPanel authStatus={authStatus} onAuthChange={fetchData} />
-
-        {snapshot && <OrderBookSnapshotView snapshot={snapshot} />}
-
-        <div className="text-center py-12 bg-white dark:bg-zinc-950 rounded-lg border border-gray-200 dark:border-zinc-800">
-          <Shield className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
-          <p className="text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">Connect to Robinhood</p>
-          <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-            Click the Connect button above to link your Robinhood account.
-            You'll need to approve the connection in the Robinhood app.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   if (error && !portfolio) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AuthPanel authStatus={authStatus} onAuthChange={fetchData} />
         <div className="text-center py-12">
           <XCircle className="w-16 h-16 mx-auto mb-4 text-red-300" />
           <p className="text-lg font-medium text-red-600 mb-2">{error}</p>
@@ -1239,22 +968,26 @@ export default function TradePage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Trade</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
-            Robinhood portfolio and trading bot activity
-          </p>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Configured agents</p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={runAnalysis}
-            disabled={analyzing}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 text-sm"
-          >
-            <Bot className={`w-4 h-4 ${analyzing ? 'animate-pulse' : ''}`} />
-            {analyzing ? 'Analyzing...' : 'Run Analysis'}
-          </button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <User className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+            <select
+              value={selectedUser}
+              onChange={(e) => setSelectedUser(e.target.value)}
+              className="px-3 py-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {USERS.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.label}
+                </option>
+              ))}
+            </select>
+          </div>
           <button
             onClick={() => fetchData(true)}
             disabled={refreshing}
@@ -1266,13 +999,24 @@ export default function TradePage() {
         </div>
       </div>
 
-      <AuthPanel authStatus={authStatus} onAuthChange={fetchData} />
-
       {snapshot && <OrderBookSnapshotView snapshot={snapshot} />}
 
       {error && (
         <div className="mb-6 p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400">
           {error}
+        </div>
+      )}
+
+      {!authStatus?.authenticated && !loading && (
+        <div className="text-center py-12 mb-6 bg-white dark:bg-zinc-950 rounded-lg border border-gray-200 dark:border-zinc-800">
+          <Bot className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+          <p className="text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">No agents configured</p>
+          <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+            <RouterLink to="/configure" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+              Configure your own agent
+            </RouterLink>{' '}
+            in the configure page.
+          </p>
         </div>
       )}
 
