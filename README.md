@@ -2,6 +2,9 @@
 
 **Version - 0.1.0** 
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/3d014fc3-e919-4b4d-b374-e8606dee50df/deploy-status)](https://app.netlify.com/projects/5thstreetcapital/deploys)
+[![Deploy to Netlify](https://github.com/OptimChain/allocation-manager/actions/workflows/deploy-netlify.yml/badge.svg)](https://github.com/OptimChain/allocation-manager/actions/workflows/deploy-netlify.yml)
+
 A real-time asset tracking, market analysis, and trading engine system with hosted metrics, local engine deployments, and broker integration. 
 
 ## Features
