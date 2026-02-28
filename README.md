@@ -16,7 +16,6 @@
 
 | Environment | URL |
 |-------------|-----|
-| Gamma | https://route-manager-gamma.netlify.app/ |
 | Prod | https://route-manager-prod.netlify.app/ |
 
 # Overview 
