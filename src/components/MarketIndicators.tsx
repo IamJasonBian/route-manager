@@ -480,10 +480,10 @@ export default function MarketIndicators() {
                 </div>
               </div>
 
-              {/* Options Price History */}
+              {/* Options — Underlying Price vs Strike */}
               {optionLoading && (
                 <div className="px-6 pb-6 text-center">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Loading options price history...</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Loading options data...</p>
                 </div>
               )}
 
@@ -496,7 +496,7 @@ export default function MarketIndicators() {
               {optionData && optionData.series.length > 0 && (
                 <div className="px-6 pb-6">
                   <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 mt-2">
-                    Options Price History
+                    Options — Underlying Price
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {optionData.series.map((series) => (
@@ -521,9 +521,20 @@ export default function MarketIndicators() {
                             {series.quantity} x {series.position_type}
                           </span>
                         </div>
-                        {series.data.length > 1 ? (
+
+                        {/* Option details row */}
+                        <div className="flex flex-wrap gap-3 mb-3 text-xs text-gray-500 dark:text-gray-400">
+                          <span>Mark: <span className="text-gray-900 dark:text-white font-medium">${series.mark_price.toFixed(2)}</span></span>
+                          <span>Avg: <span className="text-gray-900 dark:text-white font-medium">${series.avg_price.toFixed(2)}</span></span>
+                          {series.iv !== null && (
+                            <span>IV: <span className="text-gray-900 dark:text-white font-medium">{(series.iv * 100).toFixed(1)}%</span></span>
+                          )}
+                          <span>Underlying: <span className="text-gray-900 dark:text-white font-medium">${series.underlying_price.toLocaleString()}</span></span>
+                        </div>
+
+                        {series.priceHistory.length > 1 ? (
                           <ResponsiveContainer width="100%" height={chartHeight}>
-                            <LineChart data={series.data}>
+                            <LineChart data={series.priceHistory}>
                               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                               <XAxis
                                 dataKey="timestamp"
@@ -532,10 +543,10 @@ export default function MarketIndicators() {
                                 axisLine={{ stroke: gridColor }}
                               />
                               <YAxis
-                                tickFormatter={(v: number) => `$${v.toFixed(2)}`}
+                                tickFormatter={(v: number) => `$${v.toLocaleString()}`}
                                 tick={{ fontSize: 11, fill: axisColor }}
                                 axisLine={{ stroke: gridColor }}
-                                width={60}
+                                width={70}
                                 domain={['auto', 'auto']}
                               />
                               <Tooltip
@@ -553,12 +564,25 @@ export default function MarketIndicators() {
                                     minute: '2-digit',
                                   })
                                 }
-                                formatter={(value: number) => [`$${value.toFixed(2)}`, 'Price']}
+                                formatter={(value: number) => [`$${value.toLocaleString()}`, 'Underlying']}
+                              />
+                              {/* Strike price reference line */}
+                              <ReferenceLine
+                                y={series.strike}
+                                stroke={series.option_type === 'call' ? '#22c55e' : '#ef4444'}
+                                strokeDasharray="6 3"
+                                strokeWidth={1.5}
+                                label={{
+                                  value: `Strike $${series.strike.toLocaleString()}`,
+                                  position: 'right',
+                                  fill: series.option_type === 'call' ? '#22c55e' : '#ef4444',
+                                  fontSize: 11,
+                                }}
                               />
                               <Line
                                 type="monotone"
-                                dataKey="mark_price"
-                                stroke={series.option_type === 'call' ? '#22c55e' : '#ef4444'}
+                                dataKey="price"
+                                stroke="#8B5CF6"
                                 strokeWidth={1.5}
                                 dot={false}
                               />
@@ -569,7 +593,7 @@ export default function MarketIndicators() {
                             className="flex items-center justify-center text-sm text-gray-400 dark:text-gray-500"
                             style={{ height: chartHeight }}
                           >
-                            Insufficient data points
+                            No price data available
                           </div>
                         )}
                       </div>
