@@ -1,5 +1,5 @@
 // Order Book Snapshot Netlify Function
-// Reads the latest order-book blob from the 5thstreetcapital site
+// Reads the latest state-logs blob from the 5thstreetcapital site
 // Data is written every ~5 minutes by an external trading system
 //
 // Returns portfolio/order_book from latest blob, and market_data from
@@ -9,6 +9,7 @@
 // 5thstreetcapital Netlify site ID
 const ORDER_BOOK_SITE_ID = '3d014fc3-e919-4b4d-b374-e8606dee50df';
 const BLOBS_API_BASE = 'https://api.netlify.com/api/v1/blobs';
+const STORE_NAME = 'state-logs';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,7 +26,7 @@ function hasCompleteMetrics(snapshot) {
 
 async function fetchBlob(token, key) {
   const res = await fetch(
-    `${BLOBS_API_BASE}/${ORDER_BOOK_SITE_ID}/order-book/${encodeURIComponent(key)}`,
+    `${BLOBS_API_BASE}/${ORDER_BOOK_SITE_ID}/${STORE_NAME}/${encodeURIComponent(key)}`,
     { headers: { 'Authorization': `Bearer ${token}` } }
   );
   if (!res.ok) {
@@ -34,29 +35,49 @@ async function fetchBlob(token, key) {
   return res.json();
 }
 
+async function listAllBlobKeys(token) {
+  const allKeys = [];
+  let cursor = null;
+
+  while (true) {
+    let url = `${BLOBS_API_BASE}/${ORDER_BOOK_SITE_ID}/${STORE_NAME}`;
+    if (cursor) {
+      url += `?cursor=${encodeURIComponent(cursor)}`;
+    }
+
+    const res = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      throw new Error(`Failed to list ${STORE_NAME} blobs: ${res.status}`);
+    }
+
+    const data = await res.json();
+    const blobs = data.blobs || [];
+    for (const b of blobs) {
+      allKeys.push(b.key);
+    }
+
+    if (!data.next_cursor || blobs.length === 0) break;
+    cursor = data.next_cursor;
+  }
+
+  return allKeys;
+}
+
 async function fetchSnapshot() {
   const token = process.env.NETLIFY_AUTH_TOKEN;
   if (!token) {
     throw new Error('NETLIFY_AUTH_TOKEN not configured');
   }
 
-  // List all blobs in the order-book store
-  const listRes = await fetch(
-    `${BLOBS_API_BASE}/${ORDER_BOOK_SITE_ID}/order-book`,
-    { headers: { 'Authorization': `Bearer ${token}` } }
-  );
-
-  if (!listRes.ok) {
-    throw new Error(`Failed to list order-book blobs: ${listRes.status}`);
-  }
-
-  const { blobs } = await listRes.json();
-  if (!blobs || blobs.length === 0) {
-    throw new Error('No order-book snapshots found');
+  const allKeys = await listAllBlobKeys(token);
+  if (allKeys.length === 0) {
+    throw new Error('No state-logs snapshots found');
   }
 
   // Keys are timestamps (e.g. "2026-02-15T02-07-07"), sort descending (newest first)
-  const sortedKeys = blobs.map(b => b.key).sort().reverse();
+  const sortedKeys = allKeys.sort().reverse();
 
   // Fetch the latest blob — always used for portfolio + order_book
   const latest = await fetchBlob(token, sortedKeys[0]);
