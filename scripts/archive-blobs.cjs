@@ -69,6 +69,7 @@ async function archiveStore(srcStore, dstStore, cutoff) {
   }
 
   let moved = 0, failed = 0;
+  const delay = (ms) => new Promise(r => setTimeout(r, ms));
   for (const key of oldKeys) {
     try {
       const data = await request('GET', `${BLOBS_BASE}/${SITE_ID}/${srcStore}/${encodeURIComponent(key)}`);
@@ -80,6 +81,7 @@ async function archiveStore(srcStore, dstStore, cutoff) {
       failed++;
       console.error(`  FAILED ${key}: ${e.message}`);
     }
+    await delay(1000);
   }
 
   return { moved, failed };
