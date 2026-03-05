@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw, Bitcoin, FileText } from 'lucide-react';
+import { RefreshCw, Bitcoin } from 'lucide-react';
 import PriceCard from '../components/PriceCard';
 import BtcEtfProjection from '../components/BtcEtfProjection';
 import BitcoinPriceChart from '../components/BitcoinPriceChart';
@@ -100,15 +100,6 @@ export default function DashboardPage() {
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </button>
-          <a
-            href="https://github.com/IamJasonBian/allocation-gym/blob/IamJasonBian/audit-redis-proto/docs/7/iwn_vol_analysis.pdf"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-3 py-1.5 border border-blue-400 dark:border-blue-500 text-blue-600 dark:text-blue-400 rounded hover:bg-blue-50 dark:hover:bg-blue-950 text-sm"
-          >
-            <FileText className="w-4 h-4" />
-            Whitepaper
-          </a>
         </div>
       </div>
 
