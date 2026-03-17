@@ -1,6 +1,7 @@
 // Robinhood API Service
-// Connects to Netlify functions for Robinhood data
+// Connects to allocation-engine-2.0 API for trading data
 
+const ENGINE_API = 'https://allocation-engine-api.onrender.com/api';
 const API_BASE = '/.netlify/functions';
 
 // Auth types
@@ -96,7 +97,6 @@ export interface OrderPnL {
   orders: FilledOrder[];
 }
 
-// Order Book Snapshot types (from 5thstreetcapital blob store)
 export interface OptionPosition {
   chain_symbol: string;
   option_type: string;
@@ -291,6 +291,25 @@ export interface Quote {
   previousClose: number;
 }
 
+// ---------- helpers ----------
+
+async function fetchEngine<T>(path: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(`${ENGINE_API}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(error.error || `Request failed: ${response.status}`);
+  }
+
+  return response.json();
+}
+
 async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
@@ -308,25 +327,121 @@ async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> 
   return response.json();
 }
 
-// Portfolio functions
+// ---------- Transform engine responses to UI types ----------
+
+function transformPosition(p: Record<string, unknown>): Position {
+  const qty = Number(p.qty || p.quantity || 0);
+  const avgEntry = Number(p.avg_entry || p.averageCost || 0);
+  const currentPrice = Number(p.current_price || avgEntry);
+  const totalCost = qty * avgEntry;
+  const currentValue = Number(p.market_value || qty * currentPrice);
+  const gain = Number(p.unrealized_pl || currentValue - totalCost);
+  const gainPctRaw = Number(p.unrealized_pl_pct || (totalCost > 0 ? gain / totalCost : 0));
+  // Engine returns decimal (0.05 = 5%), UI expects percentage
+  const gainPercent = Math.abs(gainPctRaw) < 1 ? gainPctRaw * 100 : gainPctRaw;
+
+  return {
+    symbol: String(p.symbol || ''),
+    name: String(p.name || p.symbol || ''),
+    quantity: qty,
+    averageCost: avgEntry,
+    currentPrice,
+    totalCost: Math.round(totalCost * 100) / 100,
+    currentValue: Math.round(currentValue * 100) / 100,
+    gain: Math.round(gain * 100) / 100,
+    gainPercent: Math.round(gainPercent * 100) / 100,
+  };
+}
+
+function transformOrder(o: Record<string, unknown>): Order {
+  return {
+    id: String(o.id || o.order_id || ''),
+    symbol: String(o.symbol || ''),
+    name: String(o.name || o.symbol || ''),
+    side: (String(o.side || '').toLowerCase()) as 'buy' | 'sell',
+    type: String(o.type || o.order_type || 'market'),
+    quantity: Number(o.qty || o.quantity || o.filled_quantity || 0),
+    price: Number(o.price || o.limit_price || 0),
+    state: String(o.state || o.status || 'unknown'),
+    createdAt: String(o.created_at || o.createdAt || ''),
+    updatedAt: String(o.updated_at || o.updatedAt || ''),
+  };
+}
+
+// ---------- Portfolio functions (from engine API) ----------
+
 export async function getPortfolio(): Promise<Portfolio> {
-  return fetchApi<Portfolio>('/robinhood-portfolio?action=portfolio');
+  const data = await fetchEngine<Record<string, unknown>>('/portfolio/robinhood');
+  const rawPositions = (data.positions || []) as Record<string, unknown>[];
+  const positions = rawPositions.map(transformPosition);
+  const totalGain = positions.reduce((sum, p) => sum + p.gain, 0);
+
+  return {
+    accountNumber: '',
+    buyingPower: Number(data.buying_power || 0),
+    cash: Number(data.cash || 0),
+    portfolioValue: Number(data.portfolio_value || data.equity || 0),
+    extendedHoursValue: 0,
+    totalGain: Math.round(totalGain * 100) / 100,
+    positions,
+  };
 }
 
 export async function getOrders(): Promise<Order[]> {
-  return fetchApi<Order[]>('/robinhood-portfolio?action=orders');
+  const data = await fetchEngine<{ orders: Record<string, unknown>[] }>('/orders/history/robinhood?limit=50');
+  return (data.orders || []).map(transformOrder);
 }
 
 export async function getOrderPnL(): Promise<OrderPnL> {
-  return fetchApi<OrderPnL>('/robinhood-portfolio?action=pnl');
+  const data = await fetchEngine<Record<string, unknown>>('/pnl/robinhood?days=365');
+  const symbols = ((data.symbols || []) as Record<string, unknown>[]).map((s) => ({
+    symbol: String(s.symbol || ''),
+    name: String(s.name || s.symbol || ''),
+    realizedPnL: Number(s.realizedPnL || 0),
+    totalBought: Number(s.totalBought || 0),
+    totalSold: Number(s.totalSold || 0),
+    buyCount: Number(s.buyCount || 0),
+    sellCount: Number(s.sellCount || 0),
+    avgBuyPrice: Number(s.avgBuyPrice || 0),
+    avgSellPrice: Number(s.avgSellPrice || 0),
+    remainingShares: Number(s.remainingShares || 0),
+    remainingCostBasis: Number(s.remainingCostBasis || 0),
+  }));
+
+  let orders: FilledOrder[] = [];
+  try {
+    const historyData = await fetchEngine<{ orders: Record<string, unknown>[] }>('/orders/history/robinhood?limit=100');
+    orders = (historyData.orders || [])
+      .filter((o) => o.state === 'filled')
+      .map((o) => ({
+        id: String(o.id || ''),
+        symbol: String(o.symbol || ''),
+        name: String(o.name || o.symbol || ''),
+        side: (String(o.side || '').toLowerCase()) as 'buy' | 'sell',
+        quantity: Number(o.filled_quantity || o.quantity || 0),
+        price: Number(o.price || 0),
+        total: Number(o.price || 0) * Number(o.filled_quantity || o.quantity || 0),
+        createdAt: String(o.created_at || o.createdAt || ''),
+      }));
+  } catch {
+    // fall back to empty
+  }
+
+  return {
+    totalRealizedPnL: Number(data.totalRealizedPnL || 0),
+    totalBuyVolume: Number(data.totalBuyVolume || 0),
+    totalSellVolume: Number(data.totalSellVolume || 0),
+    symbols,
+    orders,
+  };
 }
 
-// Order Book Snapshot
+// Order Book Snapshot — still from Netlify function (reads from blobs)
 export async function getOrderBookSnapshot(): Promise<OrderBookSnapshot> {
   return fetchApi<OrderBookSnapshot>('/order-book-snapshot');
 }
 
-// Redis Orders
+// Redis Orders — still from Netlify function
 export interface RedisOrders {
   openOrders: SnapshotOrder[];
   openOptionOrders: SnapshotOptionOrder[];
@@ -372,21 +487,66 @@ export function sendSlackAlert(message: string, error?: string) {
   }).catch(() => {}); // fire-and-forget
 }
 
-// Bot functions
+// ---------- Bot functions (from engine API) ----------
+
 export async function getBotStatus(): Promise<BotStatus> {
-  return fetchApi<BotStatus>('/robinhood-bot?action=status');
+  const data = await fetchEngine<Record<string, unknown>>('/engine/status');
+  return {
+    status: data.running ? 'running' : 'idle',
+    actionsCount: Number(data.tick_count || 0),
+    lastAction: null,
+  };
 }
 
 export async function getBotActions(limit: number = 50): Promise<{ actions: BotAction[]; total: number }> {
-  return fetchApi<{ actions: BotAction[]; total: number }>(`/robinhood-bot?action=actions&limit=${limit}`);
+  try {
+    const data = await fetchEngine<{ orders: Record<string, unknown>[] }>(`/orders/history/robinhood?limit=${limit}`);
+    const actions: BotAction[] = (data.orders || []).map((o) => ({
+      id: String(o.id || ''),
+      timestamp: String(o.created_at || o.createdAt || ''),
+      type: String(o.side || '').toUpperCase() === 'BUY' ? 'BUY_ORDER' : 'SELL_ORDER',
+      status: String(o.state || '') === 'filled' ? 'completed' : String(o.state || ''),
+      symbol: String(o.symbol || ''),
+      quantity: Number(o.filled_quantity || o.quantity || 0),
+      price: Number(o.price || 0),
+      total: Number(o.price || 0) * Number(o.filled_quantity || o.quantity || 0),
+    }));
+    return { actions, total: actions.length };
+  } catch {
+    return { actions: [], total: 0 };
+  }
 }
 
 export async function analyzePortfolio(): Promise<BotAnalysis> {
-  return fetchApi<BotAnalysis>('/robinhood-bot?action=analyze');
+  const portfolio = await getPortfolio();
+  const suggestions = portfolio.positions
+    .filter((p) => Math.abs(p.gainPercent) > 10)
+    .map((p) => ({
+      type: p.gainPercent > 10 ? 'TAKE_PROFIT' : 'STOP_LOSS',
+      symbol: p.symbol,
+      reason: p.gainPercent > 10
+        ? `Up ${p.gainPercent.toFixed(1)}% — consider taking profits`
+        : `Down ${p.gainPercent.toFixed(1)}% — consider stop loss`,
+      priority: Math.abs(p.gainPercent) > 20 ? 'high' : 'medium',
+    }));
+
+  return {
+    timestamp: new Date().toISOString(),
+    buyingPower: portfolio.buyingPower,
+    suggestions,
+    holdings: portfolio.positions.map((p) => ({
+      symbol: p.symbol,
+      quantity: p.quantity,
+      averageCost: p.averageCost,
+      currentPrice: p.currentPrice,
+      gainPercent: p.gainPercent,
+      value: p.currentValue,
+    })),
+  };
 }
 
 export async function getQuote(symbol: string): Promise<Quote> {
-  return fetchApi<Quote>(`/robinhood-bot?action=quote&symbol=${encodeURIComponent(symbol)}`);
+  return fetchEngine<Quote>(`/quote/${encodeURIComponent(symbol)}`);
 }
 
 export async function placeOrder(
@@ -395,9 +555,15 @@ export async function placeOrder(
   quantity: number,
   dryRun: boolean = true
 ): Promise<{ status: string; message?: string; orderId?: string }> {
-  return fetchApi('/robinhood-bot?action=order', {
+  return fetchEngine('/trade/order', {
     method: 'POST',
-    body: JSON.stringify({ symbol, side, quantity, dryRun }),
+    body: JSON.stringify({
+      symbol,
+      side: side.toUpperCase(),
+      quantity,
+      dryRun,
+      dry_run: dryRun,
+    }),
   });
 }
 
@@ -431,23 +597,37 @@ export function getGainBgColor(value: number): string {
   return 'bg-gray-100';
 }
 
-// Auth functions
+// Auth functions (from engine API)
 export async function getAuthStatus(): Promise<AuthStatus> {
-  return fetchApi<AuthStatus>('/robinhood-auth?action=status');
+  try {
+    const data = await fetchEngine<Record<string, unknown>>('/auth/status/robinhood');
+    return {
+      authenticated: Boolean(data.authenticated),
+      message: data.authenticated ? 'Connected to Robinhood' : 'Not authenticated',
+      error: data.error ? String(data.error) : undefined,
+    };
+  } catch (e) {
+    return {
+      authenticated: false,
+      message: 'Unable to reach engine API',
+      error: String(e),
+    };
+  }
 }
 
 export async function connectRobinhood(): Promise<AuthResult> {
-  return fetchApi<AuthResult>('/robinhood-auth?action=connect');
+  return { authenticated: false, message: 'Use pickle-based auth via scripts/refresh_pickle.py' };
 }
 
 export async function checkVerification(): Promise<AuthResult & { status?: string; elapsedSeconds?: number }> {
-  return fetchApi<AuthResult & { status?: string; elapsedSeconds?: number }>('/robinhood-auth?action=verify');
+  const status = await getAuthStatus();
+  return { ...status, status: status.authenticated ? 'approved' : 'pending' };
 }
 
-export async function submitMFA(code: string): Promise<AuthResult> {
-  return fetchApi<AuthResult>(`/robinhood-auth?action=mfa&code=${encodeURIComponent(code)}`);
+export async function submitMFA(_code: string): Promise<AuthResult> {
+  return { authenticated: false, message: 'MFA not supported via engine API — use pickle auth' };
 }
 
 export async function disconnectRobinhood(): Promise<AuthResult> {
-  return fetchApi<AuthResult>('/robinhood-auth?action=disconnect');
+  return { authenticated: false, message: 'Disconnected' };
 }
