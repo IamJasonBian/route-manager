@@ -438,7 +438,7 @@ export async function getOrderPnL(): Promise<OrderPnL> {
 
 // Order Book Snapshot — still from Netlify function (reads from blobs)
 export async function getOrderBookSnapshot(): Promise<OrderBookSnapshot> {
-  return fetchApi<OrderBookSnapshot>('/order-book-snapshot');
+  return fetchEngine<OrderBookSnapshot>("/snapshot");
 }
 
 // Redis Orders — still from Netlify function
@@ -452,20 +452,68 @@ export interface RedisOrders {
 const OPEN_STATES = new Set(['queued', 'confirmed', 'pending', 'partially_filled', 'unconfirmed']);
 
 export async function getRedisOrders(): Promise<RedisOrders> {
-  const data = await fetchApi<Record<string, Record<string, unknown>>>('/redis-holdings?store=orders');
-
   const openOrders: SnapshotOrder[] = [];
   const openOptionOrders: SnapshotOptionOrder[] = [];
   const historicalOrders: SnapshotOrder[] = [];
   const historicalOptionOrders: SnapshotOptionOrder[] = [];
 
-  for (const order of Object.values(data)) {
-    const isOpen = OPEN_STATES.has(order.state as string);
-    if (order._type === 'option') {
-      (isOpen ? openOptionOrders : historicalOptionOrders).push(order as unknown as SnapshotOptionOrder);
-    } else {
-      (isOpen ? openOrders : historicalOrders).push(order as unknown as SnapshotOrder);
+  try {
+    // Stock orders from engine
+    const data = await fetchEngine<{ orders: Record<string, unknown>[] }>("/orders/history/robinhood?limit=200");
+    for (const o of (data.orders || [])) {
+      const mapped: SnapshotOrder = {
+        order_id: String(o.id || ''),
+        symbol: String(o.symbol || ''),
+        side: String(o.side || ''),
+        order_type: String(o.type || 'market'),
+        trigger: 'immediate',
+        state: String(o.state || ''),
+        quantity: Number(o.quantity || o.filled_quantity || 0),
+        limit_price: Number(o.limit_price || 0),
+        stop_price: o.stop_price ? Number(o.stop_price) : null,
+        average_price: o.price ? Number(o.price) : undefined,
+        filled_quantity: o.filled_quantity ? Number(o.filled_quantity) : undefined,
+        created_at: String(o.created_at || ''),
+        updated_at: String(o.updated_at || ''),
+      };
+      if (OPEN_STATES.has(mapped.state)) {
+        openOrders.push(mapped);
+      } else {
+        historicalOrders.push(mapped);
+      }
     }
+
+    // Option orders from engine
+    try {
+      const optData = await fetchEngine<{ orders: Record<string, unknown>[] }>("/options/orders/robinhood?limit=100");
+      for (const o of (optData.orders || [])) {
+        const mapped: SnapshotOptionOrder = {
+          order_id: String(o.order_id || ''),
+          state: String(o.state || ''),
+          quantity: Number(o.quantity || 0),
+          price: Number(o.price || 0),
+          premium: Number(o.premium || 0),
+          processed_premium: Number(o.processed_premium || 0),
+          direction: String(o.direction || ''),
+          order_type: String(o.order_type || ''),
+          trigger: String(o.trigger || ''),
+          time_in_force: String(o.time_in_force || ''),
+          opening_strategy: String(o.opening_strategy || ''),
+          created_at: String(o.created_at || ''),
+          updated_at: String(o.updated_at || ''),
+          legs: (o.legs || []) as SnapshotOptionOrderLeg[],
+        };
+        if (OPEN_STATES.has(mapped.state)) {
+          openOptionOrders.push(mapped);
+        } else {
+          historicalOptionOrders.push(mapped);
+        }
+      }
+    } catch {
+      // options not available
+    }
+  } catch {
+    // fall back to empty
   }
 
   const byDateDesc = (a: { created_at: string }, b: { created_at: string }) =>
@@ -479,12 +527,8 @@ export async function getRedisOrders(): Promise<RedisOrders> {
   return { openOrders, openOptionOrders, historicalOrders, historicalOptionOrders };
 }
 
-export function sendSlackAlert(message: string, error?: string) {
-  fetch(`${API_BASE}/alert-slack`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, error, source: 'Trade Page' }),
-  }).catch(() => {}); // fire-and-forget
+export function sendSlackAlert(_message: string, _error?: string) {
+  // Slack alerts handled server-side by the engine
 }
 
 // ---------- Bot functions (from engine API) ----------
