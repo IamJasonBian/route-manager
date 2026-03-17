@@ -2,7 +2,6 @@
 // Connects to allocation-engine-2.0 API for trading data
 
 const ENGINE_API = 'https://allocation-engine-api.onrender.com/api';
-const API_BASE = '/.netlify/functions';
 
 // Auth types
 export interface AuthStatus {
@@ -310,22 +309,7 @@ async function fetchEngine<T>(path: string, options?: RequestInit): Promise<T> {
   return response.json();
 }
 
-async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(error.error || `Request failed: ${response.status}`);
-  }
-
-  return response.json();
-}
 
 // ---------- Transform engine responses to UI types ----------
 
