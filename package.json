@@ -13,7 +13,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "netlify:dev": "netlify dev",
-    "deploy": "npm run build && netlify deploy --prod",
+    "deploy": "npm run build && netlify deploy --dir=dist --functions=netlify/functions-bundled --prod",
     "fetch-default-routes": "tsx scripts/fetchDefaultRoutes.ts",
     "load-default-routes": "tsx scripts/loadDefaultRoutes.ts",
     "load-prices": "tsx scripts/loadPrices.ts",
