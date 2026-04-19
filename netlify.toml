@@ -2,7 +2,7 @@
   # Build is done in GitHub Actions, not on Netlify
   # command = "npm run build"
   publish = "dist"
-  functions = "netlify/functions"
+  functions = "netlify/functions-bundled"
   node_bundler = "esbuild"
 
 [dev]
@@ -11,6 +11,7 @@
   targetPort = 5173  # Port where Vite runs
   framework = "vite"
   autoLaunch = true
+  functions = "netlify/functions"
   
   # Environment variables for local development
   [dev.environment]
@@ -31,6 +32,8 @@
     DB_PORT = "5432"
 
 [functions]
+  external_node_modules = ["better-sqlite3"]
+
   # Environment variables for Netlify Functions in production
   [functions.environment]
     NODE_ENV = "production"

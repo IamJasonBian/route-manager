@@ -1,7 +1,8 @@
-import { executeQuery } from './dbService';
+import axios from 'axios';
 import { ApiRoute as ApiRouteType } from './api';
 
-// Database route interface
+const API_URL = '/.netlify/functions/routes';
+
 export interface DbRoute {
   id: number;
   origin: string;
@@ -15,7 +16,6 @@ export interface DbRoute {
   updated_at: Date;
 }
 
-// API route interface
 export interface ApiRoute {
   id: number;
   from: string;
@@ -34,196 +34,97 @@ export interface ApiRoute {
   };
 }
 
-/**
- * Saves a route to the database
- * @param route The route data to save (without id, created_at, and updated_at)
- * @returns The saved route with all fields
- */
+function parseDbRow(row: any): DbRoute {
+  return {
+    id: row.id,
+    origin: row.origin,
+    destination: row.destination,
+    price: row.price,
+    departure_date: row.departureDate ? new Date(row.departureDate) : (row.departure_date ? new Date(row.departure_date) : null),
+    return_date: row.returnDate ? new Date(row.returnDate) : (row.return_date ? new Date(row.return_date) : null),
+    airline: row.airline,
+    flight_number: row.flightNumber || row.flight_number,
+    created_at: new Date(row.createdAt || row.created_at),
+    updated_at: new Date(row.updatedAt || row.updated_at),
+  };
+}
+
 export const saveRoute = async (
   route: Omit<DbRoute, 'id' | 'created_at' | 'updated_at'>
 ): Promise<DbRoute> => {
-  const { 
-    origin, 
-    destination, 
-    price, 
-    departure_date, 
-    return_date, 
-    airline, 
-    flight_number 
-  } = route;
-  
-  try {
-    const result = await executeQuery<DbRoute>(
-      `INSERT INTO routes (
-        origin, 
-        destination, 
-        price, 
-        departure_date, 
-        return_date, 
-        airline, 
-        flight_number
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-      ON CONFLICT (origin, destination, departure_date, flight_number) 
-      DO UPDATE SET 
-        price = EXCLUDED.price,
-        return_date = EXCLUDED.return_date,
-        airline = EXCLUDED.airline,
-        updated_at = NOW()
-      RETURNING *`,
-      [
-        origin, 
-        destination, 
-        price, 
-        departure_date, 
-        return_date, 
-        airline, 
-        flight_number
-      ]
-    );
+  const response = await axios.post(API_URL, {
+    origin: route.origin,
+    destination: route.destination,
+    price: route.price,
+    departure_date: route.departure_date?.toISOString?.() ?? route.departure_date,
+    return_date: route.return_date?.toISOString?.() ?? route.return_date,
+    airline: route.airline,
+    flight_number: route.flight_number,
+  });
 
-    if (!result.rows || result.rows.length === 0) {
-      throw new Error('Failed to save route: No data returned from database');
-    }
-
-    return result.rows[0];
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    console.error('Error saving route to database:', errorMessage);
-    throw new Error(`Failed to save route: ${errorMessage}`);
+  if (!response.data.rows || response.data.rows.length === 0) {
+    throw new Error('Failed to save route: No data returned');
   }
+  return parseDbRow(response.data.rows[0]);
 };
 
 export const getRoutes = async (origin?: string, destination?: string): Promise<DbRoute[]> => {
-  try {
-    let query = 'SELECT * FROM routes';
-    const conditions: string[] = [];
-    const params: any[] = [];
-    let paramIndex = 1;
+  const params = new URLSearchParams();
+  if (origin) params.set('origin', origin);
+  if (destination) params.set('destination', destination);
 
-    // Build query conditions based on parameters
-    if (origin) {
-      conditions.push(`origin = $${paramIndex++}`);
-      params.push(origin);
-    }
-    
-    if (destination) {
-      conditions.push(`destination = $${paramIndex++}`);
-      params.push(destination);
-    }
+  const url = params.toString() ? `${API_URL}?${params}` : API_URL;
+  const response = await axios.get(url);
 
-    // Add conditions to query if any exist
-    if (conditions.length > 0) {
-      query += ' WHERE ' + conditions.join(' AND ');
-    }
-
-    // Add ORDER BY to ensure consistent results
-    query += ' ORDER BY created_at DESC';
-
-    console.log('Executing database query:', query);
-    console.log('Query parameters:', params);
-    
-    const result = await executeQuery<DbRoute>(query, params);
-    console.log('Database query result:', JSON.stringify(result, null, 2));
-    
-    // Ensure we're returning properly typed DbRoute objects
-    const routes = result.rows.map(row => ({
-      id: row.id,
-      origin: row.origin,
-      destination: row.destination,
-      price: row.price,
-      departure_date: row.departure_date ? new Date(row.departure_date) : null,
-      return_date: row.return_date ? new Date(row.return_date) : null,
-      airline: row.airline,
-      flight_number: row.flight_number,
-      created_at: new Date(row.created_at),
-      updated_at: new Date(row.updated_at)
-    }));
-    
-    console.log('Processed routes:', JSON.stringify(routes, null, 2));
-    return routes;
-  } catch (error) {
-    console.error('Error in getRoutes:', error);
-    throw error;
-  }
+  return (response.data.rows || []).map(parseDbRow);
 };
 
 export const getRouteById = async (id: number): Promise<DbRoute | undefined> => {
-  const result = await executeQuery<DbRoute>('SELECT * FROM routes WHERE id = $1', [id]);
-  return result.rows[0];
+  const response = await axios.get(`${API_URL}?id=${id}`);
+  const rows = response.data.rows || [];
+  return rows.length > 0 ? parseDbRow(rows[0]) : undefined;
 };
 
 export const deleteRoute = async (id: number): Promise<void> => {
-  await executeQuery('DELETE FROM routes WHERE id = $1', [id]);
+  await axios.delete(`${API_URL}?id=${id}`);
 };
 
-/**
- * Saves multiple routes to the database in a single transaction
- * @param routes Array of route data to save
- * @returns Array of saved routes with database IDs
- */
 export const saveRoutes = async (routes: Omit<DbRoute, 'id' | 'created_at' | 'updated_at'>[]): Promise<DbRoute[]> => {
-  // For serverless environment, we'll save routes one by one
-  const savedRoutes: DbRoute[] = [];
-  
-  for (const route of routes) {
-    try {
-      const { rows } = await executeQuery<DbRoute>(
-        `INSERT INTO routes (
-          origin, destination, price, departure_date, return_date, airline, flight_number
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-        RETURNING *`,
-        [
-          route.origin,
-          route.destination,
-          route.price,
-          route.departure_date,
-          route.return_date,
-          route.airline,
-          route.flight_number
-        ]
-      );
-      savedRoutes.push(rows[0]);
-    } catch (error) {
-      console.error(`Failed to save route ${route.origin} → ${route.destination}:`, error);
-      // Continue with next route even if one fails
-    }
-  }
-  
-  return savedRoutes;
+  const response = await axios.post(API_URL, {
+    action: 'bulk',
+    routes: routes.map((r) => ({
+      origin: r.origin,
+      destination: r.destination,
+      price: r.price,
+      departure_date: r.departure_date?.toISOString?.() ?? r.departure_date,
+      return_date: r.return_date?.toISOString?.() ?? r.return_date,
+      airline: r.airline,
+      flight_number: r.flight_number,
+    })),
+  });
+
+  return (response.data.rows || []).map(parseDbRow);
 };
 
-/**
- * Converts an API route to a database route
- */
 const apiRouteToDbRoute = (apiRoute: Omit<ApiRouteType, 'id'>): Omit<DbRoute, 'id' | 'created_at' | 'updated_at'> => {
-  // Use the first price point as the base price
   const basePrice = apiRoute.prices.length > 0 ? Math.min(...apiRoute.prices.map(p => p.price)) : 0;
-  
   return {
     origin: apiRoute.from,
     destination: apiRoute.to,
     price: basePrice,
     departure_date: apiRoute.prices.length > 0 ? new Date(apiRoute.prices[0].date) : null,
-    return_date: null, // Default to null for one-way flights
-    airline: 'Multiple', // Default value, can be updated with actual airline data
-    flight_number: null
+    return_date: null,
+    airline: 'Multiple',
+    flight_number: null,
   };
 };
 
-/**
- * Saves API routes to the database
- */
 export const saveApiRoutes = async (apiRoutes: Omit<ApiRouteType, 'id'>[]): Promise<DbRoute[]> => {
   const dbRoutes = apiRoutes.map(apiRouteToDbRoute);
   return saveRoutes(dbRoutes);
 };
 
-/**
- * Checks if any routes exist in the database
- */
 export const hasRoutes = async (): Promise<boolean> => {
-  const result = await executeQuery<{ exists: boolean }>(
-    'SELECT EXISTS(SELECT 1 FROM routes LIMIT 1) as "exists"'
-  );
-  return result.rows[0].exists;
+  const response = await axios.get(`${API_URL}?action=exists`);
+  return response.data.exists;
 };

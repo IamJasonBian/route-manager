@@ -1,60 +1,92 @@
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { PlaneTakeoffIcon, Loader2 } from 'lucide-react';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Loader2, MenuIcon, XIcon } from 'lucide-react';
+import { ThemeToggle } from './components/ThemeToggle';
 
-// Import page components
 import HomePage from './pages/HomePage';
 import SearchFlightsPage from './pages/SearchFlightsPage';
 import PriceTrendsPage from './pages/PriceTrendsPage';
+import ProposalsPage from './pages/ProposalsPage';
+
+function NavLink({ to, children }: { to: string; children: React.ReactNode }) {
+  const location = useLocation();
+  const isActive = location.pathname === to;
+  return (
+    <Link
+      to={to}
+      className={`text-sm transition-colors ${
+        isActive
+          ? 'text-[var(--foreground)] font-medium'
+          : 'text-[var(--muted)] hover:text-[var(--foreground)]'
+      }`}
+    >
+      {children}
+    </Link>
+  );
+}
 
 function AppContent() {
   const [isLoading, setIsLoading] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  // For now, we'll skip the initial loading since we're using mock data
   useEffect(() => {
     setIsLoading(false);
   }, []);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-lg font-medium text-gray-900">Loading application...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+        <Loader2 className="h-6 w-6 text-[var(--muted)] animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center">
-              <PlaneTakeoffIcon className="h-8 w-8 text-blue-600" />
-              <h1 className="ml-3 text-xl font-bold text-gray-900">Flight Route Manager</h1>
+    <div className="min-h-screen bg-[var(--background)]">
+      <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-sm">
+        <div className="max-w-[72rem] mx-auto px-6 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            <Link to="/" className="text-sm font-semibold tracking-tight text-[var(--foreground)] hover:opacity-100">
+              Simple Trip Proposals
             </Link>
-            <nav className="hidden md:flex space-x-8">
-              <Link to="/" className="text-gray-500 hover:text-gray-700 font-medium">Home</Link>
-              <Link to="/search" className="text-gray-500 hover:text-gray-700 font-medium">Search Flights</Link>
-              <Link to="/trends" className="text-gray-500 hover:text-gray-700 font-medium">Price Trends</Link>
+            <nav className="hidden md:flex items-center gap-6">
+              <NavLink to="/proposals">Proposals</NavLink>
+              <NavLink to="/search">Search</NavLink>
+              <NavLink to="/trends">Trends</NavLink>
             </nav>
           </div>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <button
+              className="md:hidden btn-ghost p-2"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="Toggle menu"
+            >
+              {menuOpen ? <XIcon className="h-4 w-4" /> : <MenuIcon className="h-4 w-4" />}
+            </button>
+          </div>
         </div>
+        {menuOpen && (
+          <nav className="md:hidden border-t border-[var(--border)] px-6 py-3 flex flex-col gap-2 bg-[var(--background)]">
+            <NavLink to="/proposals">Proposals</NavLink>
+            <NavLink to="/search">Search</NavLink>
+            <NavLink to="/trends">Trends</NavLink>
+          </nav>
+        )}
       </header>
 
-      <main>
+      <main className="max-w-[72rem] mx-auto px-6 py-8">
         <Routes>
-          <Route path="/" element={
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-              <HomePage />
-            </div>
-          } />
+          <Route path="/" element={<HomePage />} />
           <Route path="/search" element={<SearchFlightsPage />} />
           <Route path="/trends" element={<PriceTrendsPage />} />
+          <Route path="/proposals" element={<ProposalsPage />} />
         </Routes>
       </main>
+
+      <footer className="border-t border-[var(--border)] py-6 text-center text-xs text-[var(--muted)]">
+        Simple Trip Proposals
+      </footer>
     </div>
   );
 }

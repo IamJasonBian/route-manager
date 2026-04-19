@@ -75,14 +75,14 @@ jobs:
 
       - name: List Netlify functions before deploy
         run: |
-          echo "Listing functions in netlify/functions:";
-          find ./netlify/functions -type f -name "*.js" -exec echo " - {}" \;
+          echo "Listing bundled functions:";
+          find ./netlify/functions-bundled -type f -name "*.js" -exec echo " - {}" \;
 
       - name: Install Netlify CLI
         run: npm install -g netlify-cli
 
       - name: Deploy to Alpha
-        run: netlify deploy --dir=dist --prod --site ${{ env.NETLIFY_SITE_ID_ALPHA }}
+        run: netlify deploy --dir=dist --functions=netlify/functions-bundled --prod --site ${{ env.NETLIFY_SITE_ID_ALPHA }}
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
 
@@ -117,7 +117,7 @@ jobs:
         run: npm install -g netlify-cli
 
       - name: Deploy to Prod
-        run: netlify deploy --dir=dist --prod --site ${{ secrets.NETLIFY_SITE_ID_PROD }}
+        run: netlify deploy --dir=dist --functions=netlify/functions-bundled --prod --site ${{ secrets.NETLIFY_SITE_ID_PROD }}
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
 
