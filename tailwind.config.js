@@ -11,25 +11,15 @@ module.exports = {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
+      padding: "1.5rem",
       screens: {
-        "2xl": "90rem",
+        "2xl": "72rem",
       },
     },
     extend: {
       fontFamily: {
-        sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
-        mono: ['"SFMono-Regular"', 'Consolas', '"Liberation Mono"', 'Menlo', 'monospace'],
-      },
-      fontSize: {
-        'xs': '1.2rem',
-        'sm': '1.4rem',
-        'base': '1.6rem',
-        'lg': '1.8rem',
-        'xl': '2rem',
-        '2xl': '2.4rem',
-        '3xl': '3rem',
-        '4xl': '3.6rem',
+        sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', '"Inter"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+        mono: ['"SF Mono"', '"JetBrains Mono"', '"Fira Code"', 'Consolas', '"Liberation Mono"', 'Menlo', 'monospace'],
       },
       colors: {
         border: "var(--border)",
@@ -52,10 +42,19 @@ module.exports = {
         },
         destructive: {
           DEFAULT: "var(--destructive)",
+          bg: "var(--destructive-bg)",
         },
         success: {
           DEFAULT: "var(--success)",
           bg: "var(--success-bg)",
+        },
+        warning: {
+          DEFAULT: "var(--warning)",
+          bg: "var(--warning-bg)",
+        },
+        info: {
+          DEFAULT: "var(--info)",
+          bg: "var(--info-bg)",
         },
       },
       borderRadius: {

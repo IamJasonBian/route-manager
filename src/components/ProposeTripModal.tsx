@@ -94,84 +94,81 @@ export function ProposeTripModal({
     }
   };
 
-  const inputClass = "w-full border border-[var(--border)] rounded px-3 py-2 bg-[var(--card)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-1 focus:ring-[var(--ring)]";
-  const labelClass = "block text-sm font-medium text-[var(--foreground)] mb-1";
-
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange}>
       <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40 z-40" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-[var(--card)] border border-[var(--border)] rounded-lg p-6 z-50 shadow-lg">
-          <div className="flex items-center justify-between mb-4">
-            <Dialog.Title className="text-xl font-semibold text-[var(--foreground)]">
+        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md card p-6 z-50 shadow-lg">
+          <div className="flex items-center justify-between mb-5">
+            <Dialog.Title className="text-base font-semibold text-[var(--foreground)]">
               Propose a Trip
             </Dialog.Title>
-            <Dialog.Close className="p-1 text-[var(--muted)] hover:text-[var(--foreground)]">
-              <XIcon className="h-5 w-5" />
+            <Dialog.Close className="btn-ghost p-1">
+              <XIcon className="h-4 w-4" />
             </Dialog.Close>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             <div>
-              <label className={labelClass}>Title</label>
+              <label className="label">Title</label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder={`Trip: ${origin || 'Origin'} to ${destination || 'Destination'}`}
-                className={inputClass}
+                className="input"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelClass}>Origin</label>
+                <label className="label">Origin</label>
                 <input
                   type="text"
                   value={origin}
                   onChange={(e) => setOrigin(e.target.value)}
                   placeholder="JFK"
                   required
-                  className={`${inputClass} font-mono`}
+                  className="input font-mono"
                 />
               </div>
               <div>
-                <label className={labelClass}>Destination</label>
+                <label className="label">Destination</label>
                 <input
                   type="text"
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
                   placeholder="LAX"
                   required
-                  className={`${inputClass} font-mono`}
+                  className="input font-mono"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelClass}>Departure</label>
+                <label className="label">Departure</label>
                 <input
                   type="date"
                   value={departureDate}
                   onChange={(e) => setDepartureDate(e.target.value)}
-                  className={inputClass}
+                  className="input"
                 />
               </div>
               <div>
-                <label className={labelClass}>Return</label>
+                <label className="label">Return</label>
                 <input
                   type="date"
                   value={returnDate}
                   onChange={(e) => setReturnDate(e.target.value)}
-                  className={inputClass}
+                  className="input"
                 />
               </div>
             </div>
 
             <div>
-              <label className={labelClass}>Estimated Price (USD)</label>
+              <label className="label">Estimated Price (USD)</label>
               <input
                 type="number"
                 value={price}
@@ -179,27 +176,27 @@ export function ProposeTripModal({
                 placeholder="299"
                 min="0"
                 step="1"
-                className={`${inputClass} font-mono`}
+                className="input font-mono"
               />
             </div>
 
             <div>
-              <label className={labelClass}>Why this trip?</label>
+              <label className="label">Why this trip?</label>
               <textarea
                 value={rationale}
                 onChange={(e) => setRationale(e.target.value)}
                 placeholder="Great deal, visiting family, etc."
                 rows={3}
-                className={inputClass}
+                className="input"
               />
             </div>
 
             <button
               type="submit"
               disabled={saving || !origin || !destination}
-              className="w-full flex items-center justify-center gap-2 bg-[var(--accent)] text-[var(--accent-foreground)] rounded px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+              className="btn-primary w-full"
             >
-              <SendIcon className="h-4 w-4" />
+              <SendIcon className="h-3.5 w-3.5" />
               {saving ? 'Saving...' : 'Create Proposal'}
             </button>
           </form>

@@ -34,20 +34,23 @@ export const RouteCard: React.FC<RouteCardProps> = ({ route, onLoad }) => {
   const googleFlightsUrl = buildGoogleFlightsUrl({ origin: from, destination: to });
 
   return (
-    <div className="border border-[var(--border)] rounded-lg p-4 bg-[var(--card)] hover:shadow-sm transition-shadow">
-      <div className="flex flex-col space-y-4">
+    <div className="card p-4 hover:bg-[var(--muted-bg)]/50 transition-colors">
+      <div className="flex flex-col space-y-3">
         <div className="flex justify-between items-start">
           <div>
-            <div className="flex items-center space-x-2">
-              <MapPinIcon className="h-5 w-5 text-[var(--accent)]" />
-              <h3 className="text-lg font-semibold text-[var(--foreground)]">
-                {from} <ArrowRightIcon className="inline h-4 w-4 mx-1" /> {to}
+            <div className="flex items-center gap-1.5">
+              <MapPinIcon className="h-4 w-4 text-[var(--muted)]" />
+              <h3 className="text-sm font-medium text-[var(--foreground)]">
+                <span className="font-mono">{from}</span>
+                <ArrowRightIcon className="inline h-3 w-3 mx-1 text-[var(--muted)]" />
+                <span className="font-mono">{to}</span>
               </h3>
             </div>
-            <div className="flex items-center text-sm text-[var(--muted)] mt-1">
-              <ClockIcon className="h-4 w-4 mr-1" />
-              <span>{duration}</span>
-              <span className="mx-2">&middot;</span>
+            <div className="flex items-center text-xs text-[var(--muted)] mt-1 gap-2">
+              <span className="inline-flex items-center gap-1">
+                <ClockIcon className="h-3 w-3" />
+                {duration}
+              </span>
               <span>{distance}</span>
             </div>
             <div className="flex items-center gap-3 mt-2">
@@ -55,14 +58,14 @@ export const RouteCard: React.FC<RouteCardProps> = ({ route, onLoad }) => {
                 href={googleFlightsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center text-xs text-[var(--link)] hover:opacity-80 transition-opacity"
+                className="flex items-center text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
               >
                 <ExternalLinkIcon className="h-3 w-3 mr-1" />
                 Google Flights
               </a>
               <ProposeTripModal
                 trigger={
-                  <button className="text-xs text-[var(--link)] hover:opacity-80 transition-opacity">
+                  <button className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
                     Propose Trip
                   </button>
                 }
@@ -72,20 +75,20 @@ export const RouteCard: React.FC<RouteCardProps> = ({ route, onLoad }) => {
               />
             </div>
           </div>
-          <div className="bg-[var(--success-bg)] px-4 py-2 rounded-lg">
-            <div className="flex items-center text-[var(--success)]">
-              <TrendingDownIcon className="h-4 w-4 mr-1" />
-              <span className="text-sm font-medium">Best Deal</span>
+          <div className="bg-[var(--success-bg)] px-3 py-1.5 rounded-md text-right">
+            <div className="flex items-center gap-1 text-[var(--success)]">
+              <TrendingDownIcon className="h-3 w-3" />
+              <span className="text-xs font-medium">Best</span>
             </div>
-            <div className="text-xl font-bold text-[var(--success)] font-mono">
+            <div className="text-base font-semibold text-[var(--success)] font-mono">
               ${lowestPrice}
             </div>
             {savings > 0 && (
-              <div className="text-xs text-[var(--success)]">Save ${savings}</div>
+              <div className="text-xs text-[var(--success)]">-${savings}</div>
             )}
           </div>
         </div>
-        <div className="h-52 mt-2">
+        <div className="h-44">
           <PriceChart
             prices={prices}
             basePrice={basePrice}

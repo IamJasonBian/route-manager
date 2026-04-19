@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
 import { SearchIcon, ExternalLinkIcon, Loader2, PlaneIcon } from 'lucide-react';
 import axios from 'axios';
 import { buildGoogleFlightsUrl } from '../utils/googleFlights';
@@ -149,29 +148,26 @@ export default function SearchFlightsPage() {
       if (response.data?.data) {
         setFlights(response.data.data);
       } else {
-        setError('No flights found. Please try different search criteria.');
+        setError('No flights found. Try different search criteria.');
         setFlights([]);
       }
     } catch {
-      setError('Failed to search for flights. Please try again later.');
+      setError('Failed to search for flights. Please try again.');
       setFlights([]);
     } finally {
       setIsSearching(false);
     }
   };
 
-  const inputClass = "w-full border border-[var(--border)] rounded px-3 py-2 bg-[var(--card)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-1 focus:ring-[var(--ring)]";
-  const labelClass = "block text-sm font-medium text-[var(--foreground)] mb-1";
-
   const SuggestionDropdown = ({ suggestions, onSelect }: { suggestions: Airport[]; onSelect: (a: Airport) => void }) => (
-    <div className="absolute z-10 mt-1 w-full bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg max-h-60 overflow-auto">
+    <div className="absolute z-10 mt-1 w-full card shadow-lg max-h-60 overflow-auto">
       {suggestions.map((airport) => (
         <div
           key={airport.iataCode}
-          className="px-4 py-2 hover:bg-[var(--muted-bg)] cursor-pointer"
+          className="px-3 py-2 hover:bg-[var(--muted-bg)] cursor-pointer"
           onClick={() => onSelect(airport)}
         >
-          <div className="font-medium text-sm font-mono">{airport.iataCode}</div>
+          <div className="font-medium text-xs font-mono">{airport.iataCode}</div>
           <div className="text-xs text-[var(--muted)]">
             {airport.name}{airport.cityName && `, ${airport.cityName}`}{airport.countryName && `, ${airport.countryName}`}
           </div>
@@ -181,23 +177,20 @@ export default function SearchFlightsPage() {
   );
 
   return (
-    <div className="max-w-[90rem] mx-auto px-6 py-8">
-      <div className="flex items-center mb-6">
-        <Link to="/" className="text-[var(--link)] hover:opacity-80 mr-4">&larr; Home</Link>
-        <h1 className="text-2xl font-bold text-[var(--foreground)]">Search Flights</h1>
-      </div>
+    <div>
+      <h1 className="text-lg font-semibold text-[var(--foreground)] tracking-tight mb-6">Search Flights</h1>
 
-      <div className="border border-[var(--border)] rounded-lg bg-[var(--card)] p-6 mb-8">
+      <div className="card p-5 mb-6">
         <form onSubmit={handleSearch}>
-          <div className="flex gap-1 mb-6">
+          <div className="flex gap-1 mb-4">
             {(['one-way', 'round-trip'] as const).map((type) => (
               <button
                 key={type}
                 type="button"
-                className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                   tripType === type
                     ? 'bg-[var(--accent)] text-[var(--accent-foreground)]'
-                    : 'bg-[var(--muted-bg)] text-[var(--muted)] hover:text-[var(--foreground)]'
+                    : 'text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--muted-bg)]'
                 }`}
                 onClick={() => setTripType(type)}
               >
@@ -206,42 +199,42 @@ export default function SearchFlightsPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
             <div ref={originRef} className="relative">
-              <label className={labelClass}>From</label>
+              <label className="label">From</label>
               <input type="text" value={originInput} onChange={handleOriginInputChange}
                 onFocus={() => originInput.length >= 2 && setShowOriginSuggestions(true)}
-                placeholder="JFK" className={`${inputClass} font-mono`} />
+                placeholder="JFK" className="input font-mono" />
               {showOriginSuggestions && originSuggestions.length > 0 && (
                 <SuggestionDropdown suggestions={originSuggestions} onSelect={handleSelectOrigin} />
               )}
             </div>
 
             <div ref={destinationRef} className="relative">
-              <label className={labelClass}>To</label>
+              <label className="label">To</label>
               <input type="text" value={destinationInput} onChange={handleDestinationInputChange}
                 onFocus={() => destinationInput.length >= 2 && setShowDestinationSuggestions(true)}
-                placeholder="LAX" className={`${inputClass} font-mono`} />
+                placeholder="LAX" className="input font-mono" />
               {showDestinationSuggestions && destinationSuggestions.length > 0 && (
                 <SuggestionDropdown suggestions={destinationSuggestions} onSelect={handleSelectDestination} />
               )}
             </div>
 
             <div>
-              <label className={labelClass}>Departure</label>
+              <label className="label">Departure</label>
               <input type="date" required value={departureDate}
                 onChange={(e) => setDepartureDate(e.target.value)}
                 min={new Date().toISOString().split('T')[0]}
-                className={inputClass} />
+                className="input" />
             </div>
 
             {tripType === 'round-trip' && (
               <div>
-                <label className={labelClass}>Return</label>
+                <label className="label">Return</label>
                 <input type="date" required value={returnDate}
                   onChange={(e) => setReturnDate(e.target.value)}
                   min={departureDate || new Date().toISOString().split('T')[0]}
-                  className={inputClass} />
+                  className="input" />
               </div>
             )}
           </div>
@@ -249,131 +242,131 @@ export default function SearchFlightsPage() {
           <button
             type="submit"
             disabled={isSearching || isLoadingAirports}
-            className="w-full flex items-center justify-center gap-2 bg-[var(--accent)] text-[var(--accent-foreground)] rounded px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+            className="btn-primary w-full"
           >
-            {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <SearchIcon className="h-4 w-4" />}
+            {isSearching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <SearchIcon className="h-3.5 w-3.5" />}
             {isSearching ? 'Searching...' : 'Search Flights'}
           </button>
 
           {error && (
-            <div className="mt-4 p-3 border border-[var(--destructive)] bg-red-50 dark:bg-red-950 text-[var(--destructive)] rounded text-sm">
+            <div className="mt-3 p-3 bg-[var(--destructive-bg)] text-[var(--destructive)] rounded-md text-xs">
               {error}
             </div>
           )}
         </form>
+      </div>
 
-        {/* Results */}
-        <div className="mt-8">
-          <h2 className="text-lg font-semibold text-[var(--foreground)] mb-4">
-            Results {flights.length > 0 && `(${flights.length})`}
-          </h2>
+      {/* Results */}
+      <div>
+        <h2 className="text-sm font-medium text-[var(--foreground)] mb-3">
+          Results {flights.length > 0 && <span className="text-[var(--muted)]">({flights.length})</span>}
+        </h2>
 
-          {isSearching ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 text-[var(--accent)] animate-spin" />
-            </div>
-          ) : flights.length > 0 ? (
-            <div className="space-y-3">
-              {flights.map((flight, index) => {
-                const segments = flight.itineraries[0].segments;
-                const dep = segments[0];
-                const arr = segments[segments.length - 1];
-                const stops = segments.length - 1;
-                const price = parseFloat(flight.price.total);
+        {isSearching ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-5 w-5 text-[var(--muted)] animate-spin" />
+          </div>
+        ) : flights.length > 0 ? (
+          <div className="space-y-2">
+            {flights.map((flight, index) => {
+              const segments = flight.itineraries[0].segments;
+              const dep = segments[0];
+              const arr = segments[segments.length - 1];
+              const stops = segments.length - 1;
+              const price = parseFloat(flight.price.total);
 
-                const bookingUrl = buildGoogleFlightsUrl({
-                  origin: dep.departure.iataCode,
-                  destination: arr.arrival.iataCode,
-                  departureDate: dep.departure.at.split('T')[0],
-                  returnDate: tripType === 'round-trip' ? returnDate : undefined,
-                });
+              const bookingUrl = buildGoogleFlightsUrl({
+                origin: dep.departure.iataCode,
+                destination: arr.arrival.iataCode,
+                departureDate: dep.departure.at.split('T')[0],
+                returnDate: tripType === 'round-trip' ? returnDate : undefined,
+              });
 
-                return (
-                  <div key={index} className="border border-[var(--border)] rounded-lg overflow-hidden">
-                    <div className="bg-[var(--muted-bg)] px-4 py-3 border-b border-[var(--border)] flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-medium text-[var(--foreground)]">
-                          {dep.departure.iataCode} &rarr; {arr.arrival.iataCode}
-                        </span>
-                        <span className="text-sm text-[var(--muted)]">
-                          {stops === 0 ? 'Nonstop' : `${stops} stop${stops > 1 ? 's' : ''}`}
-                        </span>
+              return (
+                <div key={index} className="card overflow-hidden">
+                  <div className="bg-[var(--muted-bg)] px-4 py-2.5 border-b border-[var(--border)] flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm font-medium text-[var(--foreground)]">
+                        {dep.departure.iataCode} &rarr; {arr.arrival.iataCode}
+                      </span>
+                      <span className="text-xs text-[var(--muted)]">
+                        {stops === 0 ? 'Nonstop' : `${stops} stop${stops > 1 ? 's' : ''}`}
+                      </span>
+                    </div>
+                    <div className="text-sm font-semibold font-mono text-[var(--foreground)]">
+                      ${price.toFixed(2)}
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-medium text-[var(--foreground)]">{formatDate(dep.departure.at)}</div>
+                        <div className="text-xs text-[var(--muted)] font-mono">{dep.departure.iataCode}</div>
                       </div>
-                      <div className="text-lg font-bold font-mono text-[var(--foreground)]">
-                        ${price.toFixed(2)}
+                      <div className="text-center px-4">
+                        <div className="text-xs text-[var(--muted)]">
+                          {formatDuration(dep.departure.at, arr.arrival.at)}
+                        </div>
+                        <div className="border-t border-[var(--border)] w-12 my-1 mx-auto"></div>
+                        <div className="text-xs text-[var(--muted)]">
+                          {stops === 0 ? 'Nonstop' : `${stops} stop${stops > 1 ? 's' : ''}`}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-[var(--foreground)]">{formatDate(arr.arrival.at)}</div>
+                        <div className="text-xs text-[var(--muted)] font-mono">{arr.arrival.iataCode}</div>
                       </div>
                     </div>
-                    <div className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium text-[var(--foreground)]">{formatDate(dep.departure.at)}</div>
-                          <div className="text-sm text-[var(--muted)] font-mono">{dep.departure.iataCode}</div>
+                    <div className="mt-3 pt-3 border-t border-[var(--border)] flex items-center justify-between">
+                      <div>
+                        <div className="text-sm text-[var(--foreground)]">
+                          {airlines[dep.carrierCode] || dep.carrierCode}
                         </div>
-                        <div className="text-center px-4">
-                          <div className="text-sm text-[var(--muted)]">
-                            {formatDuration(dep.departure.at, arr.arrival.at)}
-                          </div>
-                          <div className="border-t border-[var(--border)] w-16 my-1"></div>
-                          <div className="text-xs text-[var(--muted)]">
-                            {stops === 0 ? 'Nonstop' : `${stops} stop${stops > 1 ? 's' : ''}`}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium text-[var(--foreground)]">{formatDate(arr.arrival.at)}</div>
-                          <div className="text-sm text-[var(--muted)] font-mono">{arr.arrival.iataCode}</div>
+                        <div className="text-xs text-[var(--muted)] font-mono">
+                          {dep.carrierCode}{dep.number} &middot;{' '}
+                          {flight.travelerPricings[0].fareDetailsBySegment[0].cabin.charAt(0).toUpperCase() +
+                            flight.travelerPricings[0].fareDetailsBySegment[0].cabin.slice(1).toLowerCase()}
                         </div>
                       </div>
-                      <div className="mt-4 pt-3 border-t border-[var(--border)] flex items-center justify-between">
-                        <div>
-                          <div className="text-sm font-medium text-[var(--foreground)]">
-                            {airlines[dep.carrierCode] || dep.carrierCode}
-                          </div>
-                          <div className="text-xs text-[var(--muted)]">
-                            {dep.carrierCode}{dep.number} &middot;{' '}
-                            {flight.travelerPricings[0].fareDetailsBySegment[0].cabin.charAt(0).toUpperCase() +
-                              flight.travelerPricings[0].fareDetailsBySegment[0].cabin.slice(1).toLowerCase()}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <ProposeTripModal
-                            trigger={
-                              <button className="px-3 py-2 border border-[var(--accent)] text-[var(--accent)] text-sm font-medium rounded hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">
-                                Propose Trip
-                              </button>
-                            }
-                            defaultOrigin={dep.departure.iataCode}
-                            defaultDestination={arr.arrival.iataCode}
-                            defaultDepartureDate={dep.departure.at.split('T')[0]}
-                            defaultReturnDate={tripType === 'round-trip' ? returnDate : undefined}
-                            defaultPrice={price}
-                          />
-                          <a
-                            href={bookingUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-3 py-2 bg-[var(--accent)] text-[var(--accent-foreground)] text-sm font-medium rounded hover:opacity-90 transition-opacity"
-                          >
-                            Book Flight
-                            <ExternalLinkIcon className="h-4 w-4" />
-                          </a>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <ProposeTripModal
+                          trigger={
+                            <button className="btn-secondary text-xs px-3 py-1.5">
+                              Propose Trip
+                            </button>
+                          }
+                          defaultOrigin={dep.departure.iataCode}
+                          defaultDestination={arr.arrival.iataCode}
+                          defaultDepartureDate={dep.departure.at.split('T')[0]}
+                          defaultReturnDate={tripType === 'round-trip' ? returnDate : undefined}
+                          defaultPrice={price}
+                        />
+                        <a
+                          href={bookingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-primary text-xs px-3 py-1.5"
+                        >
+                          Book Flight
+                          <ExternalLinkIcon className="h-3 w-3" />
+                        </a>
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-12 text-[var(--muted)]">
-              <PlaneIcon className="h-12 w-12 mx-auto mb-3 opacity-40" />
-              <p className="text-sm">
-                {origin || destination || departureDate
-                  ? 'No flights found. Try adjusting your search.'
-                  : 'Enter your search criteria to find flights.'}
-              </p>
-            </div>
-          )}
-        </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-12 text-[var(--muted)]">
+            <PlaneIcon className="h-8 w-8 mx-auto mb-2 opacity-30" />
+            <p className="text-xs">
+              {origin || destination || departureDate
+                ? 'No flights found. Try adjusting your search.'
+                : 'Enter your search criteria to find flights.'}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

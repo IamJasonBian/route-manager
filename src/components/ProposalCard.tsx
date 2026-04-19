@@ -1,11 +1,11 @@
 import { ArrowRightIcon, ExternalLinkIcon, Trash2Icon } from 'lucide-react';
 import type { TripProposal } from '../types/proposal';
 
-const statusColors: Record<string, string> = {
-  draft: 'bg-[var(--muted-bg)] text-[var(--muted)]',
-  proposed: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-  accepted: 'bg-[var(--success-bg)] text-[var(--success)]',
-  rejected: 'bg-red-50 text-[var(--destructive)] dark:bg-red-950 dark:text-red-300',
+const statusBadge: Record<string, string> = {
+  draft: 'badge-draft',
+  proposed: 'badge-proposed',
+  accepted: 'badge-accepted',
+  rejected: 'badge-rejected',
 };
 
 interface ProposalCardProps {
@@ -18,45 +18,45 @@ export function ProposalCard({ proposal, onUpdateStatus, onDelete }: ProposalCar
   const statusOptions: TripProposal['status'][] = ['draft', 'proposed', 'accepted', 'rejected'];
 
   return (
-    <div className="border border-[var(--border)] rounded-lg p-5 bg-[var(--card)] transition-shadow hover:shadow-sm">
-      <div className="flex items-start justify-between gap-4">
+    <div className="card p-4 transition-colors hover:bg-[var(--muted-bg)]/50">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <h3 className="text-lg font-semibold text-[var(--foreground)] truncate">
+          <h3 className="text-sm font-medium text-[var(--foreground)] truncate">
             {proposal.title}
           </h3>
-          <div className="flex items-center gap-2 mt-1 font-mono text-sm text-[var(--muted)]">
+          <div className="flex items-center gap-1.5 mt-1 font-mono text-xs text-[var(--muted)]">
             <span>{proposal.origin}</span>
             <ArrowRightIcon className="h-3 w-3 flex-shrink-0" />
             <span>{proposal.destination}</span>
           </div>
         </div>
-        <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${statusColors[proposal.status]}`}>
+        <span className={statusBadge[proposal.status] || 'badge-draft'}>
           {proposal.status}
         </span>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[var(--muted)]">
-        {proposal.departureDate && <span>Depart: {proposal.departureDate}</span>}
-        {proposal.returnDate && <span>Return: {proposal.returnDate}</span>}
+      <div className="mt-2.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-[var(--muted)]">
+        {proposal.departureDate && <span>{proposal.departureDate}</span>}
+        {proposal.returnDate && <span>- {proposal.returnDate}</span>}
         {proposal.estimatedPrice && (
-          <span className="font-semibold text-[var(--foreground)]">
+          <span className="font-medium font-mono text-[var(--foreground)]">
             ${proposal.estimatedPrice} {proposal.currency}
           </span>
         )}
       </div>
 
       {proposal.rationale && (
-        <p className="mt-3 text-sm text-[var(--muted)] line-clamp-2">
+        <p className="mt-2 text-xs text-[var(--muted)] line-clamp-2">
           {proposal.rationale}
         </p>
       )}
 
-      <div className="mt-4 flex items-center gap-3 flex-wrap">
+      <div className="mt-3 pt-3 border-t border-[var(--border)] flex items-center gap-2 flex-wrap">
         {onUpdateStatus && (
           <select
             value={proposal.status}
             onChange={(e) => onUpdateStatus(proposal.id, e.target.value as TripProposal['status'])}
-            className="text-sm border border-[var(--border)] rounded px-2 py-1 bg-[var(--card)] text-[var(--foreground)]"
+            className="input py-1 px-2 w-auto text-xs"
           >
             {statusOptions.map((s) => (
               <option key={s} value={s}>{s}</option>
@@ -68,10 +68,10 @@ export function ProposalCard({ proposal, onUpdateStatus, onDelete }: ProposalCar
             href={proposal.googleFlightsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-sm text-[var(--link)] hover:opacity-80"
+            className="inline-flex items-center gap-1 text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
           >
             <ExternalLinkIcon className="h-3 w-3" />
-            Google Flights
+            Flights
           </a>
         )}
         {onDelete && (
@@ -80,7 +80,7 @@ export function ProposalCard({ proposal, onUpdateStatus, onDelete }: ProposalCar
             className="ml-auto p-1 text-[var(--muted)] hover:text-[var(--destructive)] transition-colors"
             aria-label="Delete proposal"
           >
-            <Trash2Icon className="h-4 w-4" />
+            <Trash2Icon className="h-3.5 w-3.5" />
           </button>
         )}
       </div>

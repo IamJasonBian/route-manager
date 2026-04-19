@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import { Loader2, MapPinIcon, ExternalLinkIcon, XIcon } from 'lucide-react';
 import axios from 'axios';
 import PriceHistoryChart, { ChartType } from '../components/PriceHistoryChart';
@@ -180,14 +179,11 @@ export default function PriceTrendsPage() {
     if (originInput.length >= 3 && destinationInput.length >= 3) { setOrigin(originInput); setDestination(destinationInput); }
   };
 
-  const inputClass = "w-full border border-[var(--border)] rounded px-3 py-2 bg-[var(--card)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-1 focus:ring-[var(--ring)]";
-  const labelClass = "block text-sm font-medium text-[var(--foreground)] mb-1";
-
   const SuggestionDropdown = ({ suggestions, onSelect }: { suggestions: Airport[]; onSelect: (a: Airport) => void }) => (
-    <div className="absolute z-10 mt-1 w-full bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg max-h-60 overflow-auto">
+    <div className="absolute z-10 mt-1 w-full card shadow-lg max-h-60 overflow-auto">
       {suggestions.map((airport) => (
-        <div key={airport.iataCode} className="px-4 py-2 hover:bg-[var(--muted-bg)] cursor-pointer" onClick={() => onSelect(airport)}>
-          <div className="font-medium text-sm font-mono">{airport.iataCode}</div>
+        <div key={airport.iataCode} className="px-3 py-2 hover:bg-[var(--muted-bg)] cursor-pointer" onClick={() => onSelect(airport)}>
+          <div className="font-medium text-xs font-mono">{airport.iataCode}</div>
           <div className="text-xs text-[var(--muted)]">{airport.name}{airport.cityName && `, ${airport.cityName}`}{airport.countryName && `, ${airport.countryName}`}</div>
         </div>
       ))}
@@ -197,79 +193,73 @@ export default function PriceTrendsPage() {
   const googleFlightsUrl = buildGoogleFlightsUrl({ origin, destination });
 
   return (
-    <div className="max-w-[90rem] mx-auto px-6 py-8">
-      <div className="flex items-center mb-6">
-        <Link to="/" className="text-[var(--link)] hover:opacity-80 mr-4">&larr; Home</Link>
-        <h1 className="text-2xl font-bold text-[var(--foreground)]">Price Trends</h1>
-      </div>
+    <div>
+      <h1 className="text-lg font-semibold text-[var(--foreground)] tracking-tight mb-6">Price Trends</h1>
 
       {showLocationPrompt && (
-        <div className="border border-[var(--accent)] bg-[var(--muted-bg)] rounded-lg p-4 mb-6">
+        <div className="card p-4 mb-6 border-[var(--info)]">
           <div className="flex items-start">
-            <MapPinIcon className="h-5 w-5 text-[var(--accent)] flex-shrink-0 mt-0.5" />
+            <MapPinIcon className="h-4 w-4 text-[var(--info)] flex-shrink-0 mt-0.5" />
             <div className="ml-3 flex-1">
               <h3 className="text-sm font-medium text-[var(--foreground)]">Set your home airport</h3>
-              <p className="mt-1 text-sm text-[var(--muted)]">
+              <p className="mt-1 text-xs text-[var(--muted)]">
                 {detectedAirport
-                  ? `We detected you're near ${detectedAirport.name} (${detectedAirport.code}). Use this?`
+                  ? `Detected: ${detectedAirport.name} (${detectedAirport.code}). Use this?`
                   : 'Allow location access to find your nearest airport.'}
               </p>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-2 flex flex-wrap gap-2">
                 {!detectedAirport && !isDetectingLocation && (
-                  <button onClick={requestLocation}
-                    className="px-3 py-1.5 text-sm font-medium bg-[var(--accent)] text-[var(--accent-foreground)] rounded hover:opacity-90 flex items-center gap-1">
-                    <MapPinIcon className="h-4 w-4" /> Use My Location
+                  <button onClick={requestLocation} className="btn-primary text-xs px-3 py-1.5">
+                    <MapPinIcon className="h-3 w-3" /> Use My Location
                   </button>
                 )}
                 {isDetectingLocation && (
-                  <div className="flex items-center text-sm text-[var(--muted)]">
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Detecting...
+                  <div className="flex items-center text-xs text-[var(--muted)]">
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Detecting...
                   </div>
                 )}
                 {detectedAirport && (
                   <>
-                    <button onClick={confirmDetectedAirport}
-                      className="px-3 py-1.5 text-sm font-medium bg-[var(--accent)] text-[var(--accent-foreground)] rounded hover:opacity-90">
+                    <button onClick={confirmDetectedAirport} className="btn-primary text-xs px-3 py-1.5">
                       Yes, use {detectedAirport.code}
                     </button>
-                    <button onClick={() => setDetectedAirport(null)}
-                      className="px-3 py-1.5 text-sm font-medium border border-[var(--border)] rounded text-[var(--foreground)] hover:bg-[var(--muted-bg)]">
+                    <button onClick={() => setDetectedAirport(null)} className="btn-secondary text-xs px-3 py-1.5">
                       Try again
                     </button>
                   </>
                 )}
               </div>
             </div>
-            <button onClick={dismissLocationPrompt} className="ml-4 text-[var(--muted)] hover:text-[var(--foreground)]" title="Skip">
-              <XIcon className="h-5 w-5" />
+            <button onClick={dismissLocationPrompt} className="btn-ghost p-1">
+              <XIcon className="h-4 w-4" />
             </button>
           </div>
         </div>
       )}
 
-      <div className="border border-[var(--border)] rounded-lg bg-[var(--card)] p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="card p-5">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
           <div ref={originRef} className="relative">
-            <label className={labelClass}>From</label>
+            <label className="label">From</label>
             <input type="text" value={originInput} onChange={handleOriginInputChange}
               onFocus={() => originInput.length >= 2 && setShowOriginSuggestions(true)}
-              placeholder="JFK" className={`${inputClass} font-mono`} />
+              placeholder="JFK" className="input font-mono" />
             {showOriginSuggestions && originSuggestions.length > 0 && (
               <SuggestionDropdown suggestions={originSuggestions} onSelect={handleSelectOrigin} />
             )}
           </div>
           <div ref={destinationRef} className="relative">
-            <label className={labelClass}>To</label>
+            <label className="label">To</label>
             <input type="text" value={destinationInput} onChange={handleDestinationInputChange}
               onFocus={() => destinationInput.length >= 2 && setShowDestinationSuggestions(true)}
-              placeholder="DTW" className={`${inputClass} font-mono`} />
+              placeholder="DTW" className="input font-mono" />
             {showDestinationSuggestions && destinationSuggestions.length > 0 && (
               <SuggestionDropdown suggestions={destinationSuggestions} onSelect={handleSelectDestination} />
             )}
           </div>
           <div>
-            <label className={labelClass}>Stops</label>
-            <select value={stopsFilter} onChange={(e) => setStopsFilter(e.target.value as StopsFilter)} className={inputClass}>
+            <label className="label">Stops</label>
+            <select value={stopsFilter} onChange={(e) => setStopsFilter(e.target.value as StopsFilter)} className="input">
               <option value="cheapest">Cheapest</option>
               <option value="0">Nonstop</option>
               <option value="1">1 Stop</option>
@@ -279,21 +269,20 @@ export default function PriceTrendsPage() {
           </div>
           <div className="flex items-end">
             <button type="button" onClick={handleUpdate} disabled={isLoading || isSearching}
-              className="w-full bg-[var(--accent)] text-[var(--accent-foreground)] rounded px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity">
+              className="btn-primary w-full">
               {isLoading ? 'Loading...' : 'Update'}
             </button>
           </div>
         </div>
 
-        {/* Google Flights + Propose Trip links */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-4 mb-4">
           <a href={googleFlightsUrl} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-sm text-[var(--link)] hover:opacity-80">
+            className="inline-flex items-center gap-1 text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
             <ExternalLinkIcon className="h-3 w-3" /> Compare on Google Flights
           </a>
           <ProposeTripModal
             trigger={
-              <button className="text-sm text-[var(--link)] hover:opacity-80">
+              <button className="text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
                 Propose This Trip
               </button>
             }
@@ -303,14 +292,13 @@ export default function PriceTrendsPage() {
           />
         </div>
 
-        {/* Chart tabs */}
         <div className="border-b border-[var(--border)]">
           <nav className="flex -mb-px">
             {chartTypes.map((type, index) => (
               <button key={type} onClick={() => setTabValue(index)}
-                className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+                className={`py-2 px-3 text-xs font-medium border-b-2 -mb-px transition-colors ${
                   tabValue === index
-                    ? 'border-[var(--accent)] text-[var(--foreground)]'
+                    ? 'border-[var(--foreground)] text-[var(--foreground)]'
                     : 'border-transparent text-[var(--muted)] hover:text-[var(--foreground)]'
                 }`}
                 type="button">
@@ -321,18 +309,18 @@ export default function PriceTrendsPage() {
         </div>
 
         {chartTypes.map((type, index) => (
-          <div key={type} className={`p-4 ${tabValue === index ? 'block' : 'hidden'}`}>
-            <div className="h-96">
+          <div key={type} className={`pt-4 ${tabValue === index ? 'block' : 'hidden'}`}>
+            <div className="h-80">
               {isLoading ? (
                 <div className="flex items-center justify-center h-full">
-                  <Loader2 className="h-8 w-8 text-[var(--accent)] animate-spin" />
+                  <Loader2 className="h-5 w-5 text-[var(--muted)] animate-spin" />
                 </div>
               ) : error ? (
-                <div className="p-4 border border-[var(--destructive)] rounded text-[var(--destructive)] text-sm">
+                <div className="p-3 bg-[var(--destructive-bg)] text-[var(--destructive)] rounded-md text-xs">
                   {error}
                 </div>
               ) : filteredPrices.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-[var(--muted)]">
+                <div className="flex items-center justify-center h-full text-xs text-[var(--muted)]">
                   No flights found with {stopsFilter === '0' ? 'nonstop' : stopsFilter === '3+' ? '3+ stops' : `${stopsFilter} stop${stopsFilter === '1' ? '' : 's'}`}
                 </div>
               ) : (

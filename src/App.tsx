@@ -14,9 +14,9 @@ function NavLink({ to, children }: { to: string; children: React.ReactNode }) {
   return (
     <Link
       to={to}
-      className={`text-base transition-colors ${
+      className={`text-sm transition-colors ${
         isActive
-          ? 'text-[var(--foreground)] font-semibold'
+          ? 'text-[var(--foreground)] font-medium'
           : 'text-[var(--muted)] hover:text-[var(--foreground)]'
       }`}
     >
@@ -36,62 +36,55 @@ function AppContent() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 text-[var(--accent)] animate-spin mx-auto mb-4" />
-          <p className="text-lg font-medium text-[var(--foreground)]">Loading...</p>
-        </div>
+        <Loader2 className="h-6 w-6 text-[var(--muted)] animate-spin" />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
-      <header className="border-b border-[var(--border)] bg-[var(--card)]">
-        <div className="max-w-[90rem] mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="text-xl font-bold tracking-[0.1em] uppercase text-[var(--foreground)] hover:opacity-100">
+      <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-sm">
+        <div className="max-w-[72rem] mx-auto px-6 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            <Link to="/" className="text-sm font-semibold tracking-tight text-[var(--foreground)] hover:opacity-100">
               Simple Trip Proposals
             </Link>
-            <div className="flex items-center gap-6">
-              <nav className="hidden md:flex items-center gap-6">
-                <NavLink to="/proposals">Proposals</NavLink>
-                <NavLink to="/search">Search</NavLink>
-                <NavLink to="/trends">Trends</NavLink>
-              </nav>
-              <ThemeToggle />
-              <button
-                className="md:hidden p-2 text-[var(--muted)] hover:text-[var(--foreground)]"
-                onClick={() => setMenuOpen(!menuOpen)}
-                aria-label="Toggle menu"
-              >
-                {menuOpen ? <XIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
-              </button>
-            </div>
-          </div>
-          {menuOpen && (
-            <nav className="md:hidden flex flex-col gap-3 pt-4 pb-2 border-t border-[var(--border)] mt-4">
+            <nav className="hidden md:flex items-center gap-6">
               <NavLink to="/proposals">Proposals</NavLink>
               <NavLink to="/search">Search</NavLink>
               <NavLink to="/trends">Trends</NavLink>
             </nav>
-          )}
+          </div>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <button
+              className="md:hidden btn-ghost p-2"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="Toggle menu"
+            >
+              {menuOpen ? <XIcon className="h-4 w-4" /> : <MenuIcon className="h-4 w-4" />}
+            </button>
+          </div>
         </div>
+        {menuOpen && (
+          <nav className="md:hidden border-t border-[var(--border)] px-6 py-3 flex flex-col gap-2 bg-[var(--background)]">
+            <NavLink to="/proposals">Proposals</NavLink>
+            <NavLink to="/search">Search</NavLink>
+            <NavLink to="/trends">Trends</NavLink>
+          </nav>
+        )}
       </header>
 
-      <main>
+      <main className="max-w-[72rem] mx-auto px-6 py-8">
         <Routes>
-          <Route path="/" element={
-            <div className="max-w-[90rem] mx-auto px-6 py-8">
-              <HomePage />
-            </div>
-          } />
+          <Route path="/" element={<HomePage />} />
           <Route path="/search" element={<SearchFlightsPage />} />
           <Route path="/trends" element={<PriceTrendsPage />} />
           <Route path="/proposals" element={<ProposalsPage />} />
         </Routes>
       </main>
 
-      <footer className="border-t border-[var(--border)] mt-16 py-6 text-center text-sm text-[var(--muted)]">
+      <footer className="border-t border-[var(--border)] py-6 text-center text-xs text-[var(--muted)]">
         Simple Trip Proposals
       </footer>
     </div>

@@ -59,13 +59,13 @@ export default function ProposalsPage() {
   };
 
   return (
-    <div className="max-w-[90rem] mx-auto px-6 py-8">
+    <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-[var(--foreground)]">Proposals</h1>
+        <h1 className="text-lg font-semibold text-[var(--foreground)] tracking-tight">Proposals</h1>
         <ProposeTripModal
           trigger={
-            <button className="inline-flex items-center gap-2 bg-[var(--accent)] text-[var(--accent-foreground)] rounded px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity">
-              <PlusIcon className="h-4 w-4" />
+            <button className="btn-primary text-xs">
+              <PlusIcon className="h-3.5 w-3.5" />
               New Proposal
             </button>
           }
@@ -73,44 +73,44 @@ export default function ProposalsPage() {
         />
       </div>
 
-      {/* Filter tabs */}
       <div className="flex gap-1 mb-6 border-b border-[var(--border)]">
         {(['all', 'draft', 'proposed', 'accepted', 'rejected'] as const).map((status) => (
           <button
             key={status}
             onClick={() => setFilter(status)}
-            className={`px-3 py-2 text-sm capitalize border-b-2 transition-colors ${
+            className={`px-3 py-2 text-xs capitalize border-b-2 -mb-px transition-colors ${
               filter === status
-                ? 'border-[var(--accent)] text-[var(--foreground)] font-medium'
+                ? 'border-[var(--foreground)] text-[var(--foreground)] font-medium'
                 : 'border-transparent text-[var(--muted)] hover:text-[var(--foreground)]'
             }`}
           >
-            {status} ({counts[status]})
+            {status}
+            <span className="ml-1 text-[var(--muted)]">{counts[status]}</span>
           </button>
         ))}
       </div>
 
       {loading ? (
-        <p className="text-[var(--muted)] text-center py-12">Loading proposals...</p>
+        <p className="text-[var(--muted)] text-sm text-center py-12">Loading proposals...</p>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16">
-          <p className="text-lg text-[var(--muted)] mb-4">
+          <p className="text-sm text-[var(--muted)] mb-3">
             {proposals.length === 0
-              ? 'No proposals yet. Search for flights and propose a trip!'
+              ? 'No proposals yet. Search for flights and propose a trip.'
               : `No ${filter} proposals.`}
           </p>
           {proposals.length === 0 && (
             <Link
               to="/search"
-              className="inline-flex items-center gap-2 text-[var(--link)] hover:opacity-80"
+              className="inline-flex items-center gap-1.5 text-sm text-[var(--foreground)] hover:opacity-70"
             >
-              <SearchIcon className="h-4 w-4" />
+              <SearchIcon className="h-3.5 w-3.5" />
               Search Flights
             </Link>
           )}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((proposal) => (
             <ProposalCard
               key={proposal.id}
