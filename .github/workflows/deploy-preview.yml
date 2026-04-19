@@ -73,6 +73,17 @@ jobs:
             echo "alias=${ALIAS}"
           } >> "$GITHUB_OUTPUT"
 
+      - name: API health probe (non-blocking)
+        id: health
+        continue-on-error: true
+        run: |
+          set +e
+          npx tsx scripts/checkApiHealth.ts --url=${{ steps.netlify.outputs.alias_url }} | tee health.txt
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          # capture last line ("PASS  N passed, ...") for the PR summary
+          tail -1 health.txt > health-summary.txt
+          echo "summary=$(cat health-summary.txt)" >> "$GITHUB_OUTPUT"
+
       - name: Comment preview URL on PR
         uses: marocchino/sticky-pull-request-comment@v2
         with:
@@ -86,6 +97,8 @@ jobs:
             | Preview (unique)  | ${{ steps.netlify.outputs.preview_url }} |
             | Build logs        | ${{ steps.netlify.outputs.logs_url }} |
             | Commit            | `${{ github.event.pull_request.head.sha }}` |
+            | API health        | ${{ steps.health.outputs.exit_code == '0' && '✅' || '❌' }} `${{ steps.health.outputs.summary }}` |
 
             The alias URL stays stable across pushes to this PR (`${{ steps.netlify.outputs.alias }}`).
             Try `/map` for the new flight-history mock.
+            Run `npm run check:health -- --url=${{ steps.netlify.outputs.alias_url }}` locally to see per-check details.
