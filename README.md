@@ -1,4 +1,4 @@
-# ✈️ Apollo Flight Trader
+# Simple Trip Proposals
 
 <div align="center">
   <p align="center">
@@ -11,202 +11,160 @@
   </p>
 </div>
 
-
 ## Environments
 
 | Environment | URL |
 |-------------|-----|
 | Prod | https://route-manager-prod.netlify.app/ |
 
-# Overview 
+## Overview
 
-##  Features
+Simple Trip Proposals reduces booking friction by wrapping around **Itinerary** and **Trip** objects and surfacing manual workflows. The goal is an extremely low-latency trip proposal app that makes it easy to search, propose, and act on travel plans.
 
-Route Manager is designed to enable last minute travel by prebooking commonly taken flights at flex/main levels. This allows for spontaneous trips and upgrades and reduces overall airport planning. Additionally, by solving for price and modeling travel risks and dependencies, Route Manager can increase travel optionality.
+### What It Does
 
-- **Low Latency Flight Monitoring** - Fetch flight prices with historical, projected, volatility and delay (planned) analysis
-- **Route Management** - Track common flight routes and associated pricing
-- **API Integration** - Direct Integration with Amadeus Flight API 
-- **Booking, Rescheduling, and Buying Agent (planned)**
-  * Track and Book commonly flown routes at historical lows with reasonable refund, exchange, and rescheduling fees in anticipation of future upgrades as we approach the travel date
-      * Notification based - Change Management via the original airline site or travel brokers (I.E. VentureX) - user inputs the flight into the system
-      * Agentic - Policy driven Ticket and Change Management via the Amadeus Flight API 
+- **Trip Proposals** -- Create, track, and manage trip proposals backed by real flight data. Proposals wrap an itinerary with context (rationale, price targets, status).
+- **Low-Latency Flight Search** -- Fetch flight prices with historical and volatility analysis via Amadeus API, with Google Flights links for comparison.
+- **Revenue Capture Automation (planned)** -- Automated workflows for cancellations, credits, and rebook opportunities when prices drop or schedules change.
+- **Itinerary Management (planned)** -- Full itinerary objects with multi-leg trips, booking references, and change tracking.
 
-Route Manager is good at
-* Finding the best price in context of a specific user
-* Reducing and simplifying the technical dependencies surrounding air travel by improving ease of access
+### What's In Scope
 
-Route Manager not good at
-* Finding the best price overall on the market
+- Flight search and price monitoring
+- Trip proposal creation and lifecycle management (draft > proposed > accepted/rejected)
+- Price trend analysis and historical data
+- Google Flights integration for booking/comparison
+- Automated rebook and credit capture workflows (planned)
+- Agentic ticket and change management via Amadeus API (planned)
 
-##  Tenants
+### What's Out of Scope
 
-# Quick Start
+- Phone refunds and callbacks
+- Finding the absolute best price on the market (we optimize for a specific user's context)
+- Multi-provider booking aggregation
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | React 18, TypeScript, Vite |
+| Styling | Tailwind CSS, Radix UI |
+| Charts | Recharts, Chart.js |
+| Database | SQLite (local dev), TimescaleDB/Postgres (production) |
+| ORM | Drizzle ORM with drizzle-kit migrations |
+| Backend | Netlify Functions (serverless) |
+| API | Amadeus Flight API, Google Flights (URL) |
+| Deployment | Netlify, GitHub Actions |
+
+## Quick Start
 
 ### Prerequisites
 - Node.js 18+ & npm 9+
-- Amadeus API credentials (for live data and production use)
-- Netlify Account (for hosting data access functions, we're using netlify rather than doing direct calls from front-end code)
-- Github Repository and Pipelines (for managing personal stacks across local and remote environments)
+- Amadeus API credentials (for live flight data)
+- Netlify Account (for hosting serverless functions)
 
-### Environment Setup
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/route-manager.git
-   cd route-manager
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables**
-   - Copy `.env.example` to `.env`
-   - Update the values in `.env` with your configuration
-   ```bash
-   cp .env.example .env
-   ```
-
-4. **Netlify and Amadeus setup**
-   - Set up an Amadeus account to provision prod keys
-   - Set up Netlify environments (Amadeus variables are loaded into the Netlify environment and accessed at runtime)
-
-### Running Locally
-
-#### Development Build
+### Setup
 
 ```bash
-# Start the development server
+git clone https://github.com/yourusername/route-manager.git
+cd route-manager
+npm install
+
+# Copy environment variables
+cp .env.example .env
+# Edit .env with your Amadeus API keys
+
+# Generate and apply database migrations (SQLite locally)
+npx drizzle-kit generate
+npx drizzle-kit push
+
+# Start development server
 npm run dev:clean
 ```
 
-This will start:
+This starts:
 - Frontend on http://localhost:3000
 - Netlify dev server on http://localhost:8888
 - API endpoints under `/.netlify/functions/`
 
-```
-# Start the netlify functions (add instructions)
-```
-
-#### Production Build
+### Production Build
 
 ```bash
-# Build the application
 npm run build
-
-# Preview the production build
 npm run preview
 ```
 
-#### Deployment
+### Database
 
-Deployments are managed via GitHub Actions:
+**Local development** uses SQLite (`local.db`) via better-sqlite3. No Docker required.
 
-- **Gamma**: Automatically deploys on push/PR to main
-- **Prod**: Manual deployment only (blocked by default)
+**Production** uses TimescaleDB/Postgres. For local Postgres testing:
 
-To deploy to prod:
-1. Go to Actions → "Deploy to Netlify"
-2. Click "Run workflow"
-3. Check "Deploy to PROD (requires manual approval)"
-4. Click "Run workflow"
+```bash
+docker compose up -d
+```
 
-**Required GitHub Secrets:**
+Docker Compose provisions TimescaleDB with:
+- User: `alpha`, Password: `alpha`, Database: `alpha`
+- Port: `5432`
 
-Netlify Account Used: jasonzb@umich.edu
+### Migrations
 
-| Secret | Description |
-|--------|-------------|
-| `NETLIFY_AUTH_TOKEN` | Your Netlify personal access token |
-| `NETLIFY_SITE_ID_GAMMA` | Site ID for gamma environment |
-| `NETLIFY_SITE_ID_PROD` | Site ID for prod environment |
+Migrations are managed by drizzle-kit. Schema is defined in `src/db/schema.ts`.
 
-### Available Netlify API Endpoints in Gamma and Prod
+```bash
+# Generate migration from schema changes
+npx drizzle-kit generate
 
-- `GET /.netlify/functions/health` - Health check
-- `POST /.netlify/functions/search-flights` - Search for flights
-- `GET /.netlify/functions/popular-routes` - Get popular routes
-- `GET /.netlify/functions/flight-prices` - Get flight prices
+# Apply migrations
+npx drizzle-kit push
+```
 
-##  Configuration
+## API Endpoints
 
-### Development Environment Variables
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/search-flights` | POST | Search flights via Amadeus |
+| `/flight-prices` | GET | Get 30-day price history |
+| `/airport-search` | GET | Airport/city autocomplete |
+| `/routes` | GET/POST/DELETE | Route CRUD |
+| `/proposals` | GET/POST/PUT/DELETE | Trip proposal CRUD |
+| `/get-routes-summary` | GET | Routes with price history |
+
+## Configuration
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `NODE_ENV` | Application environment | `development` |
-| `PORT` | Port to run the server | `3000` |
 | `AMADEUS_API_KEY` | Amadeus API key | - |
 | `AMADEUS_API_SECRET` | Amadeus API secret | - |
 | `AMADEUS_HOSTNAME` | Amadeus API hostname | `production` |
-| `DB_USER` | Database username | `routeuser` |
-| `DB_PASSWORD` | Database password | - |
-| `DB_NAME` | Database name | `routedb` |
-| `DB_HOST` | Database host | `localhost` |
-| `DB_PORT` | Database port | `5432` |
+| `DB_PATH` | SQLite database path (local) | `./local.db` |
+
+## Deployment
+
+Deployments via GitHub Actions:
+
+- **Gamma**: Auto-deploys on push/PR to main
+- **Prod**: Manual deployment only
+
+**Required GitHub Secrets:** `NETLIFY_AUTH_TOKEN`, `NETLIFY_SITE_ID_GAMMA`, `NETLIFY_SITE_ID_PROD`
+
+Netlify Account: jasonzb@umich.edu
 
 ## Testing
 
 ```bash
-# Run tests
 npm test
-
-# Run tests in watch mode
 npm run test:watch
 ```
 
-## Other Deployments
-
-* Alpha | Single Page Analytics Demo: https://apollo-route-manager-0acz9.netlify.app/
-
-
-
-# Scratch
-
-## E2E Docker Build (depreciated)
-
-```
-npm install
-npm run build
-docker compose up -d
-npm run dev -- --port 5177
-npx netlify dev --targetPort 5177 --port 3005
-```
- 
-
-## Calling the Api Locally
-
-### Authentication
-
-```bash
-# Obtain access token
-curl -X POST "https://api.amadeus.com/v1/security/oauth2/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=client_credentials&client_id=YOUR_API_KEY&client_secret=YOUR_SECRET"
-```
-
-### Example Request
-
-```bash
-# Fetch flight offers
-curl -X GET "https://api.amadeus.com/v2/shopping/flight-offers" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -G \
-  --data-urlencode "originLocationCode=NYC" \
-  --data-urlencode "destinationLocationCode=LAX" \
-  --data-urlencode "departureDate=2023-12-15" \
-  --data-urlencode "adults=1"
-```
-
-##  Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a new Pull Request
-3. Feel free to contact me at jason.bian64@gmail.com for any requests or questions!
+3. Contact jason.bian64@gmail.com for questions
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE).

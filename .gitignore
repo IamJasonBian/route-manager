@@ -31,6 +31,11 @@ dist-ssr
 .env.local
 .env.*.local
 
+# SQLite local database
+local.db
+local.db-wal
+local.db-shm
+
 # CDK
 cdk/node_modules
 cdk/dist

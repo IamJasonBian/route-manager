@@ -1,23 +1,22 @@
 version: '3.8'
 
 services:
-  db:
-    image: postgres:15-alpine
+  postgres:
+    image: timescale/timescaledb:latest-pg17
     restart: always
     environment:
-      POSTGRES_USER: routeuser
-      POSTGRES_PASSWORD: routepass
-      POSTGRES_DB: routedb
+      POSTGRES_USER: alpha
+      POSTGRES_PASSWORD: alpha
+      POSTGRES_DB: alpha
     ports:
       - '5432:5432'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - pgdata:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U routeuser -d routedb"]
+      test: ["CMD-SHELL", "pg_isready -U alpha"]
       interval: 5s
-      timeout: 5s
+      timeout: 3s
       retries: 5
 
 volumes:
-  postgres_data:
+  pgdata:
