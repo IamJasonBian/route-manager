@@ -1,5 +1,5 @@
 import { getDb } from '../../src/db/client.ts';
-import { routes, priceHistory } from '../../src/db/schema.ts';
+import { routes, priceHistory } from '../../src/db/schema.pg.ts';
 import { eq, and, desc, sql, count } from 'drizzle-orm';
 
 const headers = {

@@ -1,5 +1,5 @@
 import { getDb } from '../../src/db/client.ts';
-import { proposals } from '../../src/db/schema.ts';
+import { proposals } from '../../src/db/schema.pg.ts';
 import { eq, desc } from 'drizzle-orm';
 
 const headers = {

@@ -1,5 +1,5 @@
 import { getDb } from '../../src/db/client.ts';
-import { routes } from '../../src/db/schema.ts';
+import { routes } from '../../src/db/schema.pg.ts';
 import { count } from 'drizzle-orm';
 
 export const handler = async (event) => {

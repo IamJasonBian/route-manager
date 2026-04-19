@@ -15,15 +15,21 @@ export function getDb() {
   if (_dbError) throw new Error(_dbError);
 
   try {
-    if (usePostgres()) {
-      console.log('[DB] Using PostgreSQL');
+    if (usePostgres() || isLambda()) {
+      // Production / Lambda: always use Postgres
+      const host = process.env.DB_HOST;
+      if (!host) {
+        _dbError = 'No database configured. Set DB_HOST for Postgres in production.';
+        throw new Error(_dbError);
+      }
+      console.log('[DB] Using PostgreSQL at', host);
       const { drizzle } = require('drizzle-orm/node-postgres');
       const { Pool } = require('pg');
       const schema = require('./schema.pg');
 
       const pool = new Pool({
         user: process.env.DB_USER || 'alpha',
-        host: process.env.DB_HOST,
+        host,
         database: process.env.DB_NAME || 'alpha',
         password: process.env.DB_PASSWORD || 'alpha',
         port: parseInt(process.env.DB_PORT || '5432'),
@@ -31,10 +37,8 @@ export function getDb() {
       });
 
       _db = drizzle(pool, { schema });
-    } else if (isLambda()) {
-      _dbError = 'No database configured. Set DB_HOST to a remote Postgres host for production.';
-      throw new Error(_dbError);
     } else {
+      // Local dev: SQLite
       console.log('[DB] Using SQLite');
       const { drizzle } = require('drizzle-orm/better-sqlite3');
       const Database = require('better-sqlite3');
