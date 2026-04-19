@@ -6,6 +6,7 @@ import { PlaneTakeoffIcon, Loader2 } from 'lucide-react';
 import HomePage from './pages/HomePage';
 import SearchFlightsPage from './pages/SearchFlightsPage';
 import PriceTrendsPage from './pages/PriceTrendsPage';
+import FlightMapPage from './pages/FlightMapPage';
 
 function AppContent() {
   const [isLoading, setIsLoading] = useState(false);
@@ -37,6 +38,7 @@ function AppContent() {
             </Link>
             <nav className="hidden md:flex space-x-8">
               <Link to="/" className="text-gray-500 hover:text-gray-700 font-medium">Home</Link>
+              <Link to="/map" className="text-gray-500 hover:text-gray-700 font-medium">Map</Link>
               <Link to="/search" className="text-gray-500 hover:text-gray-700 font-medium">Search Flights</Link>
               <Link to="/trends" className="text-gray-500 hover:text-gray-700 font-medium">Price Trends</Link>
             </nav>
@@ -51,6 +53,7 @@ function AppContent() {
               <HomePage />
             </div>
           } />
+          <Route path="/map" element={<FlightMapPage />} />
           <Route path="/search" element={<SearchFlightsPage />} />
           <Route path="/trends" element={<PriceTrendsPage />} />
         </Routes>

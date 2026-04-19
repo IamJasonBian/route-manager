@@ -1,0 +1,104 @@
+name: Deploy Preview
+
+# Builds the app on every PR and publishes a Netlify draft deploy
+# under a stable per-PR alias, then posts (or updates) a sticky comment
+# on the PR with the preview URL.
+
+permissions:
+  contents: read
+  pull-requests: write
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  # Cancel in-flight previews when a new commit lands on the same PR
+  group: deploy-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  NETLIFY_SITE_ID_ALPHA: 'b26b3133-30c1-46f3-b976-59ab7c928b57'
+
+jobs:
+  preview:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Netlify CLI
+        run: npm install -g netlify-cli
+
+      - name: Deploy preview to Netlify
+        id: netlify
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        run: |
+          ALIAS="pr-${{ github.event.pull_request.number }}"
+          echo "Deploying preview alias=$ALIAS"
+
+          # --json so we can parse the deploy + alias URLs reliably
+          DEPLOY_OUTPUT=$(netlify deploy \
+            --dir=dist \
+            --site "${NETLIFY_SITE_ID_ALPHA}" \
+            --alias "$ALIAS" \
+            --message "PR #${{ github.event.pull_request.number }} @ ${{ github.event.pull_request.head.sha }}" \
+            --json)
+
+          echo "$DEPLOY_OUTPUT"
+
+          PREVIEW_URL=$(echo "$DEPLOY_OUTPUT" | jq -r '.deploy_url // empty')
+          ALIAS_URL=$(echo "$DEPLOY_OUTPUT" | jq -r '.url // empty')
+          LOGS_URL=$(echo "$DEPLOY_OUTPUT" | jq -r '.logs // empty')
+
+          {
+            echo "preview_url=${PREVIEW_URL}"
+            echo "alias_url=${ALIAS_URL}"
+            echo "logs_url=${LOGS_URL}"
+            echo "alias=${ALIAS}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: API health probe (non-blocking)
+        id: health
+        continue-on-error: true
+        run: |
+          set +e
+          npx tsx scripts/checkApiHealth.ts --url=${{ steps.netlify.outputs.alias_url }} | tee health.txt
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          # capture last line ("PASS  N passed, ...") for the PR summary
+          tail -1 health.txt > health-summary.txt
+          echo "summary=$(cat health-summary.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: Comment preview URL on PR
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: deploy-preview
+          message: |
+            ### Netlify deploy preview
+
+            | Item              | Value |
+            | ----------------- | ----- |
+            | Preview (alias)   | ${{ steps.netlify.outputs.alias_url }} |
+            | Preview (unique)  | ${{ steps.netlify.outputs.preview_url }} |
+            | Build logs        | ${{ steps.netlify.outputs.logs_url }} |
+            | Commit            | `${{ github.event.pull_request.head.sha }}` |
+            | API health        | ${{ steps.health.outputs.exit_code == '0' && '✅' || '❌' }} `${{ steps.health.outputs.summary }}` |
+
+            The alias URL stays stable across pushes to this PR (`${{ steps.netlify.outputs.alias }}`).
+            Try `/map` for the new flight-history mock.
+            Run `npm run check:health -- --url=${{ steps.netlify.outputs.alias_url }}` locally to see per-check details.

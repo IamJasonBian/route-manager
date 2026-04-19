@@ -7,7 +7,12 @@ export default function HomePage() {
         <h1 className="text-4xl font-bold text-gray-900 mb-8">Flight Route Manager</h1>
         <p className="text-lg text-gray-600 mb-12">Track and analyze flight prices across different routes</p>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card
+            title="Flight Map"
+            description="Monitored routes with hourly price snapshots"
+            to="/map"
+          />
           <Card
             title="Search Flights"
             description=""
