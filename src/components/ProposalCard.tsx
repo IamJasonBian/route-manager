@@ -1,12 +1,29 @@
-import { ArrowRightIcon, ExternalLinkIcon, Trash2Icon } from 'lucide-react';
+import { ArrowRightIcon, CalendarIcon, ExternalLinkIcon, Trash2Icon } from 'lucide-react';
 import type { TripProposal } from '../types/proposal';
+import { formatDateRange, formatPrice } from '../utils/formatters';
 
-const statusColors: Record<string, string> = {
-  draft: 'bg-[var(--muted-bg)] text-[var(--muted)]',
-  proposed: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-  accepted: 'bg-[var(--success-bg)] text-[var(--success)]',
-  rejected: 'bg-red-50 text-[var(--destructive)] dark:bg-red-950 dark:text-red-300',
+const STATUS_STYLE: Record<
+  TripProposal['status'],
+  { bg: string; fg: string; dot: string; label: string }
+> = {
+  draft:    { bg: 'var(--muted-bg)',         fg: 'var(--muted)',          dot: 'var(--muted)',       label: 'Draft' },
+  proposed: { bg: 'var(--accent-soft)',      fg: 'var(--accent-soft-fg)', dot: 'var(--accent)',      label: 'Proposed' },
+  accepted: { bg: 'var(--success-soft)',     fg: 'var(--success)',        dot: 'var(--success)',     label: 'Accepted' },
+  rejected: { bg: 'var(--destructive-soft)', fg: 'var(--destructive)',    dot: 'var(--destructive)', label: 'Rejected' },
 };
+
+function StatusBadge({ status }: { status: TripProposal['status'] }) {
+  const s = STATUS_STYLE[status];
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap"
+      style={{ background: s.bg, color: s.fg }}
+    >
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.dot }} />
+      {s.label}
+    </span>
+  );
+}
 
 interface ProposalCardProps {
   proposal: TripProposal;
@@ -16,9 +33,14 @@ interface ProposalCardProps {
 
 export function ProposalCard({ proposal, onUpdateStatus, onDelete }: ProposalCardProps) {
   const statusOptions: TripProposal['status'][] = ['draft', 'proposed', 'accepted', 'rejected'];
+  const dateRange = formatDateRange(proposal.departureDate, proposal.returnDate);
 
   return (
-    <div className="border border-[var(--border)] rounded-lg p-5 bg-[var(--card)] transition-shadow hover:shadow-sm">
+    <div
+      className="group relative rounded-lg p-5 bg-[var(--surface-1)] border border-[var(--border)]
+                 shadow-[var(--shadow-xs)] transition-all duration-150
+                 hover:shadow-[var(--shadow-md)] hover:border-[var(--border-strong)] hover:-translate-y-0.5"
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <h3 className="text-lg font-semibold text-[var(--foreground)] truncate">
@@ -30,17 +52,19 @@ export function ProposalCard({ proposal, onUpdateStatus, onDelete }: ProposalCar
             <span>{proposal.destination}</span>
           </div>
         </div>
-        <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${statusColors[proposal.status]}`}>
-          {proposal.status}
-        </span>
+        <StatusBadge status={proposal.status} />
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[var(--muted)]">
-        {proposal.departureDate && <span>Depart: {proposal.departureDate}</span>}
-        {proposal.returnDate && <span>Return: {proposal.returnDate}</span>}
-        {proposal.estimatedPrice && (
-          <span className="font-semibold text-[var(--foreground)]">
-            ${proposal.estimatedPrice} {proposal.currency}
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-[var(--muted)]">
+        {dateRange && (
+          <span className="inline-flex items-center gap-1.5">
+            <CalendarIcon className="h-3.5 w-3.5" />
+            {dateRange}
+          </span>
+        )}
+        {proposal.estimatedPrice != null && (
+          <span className="font-semibold text-[var(--foreground)] tabular-nums">
+            {formatPrice(proposal.estimatedPrice, proposal.currency)}
           </span>
         )}
       </div>
@@ -56,10 +80,10 @@ export function ProposalCard({ proposal, onUpdateStatus, onDelete }: ProposalCar
           <select
             value={proposal.status}
             onChange={(e) => onUpdateStatus(proposal.id, e.target.value as TripProposal['status'])}
-            className="text-sm border border-[var(--border)] rounded px-2 py-1 bg-[var(--card)] text-[var(--foreground)]"
+            className="text-sm border border-[var(--border)] rounded px-2 py-1 bg-[var(--surface-1)] text-[var(--foreground)]"
           >
             {statusOptions.map((s) => (
-              <option key={s} value={s}>{s}</option>
+              <option key={s} value={s}>{STATUS_STYLE[s].label}</option>
             ))}
           </select>
         )}

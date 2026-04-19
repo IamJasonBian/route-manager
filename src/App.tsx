@@ -46,14 +46,24 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
-      <header className="border-b border-[var(--border)] bg-[var(--card)]">
-        <div className="max-w-[90rem] mx-auto px-6 py-4">
+      <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--surface-1)]/80 backdrop-blur-md">
+        <div className="max-w-[90rem] mx-auto px-6 py-3.5">
           <div className="flex items-center justify-between">
-            <Link to="/" className="text-xl font-bold tracking-[0.1em] uppercase text-[var(--foreground)] hover:opacity-100">
-              Simple Trip Proposals
+            <Link to="/" className="flex items-center gap-2 group hover:opacity-100">
+              <span
+                aria-hidden
+                className="h-7 w-7 rounded-md flex items-center justify-center text-[13px] font-bold text-white
+                           bg-gradient-to-br from-[var(--accent)] to-[var(--accent-hover)]
+                           shadow-[var(--shadow-xs)]"
+              >
+                ✈
+              </span>
+              <span className="text-base font-semibold tracking-tight text-[var(--foreground)]">
+                Simple Trip Proposals
+              </span>
             </Link>
             <div className="flex items-center gap-6">
-              <nav className="hidden md:flex items-center gap-6">
+              <nav className="hidden md:flex items-center gap-5">
                 <NavLink to="/proposals">Proposals</NavLink>
                 <NavLink to="/search">Search</NavLink>
                 <NavLink to="/trends">Trends</NavLink>

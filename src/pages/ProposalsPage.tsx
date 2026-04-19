@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { PlusIcon, SearchIcon } from 'lucide-react';
+import { PlusIcon, SearchIcon, SendIcon } from 'lucide-react';
 import { ProposalCard } from '../components/ProposalCard';
 import { ProposeTripModal } from '../components/ProposeTripModal';
+import { ProposalGridSkeleton } from '../components/Skeleton';
 import { getProposals, updateProposal, deleteProposal } from '../services/proposalService';
 import type { TripProposal } from '../types/proposal';
 
@@ -91,18 +92,24 @@ export default function ProposalsPage() {
       </div>
 
       {loading ? (
-        <p className="text-[var(--muted)] text-center py-12">Loading proposals...</p>
+        <ProposalGridSkeleton count={6} />
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16">
-          <p className="text-lg text-[var(--muted)] mb-4">
+        <div className="text-center py-20 border border-dashed border-[var(--border)] rounded-lg bg-[var(--surface-1)]">
+          <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-[var(--accent-soft)] flex items-center justify-center">
+            <SendIcon className="h-5 w-5" style={{ color: 'var(--accent)' }} />
+          </div>
+          <p className="text-base font-medium text-[var(--foreground)]">
+            {proposals.length === 0 ? 'No proposals yet' : `No ${filter} proposals`}
+          </p>
+          <p className="text-sm text-[var(--muted)] mt-1 mb-4">
             {proposals.length === 0
-              ? 'No proposals yet. Search for flights and propose a trip!'
-              : `No ${filter} proposals.`}
+              ? 'Create one or search for a flight to get started.'
+              : 'Try a different filter, or create a new proposal.'}
           </p>
           {proposals.length === 0 && (
             <Link
               to="/search"
-              className="inline-flex items-center gap-2 text-[var(--link)] hover:opacity-80"
+              className="inline-flex items-center gap-2 text-[var(--link)] hover:opacity-80 text-sm"
             >
               <SearchIcon className="h-4 w-4" />
               Search Flights

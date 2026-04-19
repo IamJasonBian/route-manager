@@ -3,8 +3,15 @@ import { Link } from 'react-router-dom';
 import { SearchIcon, TrendingUpIcon, SendIcon, ArrowRightIcon } from 'lucide-react';
 import { ProposalCard } from '../components/ProposalCard';
 import { ProposeTripModal } from '../components/ProposeTripModal';
+import { ProposalGridSkeleton } from '../components/Skeleton';
 import { getProposals, updateProposal, deleteProposal } from '../services/proposalService';
 import type { TripProposal } from '../types/proposal';
+
+const quickActionClass =
+  'flex items-center gap-3 p-5 rounded-lg bg-[var(--surface-1)] border border-[var(--border)] ' +
+  'shadow-[var(--shadow-xs)] transition-all duration-150 ' +
+  'hover:shadow-[var(--shadow-md)] hover:border-[var(--border-strong)] hover:-translate-y-0.5 ' +
+  'text-left w-full';
 
 export default function HomePage() {
   const [proposals, setProposals] = useState<TripProposal[]>([]);
@@ -53,8 +60,10 @@ export default function HomePage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
         <ProposeTripModal
           trigger={
-            <button className="flex items-center gap-3 p-5 border border-[var(--border)] rounded-lg bg-[var(--card)] hover:shadow-sm transition-shadow text-left w-full">
-              <SendIcon className="h-5 w-5 text-[var(--accent)] flex-shrink-0" />
+            <button className={quickActionClass}>
+              <span className="h-9 w-9 rounded-md flex items-center justify-center bg-[var(--accent-soft)] flex-shrink-0">
+                <SendIcon className="h-4 w-4" style={{ color: 'var(--accent)' }} />
+              </span>
               <div>
                 <div className="font-semibold text-[var(--foreground)]">New Proposal</div>
                 <div className="text-sm text-[var(--muted)]">Create a trip proposal</div>
@@ -64,22 +73,20 @@ export default function HomePage() {
           onCreated={() => getProposals().then(setProposals)}
         />
 
-        <Link
-          to="/search"
-          className="flex items-center gap-3 p-5 border border-[var(--border)] rounded-lg bg-[var(--card)] hover:shadow-sm transition-shadow"
-        >
-          <SearchIcon className="h-5 w-5 text-[var(--accent)] flex-shrink-0" />
+        <Link to="/search" className={quickActionClass}>
+          <span className="h-9 w-9 rounded-md flex items-center justify-center bg-[var(--accent-soft)] flex-shrink-0">
+            <SearchIcon className="h-4 w-4" style={{ color: 'var(--accent)' }} />
+          </span>
           <div>
             <div className="font-semibold text-[var(--foreground)]">Search Flights</div>
             <div className="text-sm text-[var(--muted)]">Find the best deals</div>
           </div>
         </Link>
 
-        <Link
-          to="/trends"
-          className="flex items-center gap-3 p-5 border border-[var(--border)] rounded-lg bg-[var(--card)] hover:shadow-sm transition-shadow"
-        >
-          <TrendingUpIcon className="h-5 w-5 text-[var(--accent)] flex-shrink-0" />
+        <Link to="/trends" className={quickActionClass}>
+          <span className="h-9 w-9 rounded-md flex items-center justify-center bg-[var(--accent-soft)] flex-shrink-0">
+            <TrendingUpIcon className="h-4 w-4" style={{ color: 'var(--accent)' }} />
+          </span>
           <div>
             <div className="font-semibold text-[var(--foreground)]">Price Trends</div>
             <div className="text-sm text-[var(--muted)]">Track price history</div>
@@ -106,7 +113,7 @@ export default function HomePage() {
         </div>
 
         {loading ? (
-          <p className="text-[var(--muted)] text-center py-8">Loading...</p>
+          <ProposalGridSkeleton count={3} />
         ) : recentProposals.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-3">
             {recentProposals.map((p) => (

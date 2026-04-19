@@ -16,16 +16,15 @@ function getStoredTheme(): Theme | null {
 
 export function useTheme() {
   const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof document !== 'undefined' && document.documentElement.classList.contains('dark')) {
+      return 'dark';
+    }
     return getStoredTheme() || getSystemTheme();
   });
 
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
+    root.classList.toggle('dark', theme === 'dark');
     localStorage.setItem('theme', theme);
   }, [theme]);
 
