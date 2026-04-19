@@ -75,8 +75,8 @@ jobs:
 
       - name: List Netlify functions before deploy
         run: |
-          echo "Listing functions in netlify/functions:";
-          find ./netlify/functions -type f -name "*.js" -exec echo " - {}" \;
+          echo "Listing bundled functions:";
+          find ./netlify/functions-bundled -type f -name "*.js" -exec echo " - {}" \;
 
       - name: Install Netlify CLI
         run: npm install -g netlify-cli
