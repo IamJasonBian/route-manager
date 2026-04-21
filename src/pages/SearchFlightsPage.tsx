@@ -266,29 +266,32 @@ export default function SearchFlightsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen px-4 py-8 sm:p-8">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center mb-8">
-          <Link to="/" className="text-blue-600 hover:underline mr-4">
-            &larr; Back to Home
+        <div className="mb-8 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Search Flights</h1>
+            <p className="text-sm text-slate-500">Shop offers for your dates and route</p>
+          </div>
+          <Link to="/" className="text-sm font-medium text-cyan-400/90 hover:text-cyan-300">
+            ← Back home
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Search Flights</h1>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+        <div className="surface-paper p-6 mb-8">
           <form onSubmit={handleSearch}>
             {/* Trip Type Toggle */}
             <div className="flex space-x-2 mb-6">
               <button
                 type="button"
-                className={`px-4 py-2 rounded-l-lg text-sm font-medium ${tripType === 'one-way' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                className={`px-4 py-2 rounded-l-lg text-sm font-medium ${tripType === 'one-way' ? 'bg-cyan-600 text-white' : 'bg-slate-100 text-slate-700'}`}
                 onClick={() => setTripType('one-way')}
               >
                 One Way
               </button>
               <button
                 type="button"
-                className={`px-4 py-2 rounded-r-lg text-sm font-medium ${tripType === 'round-trip' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                className={`px-4 py-2 rounded-r-lg text-sm font-medium ${tripType === 'round-trip' ? 'bg-cyan-600 text-white' : 'bg-slate-100 text-slate-700'}`}
                 onClick={() => setTripType('round-trip')}
               >
                 Round Trip
@@ -306,7 +309,7 @@ export default function SearchFlightsPage() {
                   onChange={handleOriginInputChange}
                   onFocus={() => originInput.length >= 2 && setShowOriginSuggestions(true)}
                   placeholder="City or IATA code (e.g., JFK, NYC)"
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-cyan-500 focus:ring-cyan-500 text-sm"
                 />
                 {showOriginSuggestions && originSuggestions.length > 0 && (
                   <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
@@ -338,7 +341,7 @@ export default function SearchFlightsPage() {
                   onChange={handleDestinationInputChange}
                   onFocus={() => destinationInput.length >= 2 && setShowDestinationSuggestions(true)}
                   placeholder="City or IATA code (e.g., LHR, London)"
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-cyan-500 focus:ring-cyan-500 text-sm"
                 />
                 {showDestinationSuggestions && destinationSuggestions.length > 0 && (
                   <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
@@ -366,7 +369,7 @@ export default function SearchFlightsPage() {
                 <input
                   type="date"
                   id="departureDate"
-                  className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="w-full rounded-lg border-gray-300 shadow-sm focus:border-cyan-500 focus:ring-cyan-500"
                   required
                   value={departureDate}
                   onChange={(e) => setDepartureDate(e.target.value)}
@@ -381,7 +384,7 @@ export default function SearchFlightsPage() {
                   <input
                     type="date"
                     id="returnDate"
-                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-cyan-500 focus:ring-cyan-500"
                     required={tripType === 'round-trip'}
                     value={returnDate}
                     onChange={(e) => setReturnDate(e.target.value)}
@@ -397,8 +400,8 @@ export default function SearchFlightsPage() {
                 type="submit"
                 disabled={isSearching || isLoadingAirports}
                 className={`w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
-                  isSearching || isLoadingAirports ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
-                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
+                  isSearching || isLoadingAirports ? 'bg-cyan-400' : 'bg-cyan-600 hover:bg-cyan-500'
+                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500`}
               >
                 {isSearching ? (
                   <span className="flex items-center justify-center">
@@ -449,7 +452,7 @@ export default function SearchFlightsPage() {
             
             {isSearching ? (
               <div className="flex items-center justify-center p-8">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
               </div>
             ) : flights.length > 0 ? (
               <div className="space-y-4">
@@ -517,7 +520,7 @@ export default function SearchFlightsPage() {
                             href={getBookingLink(flight)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                            className="flex items-center rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-cyan-500"
                           >
                             Book Flight
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">

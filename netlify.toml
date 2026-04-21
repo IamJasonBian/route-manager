@@ -17,6 +17,8 @@
     NODE_ENV = "development"
     VITE_API_URL = "/.netlify/functions"
     CORS_ORIGIN = "http://localhost:5173"
+    # Set to "true" locally to exercise flight-prices without Amadeus (see .env.example)
+    # USE_MOCK_DATA = "false"
 
     # These will be loaded from .env file or system environment
     AMADEUS_API_KEY = "${AMADEUS_API_KEY}"

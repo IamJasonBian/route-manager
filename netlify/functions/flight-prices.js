@@ -1,4 +1,5 @@
 import Amadeus from 'amadeus';
+import { getFlightPricesForDates } from './lib/amadeusBatch.js';
 
 // Helper function to get config with fallbacks
 const getConfig = async () => {
@@ -50,63 +51,62 @@ const generateDatesForNextMonth = () => {
   return dates;
 };
 
-// Function to get flight prices for multiple dates
-const getFlightPricesForDates = async (origin, destination, dates) => {
-  const pricePromises = dates.map(async (date) => {
-    try {
-      // Search for flight offers
-      const response = await amadeus.shopping.flightOffersSearch.get({
-        originLocationCode: origin,
-        destinationLocationCode: destination,
-        departureDate: date,
-        adults: '1',
-        max: '1', // Only get the cheapest offer
-        currencyCode: 'USD'
-      });
-      
-      // Log the raw Amadeus API response
-      console.log(`Amadeus API response for ${origin} to ${destination} on ${date}:`, JSON.stringify(response, null, 2));
-
-      // Extract the price and flight details from the response
-      if (response.data && response.data.length > 0) {
-        const flight = response.data[0];
-        const price = parseFloat(flight.price.total);
-
-        // Extract flight details
-        const firstSegment = flight.itineraries[0].segments[0];
-        const lastSegment = flight.itineraries[0].segments[flight.itineraries[0].segments.length - 1];
-
-        return {
-          date,
-          price,
-          flightDetails: {
-            carrier: firstSegment.carrierCode,
-            flightNumber: `${firstSegment.carrierCode}${firstSegment.number}`,
-            departureTime: firstSegment.departure.at,
-            arrivalTime: lastSegment.arrival.at,
-            duration: flight.itineraries[0].duration,
-            stops: flight.itineraries[0].segments.length - 1,
-            bookingClass: flight.travelerPricings?.[0]?.fareDetailsBySegment?.[0]?.cabin || 'ECONOMY'
-          }
-        };
-      }
-
-      // If no offers found, return null
-      return { date, price: null };
-    } catch (error) {
-      console.error(`Error fetching price for ${date}:`, error);
-      return { date, price: null };
-    }
-  });
-  
-  // Wait for all price requests to complete
-  const prices = await Promise.all(pricePromises);
-  
-  // Filter out null prices and return the results
-  return prices.filter(price => price.price !== null);
-};
-
 export const handler = async (event, context) => {
+  const origin = event.headers.origin || event.headers.Origin || '';
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://apollo-route-manager.windsurf.build',
+    'https://route-manager-demo.netlify.app',
+  ];
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : allowedOrigins[2],
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Credentials': 'true',
+  };
+
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers: corsHeaders, body: '' };
+  }
+
+  // Skip Amadeus entirely — fast local/staging UI without credentials (netlify.toml or .env)
+  if (process.env.USE_MOCK_DATA === 'true' || process.env.AMADEUS_MOCK === '1') {
+    const params = event.queryStringParameters || {};
+    const from = params.from || 'JFK';
+    const to = params.to || 'LAX';
+    const dates = generateDatesForNextMonth();
+    const basePrice = 400 + ((from.charCodeAt(0) + to.charCodeAt(0)) % 400);
+    const mockPrices = dates.map((date, index) => ({
+      date,
+      price: Math.round(basePrice + Math.sin(index / 5) * 40 + (index % 7) * 3),
+      flightDetails: {
+        carrier: 'MOCK',
+        flightNumber: 'MOCK100',
+        departureTime: `${date}T08:00:00`,
+        arrivalTime: `${date}T16:00:00`,
+        duration: 'PT6H',
+        stops: 0,
+        bookingClass: 'ECONOMY',
+      },
+    }));
+    return {
+      statusCode: 200,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'X-Data-Source': 'mock-env',
+      },
+      body: JSON.stringify({
+        prices: mockPrices,
+        basePrice: mockPrices[0]?.price ?? basePrice,
+        lowestPrice: Math.min(...mockPrices.map((p) => p.price)),
+        highestPrice: Math.max(...mockPrices.map((p) => p.price)),
+        source: 'mock',
+      }),
+    };
+  }
+
   // Initialize Amadeus client if not already initialized
   if (!amadeus) {
     console.log('Initializing Amadeus client...');
@@ -127,31 +127,8 @@ export const handler = async (event, context) => {
     NODE_ENV: process.env.NODE_ENV || 'Not set'
   });
 
-  // Set CORS headers - allow both localhost and production
-  const origin = event.headers.origin || event.headers.Origin || '';
-  const allowedOrigins = [
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'https://apollo-route-manager.windsurf.build',
-    'https://route-manager-demo.netlify.app'
-  ];
+  const headers = corsHeaders;
 
-  const headers = {
-    'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : allowedOrigins[2],
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Credentials': 'true',
-  };
-  
-  // Handle preflight OPTIONS request
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers,
-      body: ''
-    };
-  }
-  
   try {
     // Parse request parameters
     const params = event.queryStringParameters || {};
@@ -188,7 +165,7 @@ export const handler = async (event, context) => {
     const dates = generateDatesForNextMonth();
     
     // Get flight prices for all dates
-    const prices = await getFlightPricesForDates(originCode, destinationCode, dates);
+    const prices = await getFlightPricesForDates(amadeus, originCode, destinationCode, dates);
     
     // If no prices found, return an error
     if (prices.length === 0) {
@@ -217,7 +194,7 @@ export const handler = async (event, context) => {
       });
       
       // Log the mock fallback data
-      console.log(`Mock fallback data for ${origin} to ${destination}:`, JSON.stringify(mockPrices, null, 2));
+      console.log(`Mock fallback data for ${originCode} to ${destinationCode}:`, JSON.stringify(mockPrices, null, 2));
       return {
         statusCode: 200,
         headers,

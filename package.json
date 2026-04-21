@@ -17,7 +17,8 @@
     "load-default-routes": "tsx scripts/loadDefaultRoutes.ts",
     "load-prices": "tsx scripts/loadPrices.ts",
     "test-single-route": "tsx scripts/testSingleRoute.ts",
-    "test-all-routes": "tsx scripts/testAllRoutes.ts"
+    "test-all-routes": "tsx scripts/testAllRoutes.ts",
+    "test:functions-local": "node scripts/test-local-functions.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.15",
