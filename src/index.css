@@ -1,59 +1,85 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
- 
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
+    /* Dark “horizon” shell — sky cyan + warm amber accents */
+    --background: 222 47% 7%;
+    --foreground: 210 40% 96%;
+    --card: 222 35% 11%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 35% 12%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 187 78% 52%;
+    --primary-foreground: 222 47% 8%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 92%;
+    --muted: 217 33% 16%;
+    --muted-foreground: 215 20% 62%;
+    --accent: 38 92% 50%;
+    --accent-foreground: 222 47% 8%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    --border: 217 33% 18%;
+    --input: 217 33% 18%;
+    --ring: 187 78% 52%;
+    --radius: 0.75rem;
   }
- 
+
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222 47% 6%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 222 35% 10%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 222 35% 10%;
     --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
+    --primary: 187 78% 55%;
+    --primary-foreground: 222 47% 8%;
+    --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 38 92% 50%;
+    --accent-foreground: 222 47% 8%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --border: 217 33% 18%;
+    --input: 217 33% 18%;
+    --ring: 187 78% 55%;
   }
 }
- 
+
 @layer base {
   * {
-    @apply border-gray-200;
+    @apply border-border;
   }
+
+  html {
+    @apply scroll-smooth;
+  }
+
   body {
-    @apply bg-white text-gray-900;
+    @apply min-h-screen font-sans text-foreground antialiased;
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(ellipse 130% 90% at 50% -25%, rgba(34, 211, 238, 0.14), transparent 55%),
+      radial-gradient(ellipse 70% 80% at 100% 0%, rgba(251, 191, 36, 0.07), transparent 50%),
+      radial-gradient(ellipse 55% 45% at 0% 100%, rgba(129, 140, 248, 0.1), transparent 50%),
+      radial-gradient(ellipse 100% 60% at 50% 100%, rgba(15, 23, 42, 0.9), transparent);
+    background-attachment: fixed;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}
+
+/* Light panels for forms (search / trends) — paper on dark sky */
+@layer components {
+  .surface-paper {
+    @apply rounded-2xl border border-white/10 bg-white/95 text-slate-900 shadow-xl shadow-slate-950/40 backdrop-blur-sm;
   }
 }

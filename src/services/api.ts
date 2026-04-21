@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getApiBaseUrl, getApiMode, getApiTimeoutMs, mockRoutesFromEnv } from '../config/runtime';
 import { saveRoute as saveDbRoute, DbRoute } from './routeService';
 
 // Interface for flight details
@@ -30,21 +31,37 @@ export interface RouteMeta {
   _error?: string;
 }
 
-// API configuration
-// Use relative path in both development and production
-// This ensures functions are called on the same domain as the frontend
-// Netlify Dev runs on port 3000 and handles function proxying in development
-// In production, the frontend and functions are on the same Netlify deployment
-const API_BASE_URL = '/.netlify/functions';
-
-// Create axios instance with default configuration
-export const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Accept': 'application/json',
-    'Content-Type': 'application/json'
+// API configuration: same-origin `/.netlify/functions` by default; override with VITE_API_URL / VITE_REMOTE_API_BASE
+const createApiClient = () => {
+  const client = axios.create({
+    baseURL: getApiBaseUrl(),
+    timeout: getApiTimeoutMs(),
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+  });
+  if (process.env.NODE_ENV === 'development') {
+    client.interceptors.request.use((config) => {
+      (config as { metadata?: { t: number } }).metadata = { t: performance.now() };
+      return config;
+    });
+    client.interceptors.response.use(
+      (res) => {
+        const meta = (res.config as { metadata?: { t: number } }).metadata;
+        if (meta?.t != null) {
+          const ms = Math.round(performance.now() - meta.t);
+          console.debug(`[api] ${res.config.baseURL ?? ''}${res.config.url ?? ''} ${ms}ms`);
+        }
+        return res;
+      },
+      (err) => Promise.reject(err)
+    );
   }
-});
+  return client;
+};
+
+export const apiClient = createApiClient();
 
 // Interface for API route
 export interface ApiRoute {
@@ -194,9 +211,28 @@ interface PriceHistoryResponse {
   source: string;
 }
 
-export async function getPriceHistory(from: string, to: string): Promise<PriceHistoryResponse> {
+export async function getPriceHistory(
+  from: string,
+  to: string,
+  options?: { signal?: AbortSignal }
+): Promise<PriceHistoryResponse> {
+  if (getApiMode() === 'mock') {
+    const mockPrices = generateMockPrices();
+    return {
+      prices: mockPrices.map((p) => ({
+        date: typeof p.date === 'string' ? p.date : p.date.toISOString().split('T')[0],
+        price: p.price,
+      })),
+      basePrice: 300,
+      lowestPrice: Math.min(...mockPrices.map((p) => p.price)),
+      highestPrice: Math.max(...mockPrices.map((p) => p.price)),
+      source: 'mock',
+    };
+  }
   try {
-    const response = await apiClient.get<PriceHistoryResponse>(`/flight-prices?from=${from}&to=${to}`);
+    const response = await apiClient.get<PriceHistoryResponse>(`/flight-prices?from=${from}&to=${to}`, {
+      signal: options?.signal,
+    });
     // Ensure the response has the correct format
     if (response.data && Array.isArray(response.data.prices)) {
       return {
@@ -228,12 +264,23 @@ export async function getPriceHistory(from: string, to: string): Promise<PriceHi
 }
 
 // Get flight prices for a route over time
-export const getFlightPrices = async (from: string, to: string, departDate: string): Promise<FlightPrice[]> => {
+export const getFlightPrices = async (
+  from: string,
+  to: string,
+  departDate: string,
+  options?: { signal?: AbortSignal }
+): Promise<FlightPrice[]> => {
+  if (getApiMode() === 'mock') {
+    const routeHash = from.charCodeAt(0) + to.charCodeAt(0);
+    const basePrice = 400 + (routeHash % 500);
+    return generateMockPrices(basePrice);
+  }
   try {
     console.log(`Fetching prices from ${from} to ${to} for ${departDate}`);
-    
-    // Call our Netlify function to get flight prices
-    const response = await apiClient.get(`/flight-prices?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+
+    const response = await apiClient.get(`/flight-prices?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, {
+      signal: options?.signal,
+    });
     
     if (response.data && response.data.prices) {
       console.log(`Received ${response.data.prices.length} prices from ${response.data.source} source`);
@@ -420,6 +467,13 @@ export const loadDefaultRoutes = async (): Promise<void> => {
 
 // Get available routes with database fallback
 export const getRoutes = async (): Promise<ApiRoute[]> => {
+  if (mockRoutesFromEnv()) {
+    return generateFallbackRoutes().map((route, index) => ({
+      ...route,
+      id: `mock-${index + 1}`,
+      meta: { ...route.meta, source: 'mock-local' },
+    }));
+  }
   try {
     console.log('1. Loading default routes if needed...');
     await loadDefaultRoutes();
@@ -476,7 +530,5 @@ export const getRoutes = async (): Promise<ApiRoute[]> => {
     // Return empty array on error
     console.warn('11. Error occurred, returning empty array');
     return [];
-  } finally {
-    console.groupEnd();
   }
 };

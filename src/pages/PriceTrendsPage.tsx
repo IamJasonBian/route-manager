@@ -302,26 +302,29 @@ export default function PriceTrendsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen px-4 py-8 sm:p-8">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center mb-8">
-          <Link to="/" className="text-blue-600 hover:underline mr-4">
-            &larr; Back to Home
+        <div className="mb-8 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Price Trends</h1>
+            <p className="text-sm text-slate-500">History and bands for your corridor</p>
+          </div>
+          <Link to="/" className="text-sm font-medium text-cyan-400/90 hover:text-cyan-300">
+            ← Back home
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Price Trends</h1>
         </div>
         
         {showLocationPrompt && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="mb-6 rounded-xl border border-cyan-500/20 bg-slate-900/60 p-4 backdrop-blur-sm">
             <div className="flex items-start">
               <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <svg className="h-5 w-5 text-cyan-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                 </svg>
               </div>
               <div className="ml-3 flex-1">
-                <h3 className="text-sm font-medium text-blue-800">Set your home airport</h3>
-                <p className="mt-1 text-sm text-blue-700">
+                <h3 className="text-sm font-medium text-cyan-200">Set your home airport</h3>
+                <p className="mt-1 text-sm text-slate-400">
                   {detectedAirport
                     ? `We detected you're near ${detectedAirport.name} (${detectedAirport.code}). Use this as your home airport?`
                     : 'Allow location access to find your nearest airport.'}
@@ -330,7 +333,7 @@ export default function PriceTrendsPage() {
                   {!detectedAirport && !isDetectingLocation && (
                     <button
                       onClick={requestLocation}
-                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 flex items-center"
+                      className="flex items-center rounded-md border border-transparent bg-cyan-600 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-500"
                     >
                       <svg className="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
@@ -339,7 +342,7 @@ export default function PriceTrendsPage() {
                     </button>
                   )}
                   {isDetectingLocation && (
-                    <div className="flex items-center text-sm text-blue-700">
+                    <div className="flex items-center text-sm text-slate-400">
                       <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -351,13 +354,13 @@ export default function PriceTrendsPage() {
                     <>
                       <button
                         onClick={confirmDetectedAirport}
-                        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
+                        className="rounded-md border border-transparent bg-cyan-600 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-500"
                       >
                         Yes, use {detectedAirport.code}
                       </button>
                       <button
                         onClick={() => setDetectedAirport(null)}
-                        className="px-4 py-2 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-100"
+                        className="rounded-md border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-slate-200 hover:bg-white/15"
                       >
                         Try again
                       </button>
@@ -367,7 +370,7 @@ export default function PriceTrendsPage() {
               </div>
               <button
                 onClick={dismissLocationPrompt}
-                className="ml-4 text-blue-400 hover:text-blue-600"
+                className="ml-4 text-slate-500 hover:text-cyan-400"
                 title="Skip and use default (JFK)"
               >
                 <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -378,7 +381,7 @@ export default function PriceTrendsPage() {
           </div>
         )}
 
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="surface-paper p-6">
           <div className="mb-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               {/* Origin Input with Autocomplete */}
@@ -391,7 +394,7 @@ export default function PriceTrendsPage() {
                   onChange={handleOriginInputChange}
                   onFocus={() => originInput.length >= 2 && setShowOriginSuggestions(true)}
                   placeholder="City or IATA code (e.g., JFK, NYC)"
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-cyan-500 focus:ring-cyan-500 text-sm"
                 />
                 {showOriginSuggestions && originSuggestions.length > 0 && (
                   <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
@@ -423,7 +426,7 @@ export default function PriceTrendsPage() {
                   onChange={handleDestinationInputChange}
                   onFocus={() => destinationInput.length >= 2 && setShowDestinationSuggestions(true)}
                   placeholder="City or IATA code (e.g., LHR, London)"
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-cyan-500 focus:ring-cyan-500 text-sm"
                 />
                 {showDestinationSuggestions && destinationSuggestions.length > 0 && (
                   <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
@@ -452,7 +455,7 @@ export default function PriceTrendsPage() {
                   id="stops"
                   value={stopsFilter}
                   onChange={(e) => setStopsFilter(e.target.value as StopsFilter)}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-cyan-500 focus:ring-cyan-500 text-sm"
                 >
                   <option value="cheapest">Cheapest</option>
                   <option value="0">Nonstop</option>
@@ -468,8 +471,8 @@ export default function PriceTrendsPage() {
                   onClick={handleUpdate}
                   disabled={isLoading || isSearching}
                   className={`w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
-                    isLoading || isSearching ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
-                  } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
+                    isLoading || isSearching ? 'bg-cyan-400' : 'bg-cyan-600 hover:bg-cyan-500'
+                  } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500`}
                 >
                   {isLoading ? 'Loading...' : 'Update Chart'}
                 </button>
@@ -485,7 +488,7 @@ export default function PriceTrendsPage() {
                       onClick={() => handleTabChange(index)}
                       className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
                         tabValue === index
-                          ? 'border-blue-500 text-blue-600'
+                          ? 'border-cyan-500 text-cyan-600'
                           : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                       }`}
                       id={`${type}-tab`}
@@ -508,7 +511,7 @@ export default function PriceTrendsPage() {
                   <div className="h-96">
                     {isLoading ? (
                       <div className="flex items-center justify-center h-full">
-                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
                       </div>
                     ) : error ? (
                       <div className="bg-red-50 border-l-4 border-red-400 p-4">

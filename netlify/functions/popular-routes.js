@@ -1,4 +1,5 @@
 import Amadeus from 'amadeus';
+import { getFlightPricesForDates } from './lib/amadeusBatch.js';
 
 // Helper function to get config with fallbacks
 const getConfig = async () => {
@@ -407,7 +408,12 @@ export const handler = async (event, context) => {
         // First try to get real flight data
         try {
           console.log(`Fetching real flight data for ${route.code1} to ${route.code2}`);
-          const realPrices = await getFlightPricesForDates(route.code1, route.code2, generateDatesForNextMonth());
+          const realPrices = await getFlightPricesForDates(
+            amadeus,
+            route.code1,
+            route.code2,
+            generateDatesForNextMonth()
+          );
           
           if (realPrices && realPrices.length > 0) {
             // Sort by price and get the cheapest
