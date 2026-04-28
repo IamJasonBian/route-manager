@@ -8,6 +8,11 @@
 
 import crypto from 'crypto';
 
+import {
+  ActionValidationError,
+  normalizeActions,
+} from './lib/proposalActions.js';
+
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
@@ -68,10 +73,15 @@ async function getPgPool() {
         status TEXT NOT NULL DEFAULT 'draft',
         notes TEXT,
         payload JSONB,
+        actions JSONB NOT NULL DEFAULT '[]'::jsonb,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
+    // Best-effort migration for pre-existing tables.
+    await pgPool.query(
+      `ALTER TABLE proposals ADD COLUMN IF NOT EXISTS actions JSONB NOT NULL DEFAULT '[]'::jsonb`
+    );
     return pgPool;
   } catch (err) {
     pgInitError = err;
@@ -94,6 +104,7 @@ function rowToProposal(row) {
     status: row.status,
     notes: row.notes,
     payload: row.payload,
+    actions: Array.isArray(row.actions) ? row.actions : [],
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -113,6 +124,7 @@ function buildProposal(input) {
     status: VALID_STATUSES.has(input.status) ? input.status : 'draft',
     notes: input.notes || null,
     payload: input.payload ?? null,
+    actions: normalizeActions(input.actions),
     created_at: now,
     updated_at: now,
   };
@@ -175,8 +187,8 @@ export const handler = async (event) => {
         const result = await pool.query(
           `INSERT INTO proposals
             (id, title, origin, destination, depart_date, return_date,
-             price_cents, currency, status, notes, payload)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+             price_cents, currency, status, notes, payload, actions)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
            RETURNING *`,
           [
             proposal.id,
@@ -190,6 +202,7 @@ export const handler = async (event) => {
             proposal.status,
             proposal.notes,
             proposal.payload,
+            JSON.stringify(proposal.actions),
           ]
         );
         return ok(rowToProposal(result.rows[0]), 201);
@@ -212,6 +225,9 @@ export const handler = async (event) => {
       for (const key of ['title', 'notes', 'priceCents', 'payload']) {
         if (input[key] !== undefined) patch[key] = input[key];
       }
+      if (input.actions !== undefined) {
+        patch.actions = normalizeActions(input.actions);
+      }
       if (usingDb) {
         const result = await pool.query(
           `UPDATE proposals SET
@@ -220,6 +236,7 @@ export const handler = async (event) => {
               notes = COALESCE($4, notes),
               price_cents = COALESCE($5, price_cents),
               payload = COALESCE($6, payload),
+              actions = COALESCE($7::jsonb, actions),
               updated_at = NOW()
            WHERE id = $1
            RETURNING *`,
@@ -230,6 +247,7 @@ export const handler = async (event) => {
             patch.notes ?? null,
             patch.priceCents ?? null,
             patch.payload ?? null,
+            patch.actions ? JSON.stringify(patch.actions) : null,
           ]
         );
         if (result.rowCount === 0) return fail(404, 'Proposal not found');
@@ -254,6 +272,9 @@ export const handler = async (event) => {
 
     return fail(405, `Method ${event.httpMethod} not allowed`);
   } catch (err) {
+    if (err instanceof ActionValidationError) {
+      return fail(400, err.message);
+    }
     console.error('[proposals] handler error:', err);
     return fail(500, err.message || 'Internal server error');
   }
