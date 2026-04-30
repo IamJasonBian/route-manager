@@ -1,6 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { useLivePolling } from '../hooks/useLivePolling';
+import LiveStatusIndicator from '../components/LiveStatusIndicator';
 
 interface Airport {
   iataCode: string;
@@ -59,8 +61,6 @@ export default function SearchFlightsPage() {
   const [flights, setFlights] = useState<Flight[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const lastSearchParamsRef = useRef<{
     origin: string;
     destination: string;
@@ -250,10 +250,7 @@ export default function SearchFlightsPage() {
     options: { silent?: boolean } = {}
   ) => {
     const { silent = false } = options;
-
-    if (silent) {
-      setIsRefreshing(true);
-    } else {
+    if (!silent) {
       setIsSearching(true);
       setError(null);
     }
@@ -275,7 +272,6 @@ export default function SearchFlightsPage() {
         setError('No flights found. Please try different search criteria.');
         setFlights([]);
       }
-      setLastUpdated(new Date());
     } catch (err) {
       console.error('Error searching flights:', err);
       if (!silent) {
@@ -283,11 +279,7 @@ export default function SearchFlightsPage() {
         setFlights([]);
       }
     } finally {
-      if (silent) {
-        setIsRefreshing(false);
-      } else {
-        setIsSearching(false);
-      }
+      if (!silent) setIsSearching(false);
     }
   };
 
@@ -304,30 +296,20 @@ export default function SearchFlightsPage() {
     lastSearchParamsRef.current = params;
     setHasSearched(true);
     await fetchFlights(params);
+    markUpdated();
   };
 
-  // Poll for live price updates every 5 seconds after a search has been made.
-  // Pauses when the tab is hidden to avoid unnecessary API calls.
-  useEffect(() => {
-    if (!hasSearched || !lastSearchParamsRef.current) return;
+  const pollFetcher = useCallback(async () => {
+    if (isSearching) return;
+    if (!lastSearchParamsRef.current) return;
+    await fetchFlights(lastSearchParamsRef.current, { silent: true });
+  }, [isSearching]);
 
-    const POLL_INTERVAL_MS = 5000;
-    let cancelled = false;
-
-    const tick = () => {
-      if (cancelled) return;
-      if (document.visibilityState !== 'visible') return;
-      if (isSearching || isRefreshing) return;
-      if (!lastSearchParamsRef.current) return;
-      fetchFlights(lastSearchParamsRef.current, { silent: true });
-    };
-
-    const intervalId = window.setInterval(tick, POLL_INTERVAL_MS);
-    return () => {
-      cancelled = true;
-      window.clearInterval(intervalId);
-    };
-  }, [hasSearched, isSearching, isRefreshing]);
+  const { isRefreshing, lastUpdated, markUpdated } = useLivePolling({
+    enabled: hasSearched,
+    intervalMs: 5000,
+    fetcher: pollFetcher,
+  });
 
   return (
     <div className="min-h-screen px-4 py-8 sm:p-8">
@@ -500,19 +482,11 @@ export default function SearchFlightsPage() {
                 Search Results {flights.length > 0 && `(${flights.length} found)`}
               </h2>
               {hasSearched && (
-                <div className="flex items-center text-xs text-gray-500">
-                  <span
-                    className={`mr-2 inline-block h-2 w-2 rounded-full ${
-                      isRefreshing ? 'bg-cyan-500 animate-pulse' : 'bg-emerald-500'
-                    }`}
-                    aria-hidden="true"
-                  />
-                  {isRefreshing
-                    ? 'Refreshing prices…'
-                    : `Live • auto-refreshes every 5s${
-                        lastUpdated ? ` • updated ${lastUpdated.toLocaleTimeString()}` : ''
-                      }`}
-                </div>
+                <LiveStatusIndicator
+                  isRefreshing={isRefreshing}
+                  lastUpdated={lastUpdated}
+                  intervalMs={5000}
+                />
               )}
             </div>
             
