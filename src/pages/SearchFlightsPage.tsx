@@ -58,6 +58,16 @@ export default function SearchFlightsPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [flights, setFlights] = useState<Flight[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const lastSearchParamsRef = useRef<{
+    origin: string;
+    destination: string;
+    departureDate: string;
+    returnDate?: string;
+    tripType: 'one-way' | 'round-trip';
+  } | null>(null);
 
   // Airport search states
   const [originInput, setOriginInput] = useState('JFK');
@@ -229,41 +239,95 @@ export default function SearchFlightsPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const fetchFlights = async (
+    params: {
+      origin: string;
+      destination: string;
+      departureDate: string;
+      returnDate?: string;
+      tripType: 'one-way' | 'round-trip';
+    },
+    options: { silent?: boolean } = {}
+  ) => {
+    const { silent = false } = options;
+
+    if (silent) {
+      setIsRefreshing(true);
+    } else {
+      setIsSearching(true);
+      setError(null);
+    }
+
+    try {
+      const response = await axios.post('/.netlify/functions/search-flights', {
+        origin: params.origin.toUpperCase(),
+        destination: params.destination.toUpperCase(),
+        departureDate: params.departureDate,
+        returnDate: params.tripType === 'round-trip' ? params.returnDate : undefined,
+        maxResults: 10,
+        nonStop: false
+      });
+
+      if (response.data && response.data.data) {
+        setFlights(response.data.data);
+        setError(null);
+      } else if (!silent) {
+        setError('No flights found. Please try different search criteria.');
+        setFlights([]);
+      }
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error('Error searching flights:', err);
+      if (!silent) {
+        setError('Failed to search for flights. Please try again later.');
+        setFlights([]);
+      }
+    } finally {
+      if (silent) {
+        setIsRefreshing(false);
+      } else {
+        setIsSearching(false);
+      }
+    }
+  };
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
+
     if (!origin || !destination || !departureDate || (tripType === 'round-trip' && !returnDate)) {
       setError('Please fill in all required fields');
       return;
     }
-    
-    setIsSearching(true);
-    
-    try {
-      const response = await axios.post('/.netlify/functions/search-flights', {
-        origin: origin.toUpperCase(),
-        destination: destination.toUpperCase(),
-        departureDate,
-        returnDate: tripType === 'round-trip' ? returnDate : undefined,
-        maxResults: 10,
-        nonStop: false
-      });
-      
-      if (response.data && response.data.data) {
-        setFlights(response.data.data);
-      } else {
-        setError('No flights found. Please try different search criteria.');
-        setFlights([]);
-      }
-    } catch (err) {
-      console.error('Error searching flights:', err);
-      setError('Failed to search for flights. Please try again later.');
-      setFlights([]);
-    } finally {
-      setIsSearching(false);
-    }
+
+    const params = { origin, destination, departureDate, returnDate, tripType };
+    lastSearchParamsRef.current = params;
+    setHasSearched(true);
+    await fetchFlights(params);
   };
+
+  // Poll for live price updates every 5 seconds after a search has been made.
+  // Pauses when the tab is hidden to avoid unnecessary API calls.
+  useEffect(() => {
+    if (!hasSearched || !lastSearchParamsRef.current) return;
+
+    const POLL_INTERVAL_MS = 5000;
+    let cancelled = false;
+
+    const tick = () => {
+      if (cancelled) return;
+      if (document.visibilityState !== 'visible') return;
+      if (isSearching || isRefreshing) return;
+      if (!lastSearchParamsRef.current) return;
+      fetchFlights(lastSearchParamsRef.current, { silent: true });
+    };
+
+    const intervalId = window.setInterval(tick, POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [hasSearched, isSearching, isRefreshing]);
 
   return (
     <div className="min-h-screen px-4 py-8 sm:p-8">
@@ -431,9 +495,26 @@ export default function SearchFlightsPage() {
           
           {/* Search results */}
           <div className="mt-8">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">
-              Search Results {flights.length > 0 && `(${flights.length} found)`}
-            </h2>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-medium text-gray-900">
+                Search Results {flights.length > 0 && `(${flights.length} found)`}
+              </h2>
+              {hasSearched && (
+                <div className="flex items-center text-xs text-gray-500">
+                  <span
+                    className={`mr-2 inline-block h-2 w-2 rounded-full ${
+                      isRefreshing ? 'bg-cyan-500 animate-pulse' : 'bg-emerald-500'
+                    }`}
+                    aria-hidden="true"
+                  />
+                  {isRefreshing
+                    ? 'Refreshing prices…'
+                    : `Live • auto-refreshes every 5s${
+                        lastUpdated ? ` • updated ${lastUpdated.toLocaleTimeString()}` : ''
+                      }`}
+                </div>
+              )}
+            </div>
             
             {error && (
               <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
