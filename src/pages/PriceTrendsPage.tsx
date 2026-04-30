@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import PriceHistoryChart, { ChartType } from '../components/PriceHistoryChart';
+import LiveTransportEstimates from '../components/LiveTransportEstimates';
 import { getPriceHistory } from '../services/api';
 
 interface Airport {
@@ -67,6 +68,10 @@ const AIRPORT_COORDS: { code: string; lat: number; lon: number; name: string }[]
   { code: 'PHX', lat: 33.4373, lon: -112.0078, name: 'Phoenix' },
   { code: 'IAH', lat: 29.9902, lon: -95.3368, name: 'Houston' },
 ];
+
+function getAirportByCode(code: string) {
+  return AIRPORT_COORDS.find((a) => a.code === code.toUpperCase());
+}
 
 function findNearestAirport(lat: number, lon: number): { code: string; name: string } {
   let nearest = AIRPORT_COORDS[0];
@@ -380,6 +385,21 @@ export default function PriceTrendsPage() {
             </div>
           </div>
         )}
+
+        {(() => {
+          const originAirport = getAirportByCode(origin);
+          if (!originAirport) return null;
+          return (
+            <LiveTransportEstimates
+              destination={{
+                code: originAirport.code,
+                name: originAirport.name,
+                lat: originAirport.lat,
+                lon: originAirport.lon,
+              }}
+            />
+          );
+        })()}
 
         <div className="surface-paper p-6">
           <div className="mb-6">
