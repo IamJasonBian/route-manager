@@ -12,6 +12,46 @@ interface Airport {
   type: string;
 }
 
+const AIRLINE_NAMES: Record<string, string> = {
+  AA: 'American Airlines',
+  DL: 'Delta Air Lines',
+  UA: 'United Airlines',
+  WN: 'Southwest Airlines',
+  B6: 'JetBlue Airways',
+  AS: 'Alaska Airlines',
+  NK: 'Spirit Airlines',
+  F9: 'Frontier Airlines',
+  G4: 'Allegiant Air',
+  TP: 'TAP Portugal',
+  BA: 'British Airways',
+  LH: 'Lufthansa',
+  AF: 'Air France',
+  KL: 'KLM Royal Dutch Airlines',
+  IB: 'Iberia',
+  AZ: 'ITA Airways',
+  EI: 'Aer Lingus',
+  LX: 'Swiss International Air Lines',
+  OS: 'Austrian Airlines',
+  SN: 'Brussels Airlines',
+  TK: 'Turkish Airlines',
+  EK: 'Emirates',
+  QR: 'Qatar Airways',
+  EY: 'Etihad Airways',
+  SV: 'Saudia',
+  AC: 'Air Canada',
+  NH: 'All Nippon Airways',
+  JL: 'Japan Airlines',
+  SQ: 'Singapore Airlines',
+  CX: 'Cathay Pacific',
+  QF: 'Qantas',
+  NZ: 'Air New Zealand',
+};
+
+const getAirlineName = (carrierCode: string): string =>
+  AIRLINE_NAMES[carrierCode] || carrierCode;
+
+const AIRPORT_SEARCH_DEBOUNCE_MS = 250;
+
 interface Flight {
   id: string;
   departure: {
@@ -98,45 +138,6 @@ export default function SearchFlightsPage() {
     return `${hours}h ${minutes}m`;
   };
 
-  // Airline name mapping
-  const getAirlineName = (carrierCode: string): string => {
-    const airlines: { [key: string]: string } = {
-      'AA': 'American Airlines',
-      'DL': 'Delta Air Lines',
-      'UA': 'United Airlines',
-      'WN': 'Southwest Airlines',
-      'B6': 'JetBlue Airways',
-      'AS': 'Alaska Airlines',
-      'NK': 'Spirit Airlines',
-      'F9': 'Frontier Airlines',
-      'G4': 'Allegiant Air',
-      'TP': 'TAP Portugal',
-      'BA': 'British Airways',
-      'LH': 'Lufthansa',
-      'AF': 'Air France',
-      'KL': 'KLM Royal Dutch Airlines',
-      'IB': 'Iberia',
-      'AZ': 'ITA Airways',
-      'EI': 'Aer Lingus',
-      'LX': 'Swiss International Air Lines',
-      'OS': 'Austrian Airlines',
-      'SN': 'Brussels Airlines',
-      'TK': 'Turkish Airlines',
-      'EK': 'Emirates',
-      'QR': 'Qatar Airways',
-      'EY': 'Etihad Airways',
-      'SV': 'Saudia',
-      'AC': 'Air Canada',
-      'NH': 'All Nippon Airways',
-      'JL': 'Japan Airlines',
-      'SQ': 'Singapore Airlines',
-      'CX': 'Cathay Pacific',
-      'QF': 'Qantas',
-      'NZ': 'Air New Zealand'
-    };
-    return airlines[carrierCode] || carrierCode;
-  };
-
   // Generate Google Flights booking link with one-way and economy preset
   const getBookingLink = (flight: Flight): string => {
     const dep = flight.itineraries[0].segments[0];
@@ -158,56 +159,65 @@ export default function SearchFlightsPage() {
     return `https://www.google.com/travel/flights?${params.toString()}`;
   };
 
-  // Search for airports using Amadeus API
-  const searchAirports = async (keyword: string): Promise<Airport[]> => {
-    if (keyword.length < 2) return [];
+  // Refs for debounce timer and abort controller so each new keystroke
+  // cancels the prior pending request and avoids stale results overwriting
+  // newer ones (race condition).
+  const airportDebounceRef = useRef<number | null>(null);
+  const airportAbortRef = useRef<AbortController | null>(null);
 
-    try {
-      setIsLoadingAirports(true);
-      const response = await axios.get('/.netlify/functions/airport-search', {
-        params: { keyword }
-      });
+  useEffect(() => {
+    return () => {
+      if (airportDebounceRef.current) window.clearTimeout(airportDebounceRef.current);
+      airportAbortRef.current?.abort();
+    };
+  }, []);
 
-      if (response.data && response.data.airports) {
-        return response.data.airports;
-      }
-      return [];
-    } catch (error) {
-      console.error('Error searching airports:', error);
-      return [];
-    } finally {
-      setIsLoadingAirports(false);
+  const queueAirportSearch = (
+    keyword: string,
+    setSuggestions: (a: Airport[]) => void,
+    setShow: (b: boolean) => void
+  ) => {
+    if (airportDebounceRef.current) window.clearTimeout(airportDebounceRef.current);
+    airportAbortRef.current?.abort();
+
+    if (keyword.length < 2) {
+      setSuggestions([]);
+      setShow(false);
+      return;
     }
+
+    airportDebounceRef.current = window.setTimeout(async () => {
+      const controller = new AbortController();
+      airportAbortRef.current = controller;
+      try {
+        setIsLoadingAirports(true);
+        const response = await axios.get('/.netlify/functions/airport-search', {
+          params: { keyword },
+          signal: controller.signal,
+        });
+        if (response.data && response.data.airports) {
+          setSuggestions(response.data.airports);
+          setShow(true);
+        }
+      } catch (error) {
+        if (axios.isCancel(error)) return;
+        console.error('Error searching airports:', error);
+      } finally {
+        setIsLoadingAirports(false);
+      }
+    }, AIRPORT_SEARCH_DEBOUNCE_MS);
   };
 
-  // Handle origin input change
-  const handleOriginInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleOriginInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toUpperCase();
     setOriginInput(value);
-
-    if (value.length >= 2) {
-      const airports = await searchAirports(value);
-      setOriginSuggestions(airports);
-      setShowOriginSuggestions(true);
-    } else {
-      setOriginSuggestions([]);
-      setShowOriginSuggestions(false);
-    }
+    queueAirportSearch(value, setOriginSuggestions, setShowOriginSuggestions);
   };
 
-  // Handle destination input change
-  const handleDestinationInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDestinationInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toUpperCase();
     setDestinationInput(value);
-
-    if (value.length >= 2) {
-      const airports = await searchAirports(value);
-      setDestinationSuggestions(airports);
-      setShowDestinationSuggestions(true);
-    } else {
-      setDestinationSuggestions([]);
-      setShowDestinationSuggestions(false);
-    }
+    queueAirportSearch(value, setDestinationSuggestions, setShowDestinationSuggestions);
   };
 
   // Select origin airport

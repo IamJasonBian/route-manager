@@ -52,9 +52,18 @@ export function useLivePolling({
     };
 
     const intervalId = window.setInterval(tick, intervalMs);
+
+    // Refresh immediately when the tab becomes visible again instead of
+    // waiting up to a full interval.
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') tick();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
       cancelled = true;
       window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [enabled, intervalMs]);
 
