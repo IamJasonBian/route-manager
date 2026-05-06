@@ -1,4 +1,4 @@
-# ✈️ Apollo Flight Trader
+# Route Manager - Travel in the Power of the Traveler 
 
 <div align="center">
   <p align="center">
@@ -11,6 +11,15 @@
   </p>
 </div>
 
+Rag Based Flight Planner and Trip Autobook. 
+
+"Calling AirCanada - " 
+
+"Sorry, we do not have any updates - please use our chatbot for the latest updates"
+
+Flying is often full of surprises, airline inventory is currently opaque with fragmented availability. Seat inventory is vended to third party agencies and rewards systems are opaque. Prices are often spiked last minute when travelers need it the most and point inventory are often yanked without visibility. 
+
+Given last minute flight cancellations, delays, and even the recent bankrupcy of cheap carriers like spirit, travelers should be armed with the tools to manage last minute travel risk. This includes managing rebookings, changes, and surprise delays at the airport without the friction of the airline front-desk, third party booking sites, and airline websites. Route Manager aims to create an agent stack for flight operations. 
 
 ## Environments
 
@@ -21,30 +30,42 @@
 
 ## Test-Flight
 
-* Reflight
+* (IOS) Reflight - https://flight-branch--jasonbian75.replit.app/
 
 # Overview 
 
 ##  Features
 
-Route Manager is designed to enable last minute travel by prebooking commonly taken flights at flex/main levels. This allows for spontaneous trips and upgrades and reduces overall airport planning. Additionally, by solving for price and modeling travel risks and dependencies, Route Manager can increase travel optionality.
+Route Manager is designed to enable last minute travel by prebooking commonly taken flights at rebookable and point based tiers. This allows for spontaneous trips, upgrades and reduces overall airport planning. 
 
-- **Low Latency Flight Monitoring** - Fetch flight prices with historical, projected, volatility and delay (planned) analysis
+By solving for price and modeling common travel risks and dependencies, Route Manager can increase travel optionality by reducing operational friction. This is done primarily via
+
+* Parsing through flight websites and holding a locked "offered" flight pre-checkout (~20 mins) [1]
+* Using Raw Booking Apis to reduce slow UI and website load times [2]
+* Chatbot use, rebooking, and travel credit workflows [3]
+
+This adds value on top of common workflows in Google Flights (and associated notifications) as well as other softwares like Scot's cheap flights etc 
+
+## Some Current Features
+
+- **Low Latency Flight Monitoring** - Fetch flight prices with historical, projected, volatility and delay analysis
 - **Route Management** - Track common flight routes and associated pricing
-- **API Integration** - Direct Integration with Amadeus Flight API 
-- **Booking, Rescheduling, and Buying Agent (planned)**
-  * Track and Book commonly flown routes at historical lows with reasonable refund, exchange, and rescheduling fees in anticipation of future upgrades as we approach the travel date
-      * Notification based - Change Management via the original airline site or travel brokers (I.E. VentureX) - user inputs the flight into the system
-      * Agentic - Policy driven Ticket and Change Management via the Amadeus Flight API 
+- **API Integration** - Direct Integration with the Amadeus Flight API
+- **Git Style Forking and Trip Sharing** - IOS App based 
 
-Route Manager is good at
+## Some Planned Features 
+
+- **Booking, Rescheduling, and Buying Agents **
+  * Track and book commonly flown routes at historical lows with reasonable refund, exchange, and rescheduling fees in anticipation of future upgrades (as we approach the travel date) 
+      * Notification based - Change Management and cancellation workflows via the original airline sites or travel brokers (I.E. VentureX) 
+
+## Route Manager is good at
 * Finding the best price in context of a specific user
 * Reducing and simplifying the technical dependencies surrounding air travel by improving ease of access
+* Helping share and manage last minute flights (and newly occuring last minute flights) from last minute cancellations.
 
-Route Manager not good at
+## Route Manager not good at
 * Finding the best price overall on the market
-
-##  Tenants
 
 # Quick Start
 
