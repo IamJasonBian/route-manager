@@ -19,7 +19,7 @@ Rag Based Flight Planner and Trip Autobook.
 
 Flying is often full of surprises, airline inventory is currently opaque with fragmented availability. Seat inventory is vended to third party agencies and rewards systems are opaque. Prices are often spiked last minute when travelers need it the most and point inventory are often yanked without visibility. 
 
-Given last minute flight cancellations, delays, and even the recent bankrupcy of cheap carriers like spirit, travelers should be armed with the tools to manage last minute travel risk. This includes managing rebookings, changes, and surprise delays at the airport without the friction of the airline front-desk, third party booking sites, and airline websites. Route Manager aims to create an agent stack for flight operations. 
+Given last minute flight cancellations, delays, and even the recent bankruptcy [1](https://en.wikipedia.org/wiki/Spirit_Airlines#cite_note-82) of cheap carriers like spirit, travelers should be armed with the tools to manage last-minute travel risk. This includes managing rebookings, flight-changes, and surprise delays at the airport without the friction of the airline front-desk, third party booking sites, and airline websites. Route Manager aims to create an agent stack for flight operations. 
 
 ## Environments
 
@@ -57,25 +57,27 @@ This adds value on top of common workflows in Google Flights (and associated not
 
 - **Booking, Rescheduling, and Buying Agents **
   * Track and book commonly flown routes at historical lows with reasonable refund, exchange, and rescheduling fees in anticipation of future upgrades (as we approach the travel date) 
-      * Notification based - Change Management and cancellation workflows via the original airline sites or travel brokers (I.E. VentureX) 
+  * Notification based - Change Management and cancellation workflows via the original airline sites or travel brokers (I.E. VentureX)
+  * Comprehensive flight inventory data (higher coverage than google flights)
 
 ## Route Manager is good at
 * Finding the best price in context of a specific user
 * Reducing and simplifying the technical dependencies surrounding air travel by improving ease of access
-* Helping share and manage last minute flights (and newly occuring last minute flights) from last minute cancellations.
+* Helping share and manage last minute flights (and newly occuring last minute flights) from last minute cancellations
+
 
 ## Route Manager not good at
 * Finding the best price overall on the market
 
 # Quick Start
 
-### Prerequisites
+### Prerequisites (Self Service Install)
 - Node.js 18+ & npm 9+
 - Amadeus API credentials (for live data and production use)
 - Netlify Account (for hosting data access functions, we're using netlify rather than doing direct calls from front-end code)
-- Github Repository and Pipelines (for managing personal stacks across local and remote environments)
+- Github Repository and Pipelines Personal Stacks
 
-### Environment Setup
+### Local Environment Setup
 
 1. **Clone the repository**
    ```bash
@@ -140,9 +142,9 @@ To deploy to prod:
 3. Check "Deploy to PROD (requires manual approval)"
 4. Click "Run workflow"
 
-**Required GitHub Secrets:**
+**Runtime Permissions:**
 
-Netlify Account Used: jasonzb@umich.edu
+Netlify Account Used (current): jasonzb@umich.edu
 
 | Secret | Description |
 |--------|-------------|
@@ -157,7 +159,7 @@ Netlify Account Used: jasonzb@umich.edu
 - `GET /.netlify/functions/popular-routes` - Get popular routes
 - `GET /.netlify/functions/flight-prices` - Get flight prices
 
-##  Configuration
+##  Auth Configuration
 
 ### Development Environment Variables
 
@@ -184,28 +186,13 @@ npm test
 npm run test:watch
 ```
 
-## Other Deployments
+## Older Releases
 
-* Alpha | Single Page Analytics Demo: https://apollo-route-manager-0acz9.netlify.app/
+* Alpha | Single Page Analytics Demo: https://apollo-route-manager-0acz9.netlify.app/ 
 
+## API Diver
 
-
-# Scratch
-
-## E2E Docker Build (depreciated)
-
-```
-npm install
-npm run build
-docker compose up -d
-npm run dev -- --port 5177
-npx netlify dev --targetPort 5177 --port 3005
-```
- 
-
-## Calling the Api Locally
-
-### Authentication
+### Auth
 
 ```bash
 # Obtain access token
@@ -214,7 +201,7 @@ curl -X POST "https://api.amadeus.com/v1/security/oauth2/token" \
   -d "grant_type=client_credentials&client_id=YOUR_API_KEY&client_secret=YOUR_SECRET"
 ```
 
-### Example Request
+### Example Request (Amadeus)
 
 ```bash
 # Fetch flight offers
